@@ -1,0 +1,87 @@
+# ============================================================
+#  Yachay Ayacucho - configuracion del backend
+# ============================================================
+#  Ningun secreto vive en este archivo (RNF-17). Todos los valores
+#  sensibles se leen del .env unico de la raiz del monorepo, que se
+#  importa abajo, o de las variables de entorno del proveedor cloud
+#  (Railway / Fly.io) cuando el .env no existe.
+# ============================================================
+
+spring:
+  application:
+    name: yachay-api
+
+  # ----------------------------------------------------------
+  #  Carga del .env unico de la raiz del proyecto.
+  #  La pista [.properties] le dice a Spring que lea el archivo
+  #  como pares CLAVE=valor. Las dos rutas cubren los dos modos
+  #  de arranque: desde la raiz (jar) y desde apps/api (mvnw).
+  #  `optional:` evita que la app muera si el archivo no existe,
+  #  que es justo el caso en produccion.
+  # ----------------------------------------------------------
+  config:
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:../../.env[.properties]
+
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USER}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      pool-name: YachayHikariPool
+      # Con virtual threads el pool es el limite real de concurrencia.
+      # 10 es holgado para desarrollo; se dimensiona contra la
+      # capacidad de PostgreSQL al desplegar.
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 3000
+      leak-detection-threshold: 20000
+
+  data:
+    redis:
+      url: ${REDIS_URL}
+      timeout: 2s
+      connect-timeout: 2s
+
+  # Virtual threads de Java 21: el backend es I/O-bound (BD, Redis,
+  # APIs externas), que es exactamente su caso de uso ideal.
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8080
+  # Todo el API cuelga de /api/v1 (RNF-28). Los controllers solo
+  # declaran su ruta propia: /health -> /api/v1/health
+  servlet:
+    context-path: /api/v1
+  shutdown: graceful
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+    operations-sorter: alpha
+    tags-sorter: alpha
+  api-docs:
+    path: /api-docs
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+logging:
+  level:
+    com.huamanga.tourism: INFO

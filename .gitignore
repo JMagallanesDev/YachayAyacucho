@@ -1,0 +1,55 @@
+# ============================================================
+#  Yachay Ayacucho - archivos que NUNCA entran al repositorio
+# ============================================================
+
+# --- Secretos (RNF-17): el .env real jamas se sube; el .env.example si ---
+.env
+.env.*
+!.env.example
+
+# --- Dependencias ---
+node_modules/
+.pnpm-store/
+
+# --- Next.js (apps/web) ---
+.next/
+out/
+build/
+next-env.d.ts
+.vercel/
+*.tsbuildinfo
+
+# --- Java / Maven (apps/api) ---
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+HELP.md
+
+# --- Tests y cobertura ---
+coverage/
+.nyc_output/
+site/jacoco/
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# --- IDEs y editores ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/*
+!.vscode/extensions.json
+.settings/
+.project
+.classpath
+nbproject/private/
+
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,299 @@
+/* ============================================================
+   Yachay Ayacucho - Design tokens (RF-89, RF-90)
+   ============================================================
+   Fuente unica de verdad del color, la tipografia y el espaciado.
+   Ningun componente escribe un hex: todos consumen estos tokens.
+
+   Tres capas, de abstracta a concreta:
+     1. PRIMITIVOS  -> la paleta cruda (retablo-600, piedra-200...).
+                      Nombran el color, no su funcion.
+     2. SEMANTICOS  -> la funcion (bg, surface, primary, danger...).
+                      Cambian solos entre tema claro y oscuro.
+     3. COMPONENTE  -> medidas de UI (alto de barra, radios, alturas
+                      de toque). Se iran sumando por bloque.
+
+   Regla: los componentes usan SOLO la capa 2 y 3. Si un componente
+   necesita "retablo-600" directamente, es que falta un token semantico.
+
+   El color se declara en OKLCH: es perceptualmente uniforme, asi que
+   dos colores del mismo peldaño pesan visualmente igual, y permite
+   calcular contrastes con criterio (RNF-21, WCAG AA 4.5:1).
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   CAPA 1 - PRIMITIVOS
+   Los 5 colores oficiales de la paleta Ayacucho (RF-90) y su
+   escala derivada. Cada escala comparte una unica rampa de
+   luminosidad, y el peldaño "oficial" es el que conserva el color
+   exacto del que nace.
+   ------------------------------------------------------------ */
+@theme {
+  /* retablo #B3202B - rojo carmin de cochinilla, retablo ayacuchano. Color oficial = retablo-600 */
+  --color-retablo-50: oklch(0.970 0.031 23.7);
+  --color-retablo-100: oklch(0.940 0.061 23.7);
+  --color-retablo-200: oklch(0.880 0.117 23.7);
+  --color-retablo-300: oklch(0.800 0.134 23.7);
+  --color-retablo-400: oklch(0.700 0.153 23.7);
+  --color-retablo-500: oklch(0.600 0.170 23.7);
+  --color-retablo-600: oklch(0.498 0.181 23.7);
+  --color-retablo-700: oklch(0.420 0.173 23.7);
+  --color-retablo-800: oklch(0.340 0.161 23.7);
+  --color-retablo-900: oklch(0.260 0.146 23.7);
+  --color-retablo-950: oklch(0.190 0.132 23.7);
+
+  /* anil #24406E - indigo de los textiles andinos. Color oficial = anil-800 */
+  --color-anil-50: oklch(0.970 0.031 259.8);
+  --color-anil-100: oklch(0.940 0.035 259.8);
+  --color-anil-200: oklch(0.880 0.042 259.8);
+  --color-anil-300: oklch(0.800 0.051 259.8);
+  --color-anil-400: oklch(0.700 0.061 259.8);
+  --color-anil-500: oklch(0.600 0.071 259.8);
+  --color-anil-600: oklch(0.500 0.079 259.8);
+  --color-anil-700: oklch(0.420 0.084 259.8);
+  --color-anil-800: oklch(0.374 0.086 259.8);
+  --color-anil-900: oklch(0.260 0.080 259.8);
+  --color-anil-950: oklch(0.190 0.074 259.8);
+
+  /* quinua #C0703A - ocre del barro cocido de Quinua. Color oficial = quinua-500 */
+  --color-quinua-50: oklch(0.970 0.031 52.5);
+  --color-quinua-100: oklch(0.940 0.061 52.5);
+  --color-quinua-200: oklch(0.880 0.096 52.5);
+  --color-quinua-300: oklch(0.800 0.106 52.5);
+  --color-quinua-400: oklch(0.700 0.117 52.5);
+  --color-quinua-500: oklch(0.624 0.122 52.5);
+  --color-quinua-600: oklch(0.500 0.112 52.5);
+  --color-quinua-700: oklch(0.420 0.103 52.5);
+  --color-quinua-800: oklch(0.340 0.093 52.5);
+  --color-quinua-900: oklch(0.260 0.082 52.5);
+  --color-quinua-950: oklch(0.190 0.071 52.5);
+
+  /* sillar #E9D8C8 - piedra rosada de los templos de Huamanga. Color oficial = sillar-200 */
+  --color-sillar-50: oklch(0.970 0.027 65.7);
+  --color-sillar-100: oklch(0.940 0.028 65.7);
+  --color-sillar-200: oklch(0.892 0.029 65.7);
+  --color-sillar-300: oklch(0.800 0.027 65.7);
+  --color-sillar-400: oklch(0.700 0.024 65.7);
+  --color-sillar-500: oklch(0.600 0.021 65.7);
+  --color-sillar-600: oklch(0.500 0.018 65.7);
+  --color-sillar-700: oklch(0.420 0.015 65.7);
+  --color-sillar-800: oklch(0.340 0.012 65.7);
+  --color-sillar-900: oklch(0.260 0.009 65.7);
+  --color-sillar-950: oklch(0.190 0.006 65.7);
+
+  /* puna #46704F - verde de la puna. Color oficial = puna-600 */
+  --color-puna-50: oklch(0.970 0.031 150.1);
+  --color-puna-100: oklch(0.940 0.041 150.1);
+  --color-puna-200: oklch(0.880 0.046 150.1);
+  --color-puna-300: oklch(0.800 0.052 150.1);
+  --color-puna-400: oklch(0.700 0.060 150.1);
+  --color-puna-500: oklch(0.600 0.066 150.1);
+  --color-puna-600: oklch(0.505 0.070 150.1);
+  --color-puna-700: oklch(0.420 0.067 150.1);
+  --color-puna-800: oklch(0.340 0.062 150.1);
+  --color-puna-900: oklch(0.260 0.056 150.1);
+  --color-puna-950: oklch(0.190 0.051 150.1);
+
+  /* piedra - neutral calido (hue 65.7 heredado del sillar, croma minima).
+     Neutral calido y no gris azulado: acompaña a la piedra volcanica
+     de Huamanga en lugar de pelearse con ella. */
+  --color-piedra-50: oklch(0.970 0.006 65.7);
+  --color-piedra-100: oklch(0.940 0.007 65.7);
+  --color-piedra-200: oklch(0.880 0.009 65.7);
+  --color-piedra-300: oklch(0.800 0.011 65.7);
+  --color-piedra-400: oklch(0.700 0.013 65.7);
+  --color-piedra-500: oklch(0.600 0.016 65.7);
+  --color-piedra-600: oklch(0.500 0.013 65.7);
+  --color-piedra-700: oklch(0.420 0.011 65.7);
+  --color-piedra-800: oklch(0.340 0.009 65.7);
+  --color-piedra-900: oklch(0.260 0.007 65.7);
+  --color-piedra-950: oklch(0.190 0.005 65.7);
+
+  /* Tipografia dual (RF-91). Las familias reales las inyecta
+     next/font en el layout raiz como --font-inter y --font-playfair. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-playfair), ui-serif, Georgia, serif;
+
+  /* Escala tipografica fluida con clamp(): un solo valor sirve de
+     320px (iPhone SE) a 1920px sin media queries (RNF-20). */
+  --text-fluid-sm: clamp(0.875rem, 0.85rem + 0.15vw, 0.95rem);
+  --text-fluid-base: clamp(1rem, 0.96rem + 0.2vw, 1.075rem);
+  --text-fluid-lg: clamp(1.125rem, 1.05rem + 0.4vw, 1.35rem);
+  --text-fluid-xl: clamp(1.375rem, 1.2rem + 0.85vw, 1.9rem);
+  --text-fluid-2xl: clamp(1.75rem, 1.4rem + 1.7vw, 2.75rem);
+  --text-fluid-3xl: clamp(2.25rem, 1.6rem + 3vw, 3.75rem);
+}
+
+/* ------------------------------------------------------------
+   CAPA 2 - SEMANTICOS
+   Aqui vive el tema. Un componente pide "surface", no "piedra-900",
+   y por eso el modo oscuro (RF-94) funciona sin tocar componentes.
+   ------------------------------------------------------------ */
+:root {
+  color-scheme: light;
+
+  /* Superficies */
+  --bg: var(--color-sillar-50);
+  --surface: oklch(0.995 0.004 65.7);
+  --surface-muted: var(--color-piedra-100);
+  --border: var(--color-piedra-200);
+  --border-strong: var(--color-piedra-300);
+
+  /* Texto */
+  --text: var(--color-piedra-950);
+  --text-muted: var(--color-piedra-700);
+  --text-inverse: var(--color-sillar-50);
+
+  /* Marca */
+  --primary: var(--color-retablo-600);
+  --primary-hover: var(--color-retablo-700);
+  --primary-fg: oklch(0.995 0.004 65.7);
+  --secondary: var(--color-anil-800);
+  --secondary-hover: var(--color-anil-900);
+  --secondary-fg: oklch(0.995 0.004 65.7);
+  --accent: var(--color-quinua-500);
+  --accent-fg: var(--color-piedra-950);
+
+  /* Estado */
+  --success: var(--color-puna-600);
+  --success-subtle: var(--color-puna-50);
+  --warning: var(--color-quinua-600);
+  --warning-subtle: var(--color-quinua-50);
+  --danger: var(--color-retablo-600);
+  --danger-subtle: var(--color-retablo-50);
+
+  /* Foco visible: obligatorio para navegacion por teclado (RNF-21) */
+  --ring: var(--color-anil-600);
+
+  --overlay: oklch(0.19 0.005 65.7 / 0.55);
+}
+
+/* Modo oscuro por preferencia del sistema. El selector [data-theme]
+   permite que en el Bloque 12 next-themes imponga la eleccion manual
+   del usuario sin reescribir nada de esto. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    /* Nunca negro puro: cansa la vista y aplasta las sombras. */
+    --bg: var(--color-piedra-950);
+    --surface: var(--color-piedra-900);
+    --surface-muted: var(--color-piedra-800);
+    --border: var(--color-piedra-800);
+    --border-strong: var(--color-piedra-700);
+
+    --text: var(--color-sillar-100);
+    --text-muted: var(--color-piedra-400);
+    --text-inverse: var(--color-piedra-950);
+
+    /* En fondo oscuro la marca sube de luminosidad para conservar
+       el contraste; el rojo profundo se volveria ilegible. */
+    --primary: var(--color-retablo-400);
+    --primary-hover: var(--color-retablo-300);
+    --primary-fg: var(--color-piedra-950);
+    --secondary: var(--color-anil-400);
+    --secondary-hover: var(--color-anil-300);
+    --secondary-fg: var(--color-piedra-950);
+    --accent: var(--color-quinua-400);
+    --accent-fg: var(--color-piedra-950);
+
+    --success: var(--color-puna-400);
+    --success-subtle: var(--color-puna-950);
+    --warning: var(--color-quinua-400);
+    --warning-subtle: var(--color-quinua-950);
+    --danger: var(--color-retablo-400);
+    --danger-subtle: var(--color-retablo-950);
+
+    --ring: var(--color-anil-400);
+
+    --overlay: oklch(0.19 0.005 65.7 / 0.7);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: var(--color-piedra-950);
+  --surface: var(--color-piedra-900);
+  --surface-muted: var(--color-piedra-800);
+  --border: var(--color-piedra-800);
+  --border-strong: var(--color-piedra-700);
+
+  --text: var(--color-sillar-100);
+  --text-muted: var(--color-piedra-400);
+  --text-inverse: var(--color-piedra-950);
+
+  --primary: var(--color-retablo-400);
+  --primary-hover: var(--color-retablo-300);
+  --primary-fg: var(--color-piedra-950);
+  --secondary: var(--color-anil-400);
+  --secondary-hover: var(--color-anil-300);
+  --secondary-fg: var(--color-piedra-950);
+  --accent: var(--color-quinua-400);
+  --accent-fg: var(--color-piedra-950);
+
+  --success: var(--color-puna-400);
+  --success-subtle: var(--color-puna-950);
+  --warning: var(--color-quinua-400);
+  --warning-subtle: var(--color-quinua-950);
+  --danger: var(--color-retablo-400);
+  --danger-subtle: var(--color-retablo-950);
+
+  --ring: var(--color-anil-400);
+
+  --overlay: oklch(0.19 0.005 65.7 / 0.7);
+}
+
+/* Registro de los semanticos como utilidades de Tailwind.
+   `inline` hace que la utilidad apunte a la variable y no a su valor
+   resuelto: por eso bg-surface cambia solo al cambiar de tema. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border-base: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-inverse: var(--text-inverse);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-fg: var(--primary-fg);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-fg: var(--secondary-fg);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+
+  --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
+}
+
+/* ------------------------------------------------------------
+   CAPA 3 - COMPONENTE
+   Medidas de la interfaz. Se ampliara conforme entren la bottom
+   nav (Bloque 4), el mapa (Bloque 5) y los drawers.
+   ------------------------------------------------------------ */
+@theme {
+  /* 44px es el minimo de las guias de Apple y Google: baja el error
+     de pulsacion de ~15% a ~3% (RNF-19). */
+  --spacing-touch: 2.75rem;
+
+  --radius-card: 1rem;
+  --radius-sheet: 1.5rem;
+
+  --shadow-card: 0 1px 2px oklch(0.19 0.005 65.7 / 0.06), 0 4px 12px oklch(0.19 0.005 65.7 / 0.08);
+  --shadow-raised: 0 2px 4px oklch(0.19 0.005 65.7 / 0.08), 0 12px 28px oklch(0.19 0.005 65.7 / 0.12);
+
+  /* Duraciones alineadas al RNF-25 (transiciones < 200 ms) */
+  --duration-tap: 120ms;
+  --duration-panel: 200ms;
+}

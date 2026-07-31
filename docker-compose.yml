@@ -1,0 +1,68 @@
+# ============================================================
+#  Yachay Ayacucho - infraestructura de desarrollo local
+# ============================================================
+#  Levanta PostgreSQL 16 + PostGIS y Redis 7 en tu maquina.
+#  Las credenciales salen del archivo .env de esta misma carpeta,
+#  que Docker Compose lee automaticamente.
+#
+#    docker compose up -d     levantar
+#    docker compose ps        ver estado
+#    docker compose down      apagar (conserva los datos)
+#    docker compose down -v   apagar y BORRAR los datos
+# ============================================================
+
+name: yachay-ayacucho
+
+services:
+  # ----------------------------------------------------------
+  #  PostgreSQL 16 con PostGIS 3.5
+  #  La imagen habilita la extension postgis automaticamente en
+  #  la base indicada por POSTGRES_DB al crearla por primera vez.
+  # ----------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.5
+    container_name: yachay-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: America/Lima
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ----------------------------------------------------------
+  #  Redis 7
+  #  Cache de clima, rate limiting, anti-spam con TTL y locks de
+  #  ShedLock. En produccion se reemplaza por Upstash cambiando
+  #  REDIS_URL en el .env (RNF-39, arquitectura portable).
+  # ----------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: yachay-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres-data:
+    name: yachay-postgres-data
+  redis-data:
+    name: yachay-redis-data

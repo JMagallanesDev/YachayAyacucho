@@ -1,0 +1,12 @@
+{
+  "name": "api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend Spring Boot. Este package.json solo expone la app Java al monorepo pnpm; las dependencias reales viven en pom.xml.",
+  "scripts": {
+    "dev": "mvnw spring-boot:run",
+    "build": "mvnw -B clean package",
+    "test": "mvnw -B test",
+    "test:coverage": "mvnw -B verify"
+  }
+}

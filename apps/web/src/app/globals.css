@@ -1,0 +1,148 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* ============================================================
+   Capa base: "sensacion de app nativa"
+   ============================================================
+   Aproximadamente el 80% de la sensacion de app nativa sale de esta
+   hoja, no de las animaciones. Se aplica desde el Bloque 0 para que
+   ningun componente posterior tenga que arreglarlo por su cuenta.
+   ============================================================ */
+@layer base {
+
+  html {
+    /* Elimina el retardo de ~300ms del tap en moviles sin romper el
+       zoom por pinza. Sustituye a los viejos hacks tipo FastClick. */
+    touch-action: manipulation;
+
+    /* Sin el destello gris/azul de Android al tocar. */
+    -webkit-tap-highlight-color: transparent;
+
+    /* El rebote elastico se queda dentro del contenedor que scrollea
+       y no arrastra la pagina entera. */
+    overscroll-behavior: contain;
+
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--text-fluid-base);
+    line-height: 1.6;
+
+    /* svh (small viewport height) en lugar de vh: no salta cuando la
+       barra del navegador movil aparece o desaparece. */
+    min-height: 100svh;
+
+    /* Respeta el notch y la barra de gestos. max() garantiza un margen
+       minimo tambien en pantallas sin safe area. Requiere el
+       viewport-fit=cover que declara el layout raiz. */
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* La interfaz no se selecciona (como en una app); el contenido real
+     si, porque el usuario puede querer copiar una direccion o un dato
+     historico. */
+  button,
+  a,
+  label,
+  nav,
+  [role="button"],
+  [role="tab"] {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  p,
+  article,
+  input,
+  textarea,
+  [data-contenido] {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  /* Todo lo pulsable cumple el minimo tactil de 44x44px (RNF-19). */
+  button,
+  a[role="button"],
+  [role="tab"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: var(--spacing-touch);
+    min-width: var(--spacing-touch);
+  }
+
+  /* Foco visible y consistente para navegacion por teclado (RNF-21).
+     :focus-visible no molesta al usuario de raton o dedo. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Las imagenes nunca desbordan ni provocan scroll horizontal. */
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  /* Accesibilidad: quien pide menos movimiento, recibe menos
+     movimiento. No se elimina el feedback, se reduce a lo minimo. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Relleno seguro para barras fijas al borde inferior (bottom nav
+     del Bloque 4) sin que la barra de gestos de iOS las tape. */
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .pt-safe {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  /* Retroalimentacion de pulsacion tipo app: el elemento "cede" al
+     tocarlo. Por debajo de 16ms se percibe como instantaneo (RF-95). */
+  .press {
+    transition: transform var(--duration-tap) ease-out;
+  }
+
+  .press:active {
+    transform: scale(0.97);
+  }
+}
