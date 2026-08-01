@@ -5,16 +5,17 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 0 terminado y migrado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 1 — Modelo de datos y migraciones.
-- **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24.
+- **Bloque en curso:** ninguno (Bloque 1 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 2 — Autenticación y seguridad.
+- **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
+  Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
 ## Registro de bloques
 
 | Bloque | Estado | Qué se hizo | Commit del usuario |
 |--------|--------|-------------|--------------------|
 | 0 — Cimientos | ✅ Completado | Monorepo pnpm (apps/web + apps/api), Docker Compose con PostgreSQL 16 + PostGIS 3.5 y Redis 7, `.env` único en la raíz leído por las tres partes, endpoint `/api/v1/health` con comprobación real de BD y caché (9 tests en verde), Tailwind v4 + `tokens.css` con la paleta Ayacucho en OKLCH, capa CSS de "sensación de app nativa", portada SSR que muestra el estado en vivo, Dockerfile del backend y README actualizado. **Migrado después a Spring Boot 4.1.0 y Next.js 16.2.12** (ver sección de migración) | — |
-| 1 — Modelo de datos | Pendiente | — | — |
+| 1 — Modelo de datos | ✅ Completado | 35 tablas + 1 vista materializada en 14 migraciones Flyway, 36 clases JPA package-by-feature, 35 repositorios, 89 índices (GIST espaciales, GIN full-text, parciales, únicos parciales), todos los CHECK de la sección 6.5, UUID v7 en backend y en SQL, auditoría y soft delete, catálogos de referencia (11 provincias, 119 distritos, 8+7 categorías, 7 tipos de incidente, 8 insignias), seed de demostración idempotente, job de refresco de la vista con ShedLock sobre Redis, y 50 tests contra PostGIS real con Testcontainers | — |
 | 2 — Autenticación y seguridad | Pendiente | — | — |
 | 3 — i18n + CRUD lugares (backend) | Pendiente | — | — |
 | 4 — Listado/detalle/búsqueda (frontend) | Pendiente | — | — |
@@ -104,6 +105,99 @@ build ahora solo lista rutas y su estrategia de render.
 | Frontend en `localhost:3000` | HTTP 200. El HTML del SSR trae los datos reales del backend, y el `<html>` sale con `lang="es"`, las variables de fuente y `data-scroll-behavior="smooth"` |
 | Cabeceras | Sin `x-powered-by` (`poweredByHeader: false` funcionando) |
 | Imagen Docker del backend | Reconstruida sobre Boot 4: 370 MB. Arranca en ~8 s configurada **solo** por variables de entorno, responde HTTP 200 con ambos componentes UP, y corre como usuario `yachay` (uid 100), no root |
+
+---
+
+## Bloque 1 — Modelo de datos
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 50 tests, 0 fallos** |
+| `mvnw verify` (JaCoCo) | **All coverage checks have been met.** 94% de líneas sobre las clases con lógica |
+| Mapeo JPA vs. esquema (`ddl-auto=validate`) | Las **36 clases** validan contra el esquema creado por Flyway desde cero |
+| Recuento de tablas | **35 tablas** + **1 vista materializada**; 8 de traducción + 3 pivote + 24 de dominio |
+| Arranque contra base vacía | Las **14 migraciones** se aplican solas: 35 tablas, 89 índices, vista materializada |
+| Catálogos | 4 roles, 11 provincias, **119 distritos**, 8 categorías de lugar, 7 de negocio, 7 tipos de incidente, 8 insignias, 60 traducciones |
+| UUID v7 | 164 identificadores de catálogo, todos versión 7 y monótonos en el tiempo |
+| Constraints | 11 tests que **intentan violar** cada CHECK/UNIQUE y comprueban que PostgreSQL los rechaza |
+| Planes de ejecución (RNF-30) | 9 consultas con 5.000 lugares sintéticos + `ANALYZE`: todas usan índice |
+| Vista materializada | `REFRESH CONCURRENTLY` funciona; se comprueba además que **falla sin el índice único** |
+| Job programado | Disparó a las 21:05:00 exactas en 8 ms; ShedLock registró `job-lock:yachay:refrescarEstadisticaLugar` en Redis |
+| `pnpm db:seed` | Aplica 5 lugares con traducciones, 45 horarios y 1 ruta; **idempotente** (segunda ejecución: 0 filas) |
+| `pnpm db:migrate` / `flyway:info` | Schema version 14, todas las migraciones en `Success` |
+| `/api/v1/health`, Swagger | HTTP 200 |
+| `pnpm lint` / `pnpm build` | Sin errores (frontend intacto) |
+
+### Tres hallazgos que los tests destaparon
+
+1. **El índice GIST sobre `geometry` no sirve para buscar por cercanía en metros.** Las
+   consultas de "explorar cerca" (RF-07) y "a X min caminando" (RF-09c) convierten la
+   columna con `ubicacion::geography` para medir metros reales, y esa conversión deja
+   fuera de juego al índice sobre la geometría pura: PostgreSQL caía en Seq Scan. Se
+   añadió `idx_lugar_ubicacion_geog`, un índice funcional sobre la expresión exacta que
+   usa la consulta. **La tabla 6.4 del plan debería recoger este índice adicional.**
+2. **`color_hex` estaba declarado `CHAR(7)`** y el validador de esquema lo detectó al
+   no cuadrar con el mapeo Java. Se cambió a `VARCHAR(7)` en las tres tablas afectadas,
+   que además es lo correcto: `CHAR` rellena con espacios hasta la longitud fija.
+3. **Spring Boot 4 modularizó la autoconfiguración de Flyway.** Con solo `flyway-core`
+   en el classpath las migraciones **no se ejecutan y no avisan**: el esquema
+   simplemente no existe. Hay que usar `spring-boot-starter-flyway`.
+
+### Decisiones de modelado
+
+- **36 clases `@Entity`, 35 tablas.** La clase 36 es `EstadisticaLugar`, que mapea la
+  vista materializada y se cuenta aparte, tal como declara el plan ("35 entidades + 1
+  vista materializada"). Se mapea con `@Subselect` y no como tabla porque una vista
+  materializada no aparece como tabla en los metadatos JDBC y la validación de esquema
+  la daría por inexistente.
+- **UUID v7 por generador de Hibernate, no asignado en el constructor.** Si la entidad
+  naciera con el id puesto, Spring Data la trataría como "no nueva" y ejecutaría un
+  SELECT antes de cada INSERT. Hay un test que comprueba que el id es null antes de
+  persistir.
+- **Dos generadores de UUID v7, uno en cada lado.** `uuid-creator` para la aplicación y
+  la función `uuid_generar_v7()` para lo que se inserta por SQL (catálogos y seeds).
+  Sin la función habría que elegir entre incrustar cientos de UUID literales o usar
+  `gen_random_uuid()`, que produce v4 y rompería la convención.
+- **Tres `@MappedSuperclass` en vez de uno**, porque las tablas no son homogéneas:
+  `EntidadCreacion` (solo `created_at`, para hechos inmutables como el check-in),
+  `EntidadBase` (+ `updated_at`) y `EntidadAuditable` (+ `created_by`, `updated_by`,
+  `deleted_at`). Las 8 traducciones usan `MarcaTiempoTraduccion`, sin clave subrogada.
+- **Soft delete en 6 entidades** (Usuario, Lugar, Evento, RutaTematica, Negocio,
+  Reporte) con `@SQLRestriction("deleted_at IS NULL")`, tal como se aprobó. El resto
+  modela su ciclo de vida con el campo `estado`.
+- **Todas las asociaciones `@ManyToOne` en LAZY explícito.** El default de JPA es EAGER
+  y es la causa más frecuente del problema N+1.
+- **Marcas de tiempo en `TIMESTAMPTZ` ↔ `Instant`, todo en UTC.** El plan no lo
+  especificaba; sin zona horaria, el cálculo de "abierto ahora" (RF-09b) se rompería en
+  cuanto el servidor no estuviera en Lima.
+
+### 📌 Correcciones adicionales para los documentos de tesis (las hace el usuario)
+
+Se suman a las ya anotadas más abajo:
+- **Sección 5.2 (paquetes):** añadir `geografia`, `favorito`, `checkin`, `moderacion` y
+  `analitica` a la lista de paquetes. Meterlos en los existentes rompería la cohesión
+  (p. ej. `ReporteContenido`, que es moderación de contenido, no un reporte ciudadano).
+- **Sección 6.4 (índices):** añadir `idx_lugar_ubicacion_geog`, el índice funcional
+  sobre `ubicacion::geography` sin el cual las búsquedas por cercanía no usan índice.
+- **Anexo 11.3 (comandos):** `pnpm db:migrate` es opcional; las migraciones se aplican
+  solas al arrancar el backend.
+
+### Pendientes anotados para bloques siguientes
+
+- **Bloque 2:** sustituir el `password_hash` del admin del seed
+  (`SIN_HASH_VALIDO_HASTA_BLOQUE_2`) por un BCrypt real de coste 12, y hacer que
+  `JpaAuditoriaConfig.auditorActual()` devuelva el usuario del SecurityContext para que
+  `created_by`/`updated_by` se rellenen solos.
+- **Bloque 5:** revisar la regla del CLAUDE.md sobre `GenericJackson2JsonRedisSerializer`
+  bajo Jackson 3 al configurar la caché.
+- **Códigos UBIGEO:** los 119 distritos llevan nombres de la división política oficial y
+  códigos con la estructura UBIGEO del INEI. Conviene cotejarlos contra el padrón
+  vigente antes de la sustentación.
+- **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
+  fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
+  renombrarlos a `*IT` y añadir Failsafe.
 
 ---
 

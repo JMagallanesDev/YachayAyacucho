@@ -7,6 +7,7 @@
     "dev": "mvnw spring-boot:run",
     "build": "mvnw -B clean package",
     "test": "mvnw -B test",
-    "test:coverage": "mvnw -B verify"
+    "test:coverage": "mvnw -B verify",
+    "db:migrate": "mvnw -B -q flyway:migrate"
   }
 }

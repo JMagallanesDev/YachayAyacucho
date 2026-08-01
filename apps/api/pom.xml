@@ -27,6 +27,16 @@
 		<java.version>21</java.version>
 		<!-- La linea 3.x de SpringDoc es la que soporta Spring Framework 7 -->
 		<springdoc.version>3.0.3</springdoc.version>
+		<!-- Debe coincidir EXACTAMENTE con la version de hibernate-core que
+		     gestiona la BOM de Spring Boot 4.1.0, o el mapeo espacial rompe -->
+		<hibernate-spatial.version>7.4.1.Final</hibernate-spatial.version>
+		<uuid-creator.version>6.1.1</uuid-creator.version>
+		<!-- 1.6.3 estable: la 1.7.0 solo existe como Beta y este proyecto
+		     se publica, no se experimenta -->
+		<mapstruct.version>1.6.3</mapstruct.version>
+		<lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
+		<shedlock.version>7.7.0</shedlock.version>
+		<jacoco.version>0.8.15</jacoco.version>
 	</properties>
 
 	<dependencies>
@@ -50,10 +60,69 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
-		<!-- JDBC + HikariCP. En el Bloque 1 se suma spring-boot-starter-data-jpa -->
+		<!-- JDBC + HikariCP. Se usa directamente en HealthService (JdbcTemplate)
+		     y en las comprobaciones de plan de ejecucion. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-jdbc</artifactId>
+		</dependency>
+
+		<!-- JPA + Hibernate 7.4: las 35 entidades del modelo -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+
+		<!-- Soporte geoespacial: tipos JTS (Point) mapeados a PostGIS -->
+		<dependency>
+			<groupId>org.hibernate.orm</groupId>
+			<artifactId>hibernate-spatial</artifactId>
+			<version>${hibernate-spatial.version}</version>
+		</dependency>
+
+		<!-- Migraciones versionadas del esquema.
+		     Se usa el starter y no flyway-core suelto: Spring Boot 4 movio la
+		     autoconfiguracion de Flyway a su propio modulo, asi que con solo
+		     flyway-core en el classpath las migraciones no se ejecutan al
+		     arrancar (fallo silencioso: el esquema simplemente no existe).
+		     Desde Flyway 10 el soporte de cada motor va aparte: sin
+		     flyway-database-postgresql no reconoce PostgreSQL. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+
+		<!-- UUID v7 como PK: ordenable por tiempo y sin exponer el tamaño de
+		     la BD. Ni Java 21 ni PostgreSQL 16 lo generan de forma nativa. -->
+		<dependency>
+			<groupId>com.github.f4b6a3</groupId>
+			<artifactId>uuid-creator</artifactId>
+			<version>${uuid-creator.version}</version>
+		</dependency>
+
+		<!-- Mapeo entidad <-> DTO generado en compilacion.
+		     Se cablea aqui; se empieza a usar en el Bloque 3. -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
+		</dependency>
+
+		<!-- Lock distribuido para el refresco de la vista materializada:
+		     con N instancias del backend, el job corre una sola vez. -->
+		<dependency>
+			<groupId>net.javacrumbs.shedlock</groupId>
+			<artifactId>shedlock-spring</artifactId>
+			<version>${shedlock.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>net.javacrumbs.shedlock</groupId>
+			<artifactId>shedlock-provider-redis-spring</artifactId>
+			<version>${shedlock.version}</version>
 		</dependency>
 
 		<!-- Redis (cache, rate limiting, anti-spam TTL, locks ShedLock) -->
@@ -112,6 +181,38 @@
 			<artifactId>spring-boot-starter-validation-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Testcontainers: los tests corren contra un PostgreSQL con PostGIS
+		     real, no contra H2. Un modelo con geometrias e indices GIST no se
+		     puede probar de verdad sobre una BD en memoria. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- Mockito llega de forma transitiva con los starters de test, pero
+		     se declara explicitamente porque Surefire solo resuelve el
+		     marcador ${org.mockito:mockito-core:jar} del argLine sobre
+		     dependencias directas del proyecto. -->
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Testcontainers 2.x renombro sus modulos con el prefijo
+		     "testcontainers-"; los antiguos org.testcontainers:postgresql y
+		     :junit-jupiter ya no se publican. -->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -132,13 +233,141 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
+					<!-- El ORDEN importa: lombok primero, el binding despues y
+					     MapStruct al final. Sin lombok-mapstruct-binding en medio,
+					     MapStruct no ve los getters que Lombok aun no ha generado. -->
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
 						</path>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok-mapstruct-binding</artifactId>
+							<version>${lombok-mapstruct-binding.version}</version>
+						</path>
+						<path>
+							<groupId>org.mapstruct</groupId>
+							<artifactId>mapstruct-processor</artifactId>
+							<version>${mapstruct.version}</version>
+						</path>
 					</annotationProcessorPaths>
+					<compilerArgs>
+						<arg>-Amapstruct.defaultComponentModel=spring</arg>
+						<arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
+					</compilerArgs>
 				</configuration>
+			</plugin>
+
+			<!-- Publica la ruta de cada dependencia como propiedad de Maven
+			     (p. ej. ${org.mockito:mockito-core:jar}). Sin esta ejecucion,
+			     el marcador del argLine de Surefire llega sin resolver y la
+			     JVM de los tests no arranca. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>rutas-de-dependencias</id>
+						<goals>
+							<goal>properties</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- @{argLine} conserva el agente que inyecta JaCoCo; si se
+					     escribiera argLine a secas, la cobertura saldria en cero.
+					     El javaagent de Mockito evita que se auto-adjunte, cosa
+					     que dejara de funcionar en futuras versiones de la JDK. -->
+					<argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+				</configuration>
+			</plugin>
+
+			<!-- Comando explicito `pnpm db:migrate` para desarrollo.
+			     En ejecucion normal las migraciones las aplica Spring Boot al
+			     arrancar; este plugin solo sirve para lanzarlas a mano contra
+			     la base local sin levantar la aplicacion. -->
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<configuration>
+					<url>jdbc:postgresql://localhost:5432/huamanga</url>
+					<user>postgres</user>
+					<password>postgres</password>
+					<locations>
+						<location>filesystem:src/main/resources/db/migration</location>
+					</locations>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.flywaydb</groupId>
+						<artifactId>flyway-database-postgresql</artifactId>
+						<version>${flyway.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>org.postgresql</groupId>
+						<artifactId>postgresql</artifactId>
+						<version>${postgresql.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<configuration>
+					<!-- Se excluye lo que no es logica: entidades, DTOs y config.
+					     Con 35 entidades de datos dentro, el porcentaje mediria
+					     ruido en vez de las reglas de negocio (RNF-33). -->
+					<excludes>
+						<exclude>**/domain/**</exclude>
+						<exclude>**/dto/**</exclude>
+						<exclude>**/config/**</exclude>
+						<exclude>**/TourismApplication.class</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>preparar-agente</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>informe-cobertura</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>umbral-cobertura</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.70</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

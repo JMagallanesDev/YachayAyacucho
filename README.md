@@ -116,12 +116,25 @@ Esto instala las dependencias de Node del frontend. (El backend Java descarga la
 
 ### Paso 5 — Construir la base de datos
 
-> ⏳ **Disponible a partir del Bloque 1.** El esquema y los datos de prueba llegan con las migraciones Flyway. Hasta entonces, sáltate este paso: la base arranca vacía y el proyecto funciona igual.
+**Las migraciones se aplican solas al arrancar el backend**, así que normalmente no tienes que hacer nada aquí: al ejecutar `pnpm dev` (paso 6), Flyway crea las 35 tablas, los 89 índices, la vista materializada y los datos de referencia.
+
+Si quieres lanzarlas a mano sin levantar la aplicación:
 
 ```bash
-pnpm db:migrate    # Flyway crea tablas, índices, constraints, vista materializada
-pnpm db:seed       # Inserta datos de prueba (admin, provincias, categorías, lugares demo)
+pnpm db:migrate    # Flyway: tablas, índices, constraints, vista materializada, catálogos
+pnpm db:seed       # Datos de demostración: admin, 5 lugares con traducciones y horarios
 ```
+
+**Dos niveles de datos, deliberadamente separados:**
+
+| | Qué contiene | Dónde vive | ¿Va a producción? |
+|---|---|---|---|
+| **Datos de referencia** | 4 roles, 11 provincias, 119 distritos, 8 categorías de lugar, 7 de negocio, 7 tipos de incidente, 8 insignias | Migración Flyway `V14__catalogos.sql` | **Sí** — sin ellos la aplicación no funciona |
+| **Datos de demostración** | 1 admin, 5 lugares de Huamanga, 1 ruta temática | `db/seed/seed_demo.sql`, vía `pnpm db:seed` | **No** — son desechables |
+
+> El seed es idempotente: puedes lanzarlo las veces que quieras sin duplicar nada.
+
+> ⚠️ El usuario admin del seed **no puede iniciar sesión todavía**: su `password_hash` es un marcador, porque BCrypt llega en el Bloque 2. Es intencional — hasta entonces no hay login.
 
 > Aquí no sincronizas datos con tu otro equipo — los **reconstruyes**. Es correcto y deliberado: los datos de desarrollo son desechables. Lo que garantiza que ambos equipos sean idénticos es el *esquema*, no los datos, y de eso se encarga Flyway.
 
@@ -248,9 +261,10 @@ docker compose down -v && docker compose up -d && pnpm db:migrate && pnpm db:see
 | `pnpm test` | Tests del backend |
 | `pnpm docker:up` / `docker:down` | Atajos de Docker Compose |
 | `pnpm docker:reset` | Borra los datos y levanta contenedores limpios |
-| `pnpm db:migrate` | Migraciones Flyway — *desde el Bloque 1* |
-| `pnpm db:seed` | Datos de prueba — *desde el Bloque 1* |
-| `pnpm test:coverage` | Cobertura JaCoCo — *desde el Bloque 1* |
+| `pnpm db:migrate` | Aplicar migraciones Flyway a mano (también corren solas al arrancar) |
+| `pnpm db:seed` | Insertar los datos de demostración (idempotente) |
+| `pnpm db:studio` | Abrir `psql` contra la base local |
+| `pnpm --filter api test:coverage` | Tests + informe de cobertura JaCoCo |
 | `git push origin main` | Despliegue automático a producción |
 
 ---
