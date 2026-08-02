@@ -1,0 +1,268 @@
+package com.huamanga.tourism.lugar.service;
+
+import com.huamanga.tourism.common.domain.Idioma;
+import com.huamanga.tourism.common.exception.RecursoNoEncontradoException;
+import com.huamanga.tourism.common.seguridad.UsuarioActual;
+import com.huamanga.tourism.geografia.repository.DistritoRepository;
+import com.huamanga.tourism.horario.domain.HorarioLugar;
+import com.huamanga.tourism.lugar.domain.EstadoLugar;
+import com.huamanga.tourism.lugar.domain.Lugar;
+import com.huamanga.tourism.lugar.domain.LugarTraduccion;
+import com.huamanga.tourism.lugar.domain.LugarTraduccionId;
+import com.huamanga.tourism.lugar.dto.HorarioRequest;
+import com.huamanga.tourism.lugar.dto.LugarDetalleResponse;
+import com.huamanga.tourism.lugar.dto.LugarRequest;
+import com.huamanga.tourism.lugar.dto.LugarResumenResponse;
+import com.huamanga.tourism.lugar.dto.LugarTraduccionRequest;
+import com.huamanga.tourism.lugar.evento.LugarGuardadoEvent;
+import com.huamanga.tourism.lugar.mapper.LugarMapper;
+import com.huamanga.tourism.lugar.repository.CategoriaLugarRepository;
+import com.huamanga.tourism.lugar.repository.LugarRepository;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.UUID;
+
+/**
+ * Reglas de negocio de los lugares patrimoniales (RF-47).
+ */
+@Service
+public class LugarService {
+
+    /** Ayacucho no cambia de hora, pero fijar la zona lo hace explicito. */
+    private static final ZoneId ZONA_AYACUCHO = ZoneId.of("America/Lima");
+
+    /** SRID 4326 = WGS84, el sistema de coordenadas del GPS. */
+    private static final GeometryFactory GEOMETRIAS =
+            new GeometryFactory(new PrecisionModel(), 4326);
+
+    private final LugarRepository lugarRepository;
+    private final CategoriaLugarRepository categoriaRepository;
+    private final DistritoRepository distritoRepository;
+    private final LugarMapper mapper;
+    private final ApplicationEventPublisher eventos;
+    private final Clock clock;
+
+    public LugarService(LugarRepository lugarRepository,
+                        CategoriaLugarRepository categoriaRepository,
+                        DistritoRepository distritoRepository,
+                        LugarMapper mapper,
+                        ApplicationEventPublisher eventos,
+                        Clock clock) {
+        this.lugarRepository = lugarRepository;
+        this.categoriaRepository = categoriaRepository;
+        this.distritoRepository = distritoRepository;
+        this.mapper = mapper;
+        this.eventos = eventos;
+        this.clock = clock;
+    }
+
+    // ---------------------------------------------------------------
+    //  Lectura
+    // ---------------------------------------------------------------
+
+    /** Listado publico: solo lugares publicados (RF-01). */
+    @Transactional(readOnly = true)
+    public Page<LugarResumenResponse> listarPublicados(Idioma idioma, Pageable pagina) {
+        return lugarRepository.findByEstadoConDetalle(EstadoLugar.PUBLICADO, pagina)
+                .map(lugar -> mapper.aResumen(lugar, idioma));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<LugarResumenResponse> listarPorCategoria(UUID categoriaId, Idioma idioma, Pageable pagina) {
+        return lugarRepository.findByCategoriaIdAndEstado(categoriaId, EstadoLugar.PUBLICADO, pagina)
+                .map(lugar -> mapper.aResumen(lugar, idioma));
+    }
+
+    /**
+     * Ficha completa por slug.
+     *
+     * <p>Un lugar en BORRADOR solo existe para un administrador: para
+     * cualquier otro devuelve 404, no 403. Decir "existe pero no puedes
+     * verlo" confirmaria que el recurso existe, y un borrador es justamente
+     * lo que aun no debe saberse que existe.</p>
+     */
+    @Transactional(readOnly = true)
+    public LugarDetalleResponse buscarPorSlug(String slug, Idioma idioma) {
+        Lugar lugar = lugarRepository.findBySlugConDetalle(slug)
+                .filter(candidato -> candidato.getEstado() == EstadoLugar.PUBLICADO || esAdministrador())
+                .orElseThrow(() -> new RecursoNoEncontradoException("lugar", slug));
+
+        return mapper.aDetalle(lugar, idioma, estaAbiertoAhora(lugar));
+    }
+
+    // ---------------------------------------------------------------
+    //  Escritura (solo ADMIN, verificado en el controller)
+    // ---------------------------------------------------------------
+
+    /**
+     * Crea el lugar con sus traducciones y horarios en una sola transaccion.
+     */
+    @Transactional
+    public LugarDetalleResponse crear(LugarRequest peticion, Idioma idioma) {
+        if (lugarRepository.existsBySlug(peticion.slug())) {
+            throw new SlugDuplicadoException(peticion.slug());
+        }
+
+        Lugar lugar = new Lugar();
+        aplicar(peticion, lugar);
+        Lugar guardado = lugarRepository.save(lugar);
+
+        publicarGuardado(guardado);
+        return mapper.aDetalle(guardado, idioma, estaAbiertoAhora(guardado));
+    }
+
+    /**
+     * Reemplaza por completo un lugar, incluidas traducciones y horarios.
+     */
+    @Transactional
+    public LugarDetalleResponse actualizar(UUID id, LugarRequest peticion, Idioma idioma) {
+        Lugar lugar = lugarRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("lugar", id.toString()));
+
+        if (!lugar.getSlug().equals(peticion.slug()) && lugarRepository.existsBySlug(peticion.slug())) {
+            throw new SlugDuplicadoException(peticion.slug());
+        }
+
+        aplicar(peticion, lugar);
+        Lugar guardado = lugarRepository.save(lugar);
+
+        publicarGuardado(guardado);
+        return mapper.aDetalle(guardado, idioma, estaAbiertoAhora(guardado));
+    }
+
+    /**
+     * Baja logica: la fila se conserva para auditoria y para poder revertir
+     * un error de moderacion (RF-56).
+     */
+    @Transactional
+    public void eliminar(UUID id) {
+        Lugar lugar = lugarRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("lugar", id.toString()));
+
+        lugar.eliminar(clock.instant());
+        lugarRepository.save(lugar);
+
+        // Tambien hay que revalidar al borrar: si no, la pagina cacheada
+        // seguiria sirviendo un lugar que ya no deberia estar visible.
+        publicarGuardado(lugar);
+    }
+
+    // ---------------------------------------------------------------
+    //  Interno
+    // ---------------------------------------------------------------
+
+    private void aplicar(LugarRequest peticion, Lugar lugar) {
+        lugar.setSlug(peticion.slug());
+        lugar.setCategoria(categoriaRepository.findById(peticion.categoriaId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("categoria", peticion.categoriaId().toString())));
+        lugar.setDistrito(distritoRepository.findById(peticion.distritoId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("distrito", peticion.distritoId().toString())));
+        lugar.setUbicacion(punto(peticion.longitud(), peticion.latitud()));
+        lugar.setDireccion(peticion.direccion());
+        lugar.setTelefono(peticion.telefono());
+        lugar.setPrecioEntradaPen(peticion.precioEntradaPen());
+        lugar.setDuracionVisitaMin(peticion.duracionVisitaMin());
+        lugar.setAceptaTarjeta(peticion.aceptaTarjeta());
+        lugar.setTieneBanos(peticion.tieneBanos());
+        lugar.setAccesibleSillaRuedas(peticion.accesibleSillaRuedas());
+        lugar.setAptoNinos(peticion.aptoNinos());
+        lugar.setCostoTaxiDesdePlazaPen(peticion.costoTaxiDesdePlazaPen());
+        lugar.setRequiereGuia(peticion.requiereGuia());
+        lugar.setEstado(peticion.estado());
+
+        reemplazarTraducciones(peticion, lugar);
+        reemplazarHorarios(peticion, lugar);
+    }
+
+    /**
+     * Vacia y rellena la MISMA coleccion.
+     *
+     * <p>Con {@code orphanRemoval = true}, asignar un Set nuevo hace que
+     * Hibernate pierda la referencia a la coleccion que estaba gestionando y
+     * falle con "A collection with orphan deletion was no longer referenced".
+     * Hay que mutar la existente.</p>
+     */
+    private void reemplazarTraducciones(LugarRequest peticion, Lugar lugar) {
+        lugar.getTraducciones().clear();
+        for (LugarTraduccionRequest fuente : peticion.traducciones()) {
+            LugarTraduccion traduccion = new LugarTraduccion();
+            traduccion.setId(new LugarTraduccionId(lugar.getId(), fuente.idioma()));
+            traduccion.setLugar(lugar);
+            traduccion.setNombre(fuente.nombre());
+            traduccion.setDescripcion(fuente.descripcion());
+            traduccion.setHistoria(fuente.historia());
+            traduccion.setConsejos(fuente.consejos());
+            traduccion.setUpdatedBy(UsuarioActual.id().orElse(null));
+            lugar.getTraducciones().add(traduccion);
+        }
+    }
+
+    private void reemplazarHorarios(LugarRequest peticion, Lugar lugar) {
+        lugar.getHorarios().clear();
+        for (HorarioRequest fuente : peticion.horarios()) {
+            HorarioLugar horario = new HorarioLugar();
+            horario.setLugar(lugar);
+            horario.setDiaSemana(fuente.diaSemana());
+            horario.setHoraApertura(fuente.cerrado() ? null : fuente.horaApertura());
+            horario.setHoraCierre(fuente.cerrado() ? null : fuente.horaCierre());
+            horario.setCerrado(fuente.cerrado());
+            horario.setUpdatedBy(UsuarioActual.id().orElse(null));
+            lugar.getHorarios().add(horario);
+        }
+    }
+
+    /**
+     * Estado abierto/cerrado calculado al momento (RF-09b).
+     *
+     * <p>Se resuelve en el servidor porque depende de la hora de Ayacucho, no
+     * de la del dispositivo del visitante, que puede estar en cualquier huso.</p>
+     */
+    private boolean estaAbiertoAhora(Lugar lugar) {
+        LocalDateTime ahora = LocalDateTime.ofInstant(clock.instant(), ZONA_AYACUCHO);
+        // DayOfWeek va de 1 (lunes) a 7 (domingo); el modelo usa 0 = domingo.
+        short dia = (short) (ahora.getDayOfWeek().getValue() % 7);
+
+        return lugar.getHorarios().stream()
+                .filter(horario -> horario.getDiaSemana() == dia)
+                .anyMatch(horario -> horario.estaAbiertoA(ahora.toLocalTime()));
+    }
+
+    private boolean esAdministrador() {
+        return org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .getAuthentication() != null
+                && org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .getAuthentication().getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    }
+
+    private void publicarGuardado(Lugar lugar) {
+        // El evento se consume DESPUES del commit: ver RevalidacionListener.
+        eventos.publishEvent(new LugarGuardadoEvent(lugar.getSlug()));
+    }
+
+    private Point punto(double longitud, double latitud) {
+        // Orden (x, y) = (longitud, latitud). Invertirlo es el error clasico
+        // en geoespacial y colocaria Huamanga en mitad del oceano.
+        Point punto = GEOMETRIAS.createPoint(new Coordinate(longitud, latitud));
+        punto.setSRID(4326);
+        return punto;
+    }
+
+    /** El slug forma parte de la URL publica, asi que debe ser unico. */
+    public static class SlugDuplicadoException extends RuntimeException {
+        public SlugDuplicadoException(String slug) {
+            super("Ya existe un lugar con el slug " + slug);
+        }
+    }
+}

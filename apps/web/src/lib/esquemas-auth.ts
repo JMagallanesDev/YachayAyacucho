@@ -3,39 +3,50 @@ import { z } from "zod";
 /**
  * Esquemas Zod de los formularios de autenticacion.
  *
- * Son la fuente de verdad, como manda el CLAUDE.md: de aqui salen tanto la
- * validacion en el navegador como los tipos de TypeScript, asi que no pueden
- * desincronizarse entre si.
+ * <p>Son la fuente de verdad de las **reglas**, como manda el CLAUDE.md: de
+ * aqui salen tanto la validacion en el navegador como los tipos de
+ * TypeScript, asi que no pueden desincronizarse entre si.</p>
  *
- * Ojo: esto valida, no protege. La validacion real vive en el backend, con
- * Bean Validation y los CHECK de PostgreSQL. Esta capa solo evita un viaje al
- * servidor para decirle al usuario algo que ya se sabe aqui.
+ * <p>Los **textos**, en cambio, vienen de next-intl. Por eso los esquemas se
+ * construyen con una funcion que recibe el traductor en lugar de tener los
+ * mensajes incrustados: un mensaje en espanol dentro de un formulario en
+ * ingles rompe la traduccion justo donde mas se nota, que es cuando el
+ * usuario se equivoca.</p>
+ *
+ * <p>Esto valida, no protege. La validacion real vive en el backend, con Bean
+ * Validation y los CHECK de PostgreSQL.</p>
  */
 
-export const esquemaLogin = z.object({
-  email: z.string().min(1, "Escribe tu correo").email("Ese correo no parece valido"),
-  password: z.string().min(1, "Escribe tu contrasena"),
-});
+type Traductor = (clave: string) => string;
 
-export const esquemaRegistro = z.object({
-  nombre: z
-    .string()
-    .min(1, "Escribe tu nombre")
-    .max(120, "El nombre es demasiado largo"),
-  email: z
-    .string()
-    .min(1, "Escribe tu correo")
-    .email("Ese correo no parece valido")
-    .max(255, "El correo es demasiado largo"),
-  // Misma politica que el backend, palabra por palabra.
-  password: z
-    .string()
-    .min(8, "Usa al menos 8 caracteres")
-    .max(72, "La contrasena no puede pasar de 72 caracteres")
-    .regex(/[a-z]/, "Incluye al menos una minuscula")
-    .regex(/[A-Z]/, "Incluye al menos una mayuscula")
-    .regex(/\d/, "Incluye al menos un numero"),
-});
+export function esquemaLogin(t: Traductor) {
+  return z.object({
+    email: z
+      .string()
+      .min(1, t("correoObligatorio"))
+      .email(t("correoInvalido")),
+    password: z.string().min(1, t("contrasenaObligatoria")),
+  });
+}
 
-export type DatosLogin = z.infer<typeof esquemaLogin>;
-export type DatosRegistro = z.infer<typeof esquemaRegistro>;
+export function esquemaRegistro(t: Traductor) {
+  return z.object({
+    nombre: z.string().min(1, t("nombreObligatorio")).max(120, t("nombreLargo")),
+    email: z
+      .string()
+      .min(1, t("correoObligatorio"))
+      .email(t("correoInvalido"))
+      .max(255, t("correoLargo")),
+    // Misma politica que el backend, palabra por palabra.
+    password: z
+      .string()
+      .min(8, t("contrasenaCorta"))
+      .max(72, t("contrasenaLarga"))
+      .regex(/[a-z]/, t("contrasenaMinuscula"))
+      .regex(/[A-Z]/, t("contrasenaMayuscula"))
+      .regex(/\d/, t("contrasenaNumero")),
+  });
+}
+
+export type DatosLogin = z.infer<ReturnType<typeof esquemaLogin>>;
+export type DatosRegistro = z.infer<ReturnType<typeof esquemaRegistro>>;

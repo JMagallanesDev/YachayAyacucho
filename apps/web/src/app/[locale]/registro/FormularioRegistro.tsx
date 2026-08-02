@@ -1,8 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { ErrorApi, iniciarSesion, registrar } from "@/lib/auth";
@@ -10,15 +11,20 @@ import { esquemaRegistro, type DatosRegistro } from "@/lib/esquemas-auth";
 import { useSesion } from "@/stores/sesion";
 
 export function FormularioRegistro() {
+  const t = useTranslations("registro");
+  const tv = useTranslations("validacion");
+  const idioma = useLocale();
   const router = useRouter();
   const guardarSesion = useSesion((estado) => estado.iniciar);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+
+  const esquema = useMemo(() => esquemaRegistro(tv), [tv]);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<DatosRegistro>({ resolver: zodResolver(esquemaRegistro) });
+  } = useForm<DatosRegistro>({ resolver: zodResolver(esquema) });
 
   async function enviar(datos: DatosRegistro) {
     setErrorGeneral(null);
@@ -28,13 +34,13 @@ export function FormularioRegistro() {
       // aqui evita pedirle al recien registrado que escriba lo mismo dos veces.
       const sesion = await iniciarSesion({ email: datos.email, password: datos.password });
       guardarSesion(sesion.accessToken, sesion.usuario);
-      router.push("/perfil");
+      router.push(`/${idioma}/perfil`);
       router.refresh();
     } catch (error) {
       setErrorGeneral(
         error instanceof ErrorApi
-          ? (error.problema.detail ?? "No se pudo crear la cuenta")
-          : "No se pudo conectar con el servidor",
+          ? (error.problema.detail ?? t("errorGenerico"))
+          : t("errorConexion"),
       );
     }
   }
@@ -43,14 +49,14 @@ export function FormularioRegistro() {
     <form onSubmit={handleSubmit(enviar)} className="flex flex-col gap-5" noValidate>
       <Campo
         id="nombre"
-        etiqueta="Nombre"
+        etiqueta={t("nombre")}
         autoComplete="name"
         error={errors.nombre?.message}
         {...register("nombre")}
       />
       <Campo
         id="email"
-        etiqueta="Correo"
+        etiqueta={t("correo")}
         tipo="email"
         autoComplete="email"
         error={errors.email?.message}
@@ -58,10 +64,10 @@ export function FormularioRegistro() {
       />
       <Campo
         id="password"
-        etiqueta="Contrasena"
+        etiqueta={t("contrasena")}
         tipo="password"
         autoComplete="new-password"
-        ayuda="Minimo 8 caracteres, con mayuscula, minuscula y numero"
+        ayuda={t("ayudaContrasena")}
         error={errors.password?.message}
         {...register("password")}
       />
@@ -77,7 +83,7 @@ export function FormularioRegistro() {
         disabled={isSubmitting}
         className="press min-h-touch rounded-card bg-primary px-5 font-medium text-primary-fg disabled:opacity-60"
       >
-        {isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
+        {isSubmitting ? t("creando") : t("crear")}
       </button>
     </form>
   );

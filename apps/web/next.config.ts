@@ -1,4 +1,5 @@
 import path from "node:path";
+import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
 
 /**
@@ -77,4 +78,8 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.resolve(process.cwd(), "../.."),
 };
 
-export default nextConfig;
+// El plugin conecta la configuracion de next-intl (src/i18n/request.ts) con
+// el compilador, para que los mensajes se resuelvan en el servidor.
+const conIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default conIntl(nextConfig);

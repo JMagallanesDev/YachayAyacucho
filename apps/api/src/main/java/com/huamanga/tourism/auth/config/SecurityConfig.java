@@ -50,7 +50,12 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui",
             "/api-docs/**",
-            "/api-docs"
+            "/api-docs",
+            // Consultar el patrimonio no exige cuenta (RF-34). Escribir si:
+            // POST, PUT y DELETE sobre /lugares caen en anyRequest() y ademas
+            // llevan @PreAuthorize("hasRole('ADMIN')") en el controller.
+            "/lugares",
+            "/lugares/**"
     };
 
     private final PropiedadesSeguridad propiedades;

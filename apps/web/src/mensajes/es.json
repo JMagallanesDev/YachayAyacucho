@@ -1,0 +1,90 @@
+{
+  "comun": {
+    "cargando": "Cargando...",
+    "entrar": "Entrar",
+    "salir": "Cerrar sesion",
+    "volver": "Volver",
+    "idioma": "Idioma",
+    "cambiarIdioma": "Cambiar idioma",
+    "espanol": "Espanol",
+    "ingles": "English"
+  },
+  "portada": {
+    "etiqueta": "Bloque 3 · Contenido patrimonial",
+    "descripcion": "Patrimonio cultural de Huamanga, Ayacucho. Esta pagina comprueba en vivo que el frontend, el API y la infraestructura estan conectados.",
+    "estadoSistema": "Estado del sistema",
+    "operativo": "Operativo",
+    "degradado": "Degradado",
+    "sinConexion": "Sin conexion",
+    "apiSpring": "API Spring Boot",
+    "aplicacion": "Aplicacion {nombre}",
+    "sinConexionAyuda": "Comprueba que Docker esta levantado y que el backend corre en {url}.",
+    "paleta": "Paleta Ayacucho",
+    "tesis": "Tesis: «Aplicacion web para la publicacion de informacion del patrimonio cultural de Ayacucho, 2026»."
+  },
+  "colores": {
+    "retablo": "Retablo",
+    "retabloOrigen": "Rojo carmin de cochinilla",
+    "anil": "Anil",
+    "anilOrigen": "Indigo de los textiles",
+    "quinua": "Quinua",
+    "quinuaOrigen": "Ocre del barro cocido",
+    "sillar": "Sillar",
+    "sillarOrigen": "Piedra de los templos",
+    "puna": "Puna",
+    "punaOrigen": "Verde de altura"
+  },
+  "login": {
+    "titulo": "Iniciar sesion",
+    "descripcion": "Entra para guardar favoritos, escribir resenas y sellar tu pasaporte patrimonial.",
+    "correo": "Correo",
+    "contrasena": "Contrasena",
+    "entrando": "Entrando...",
+    "sinCuenta": "¿No tienes cuenta?",
+    "crearCuenta": "Crear una",
+    "errorGenerico": "No se pudo iniciar sesion",
+    "errorConexion": "No se pudo conectar con el servidor"
+  },
+  "registro": {
+    "titulo": "Crear cuenta",
+    "descripcion": "Explorar el patrimonio no exige cuenta. La necesitas para guardar favoritos, opinar y coleccionar sellos.",
+    "nombre": "Nombre",
+    "correo": "Correo",
+    "contrasena": "Contrasena",
+    "ayudaContrasena": "Al menos 8 caracteres, con mayuscula, minuscula y numero.",
+    "crear": "Crear cuenta",
+    "creando": "Creando...",
+    "yaTienesCuenta": "¿Ya tienes cuenta?",
+    "iniciarSesion": "Inicia sesion",
+    "errorGenerico": "No se pudo crear la cuenta",
+    "errorConexion": "No se pudo conectar con el servidor"
+  },
+  "perfil": {
+    "titulo": "Mi perfil",
+    "recuperando": "Recuperando tu sesion...",
+    "nombre": "Nombre",
+    "correo": "Correo",
+    "rol": "Rol"
+  },
+  "admin": {
+    "titulo": "Administracion",
+    "usuarios": "Usuarios",
+    "lugares": "Lugares",
+    "cargando": "Cargando resumen...",
+    "sinPermisos": "Tu cuenta no tiene permisos de administracion.",
+    "errorCarga": "No se pudo cargar el resumen."
+  },
+  "validacion": {
+    "correoObligatorio": "Escribe tu correo",
+    "correoInvalido": "Ese correo no parece valido",
+    "correoLargo": "El correo es demasiado largo",
+    "contrasenaObligatoria": "Escribe tu contrasena",
+    "contrasenaCorta": "Usa al menos 8 caracteres",
+    "contrasenaLarga": "La contrasena no puede pasar de 72 caracteres",
+    "contrasenaMinuscula": "Incluye al menos una minuscula",
+    "contrasenaMayuscula": "Incluye al menos una mayuscula",
+    "contrasenaNumero": "Incluye al menos un numero",
+    "nombreObligatorio": "Escribe tu nombre",
+    "nombreLargo": "El nombre es demasiado largo"
+  }
+}

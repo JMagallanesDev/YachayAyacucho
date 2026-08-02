@@ -3,15 +3,18 @@ package com.huamanga.tourism.common.exception;
 import com.huamanga.tourism.auth.exception.CredencialesInvalidasException;
 import com.huamanga.tourism.auth.exception.EmailYaRegistradoException;
 import com.huamanga.tourism.auth.exception.RefreshTokenInvalidoException;
+import com.huamanga.tourism.lugar.service.LugarService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.jspecify.annotations.Nullable;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -21,6 +24,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.net.URI;
 import java.time.Clock;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -32,9 +36,13 @@ import java.util.Map;
  * formato de error es uno solo en todo el API y el frontend puede parsearlo
  * de forma uniforme.</p>
  *
+ * <p>Desde el Bloque 3 los textos salen del {@code MessageSource} en el idioma
+ * que pida el cliente, en vez de estar incrustados en espanol: de poco sirve
+ * traducir la interfaz si el mensaje de error llega en otro idioma justo
+ * cuando algo falla.</p>
+ *
  * <p>Ninguna respuesta incluye trazas ni mensajes internos (RNF-23): al
- * cliente se le da un texto claro en espanol y la causa completa queda en el
- * log del servidor.</p>
+ * cliente se le da un texto claro y la causa completa queda en el log.</p>
  */
 @RestControllerAdvice
 public class ManejadorErroresGlobal extends ResponseEntityExceptionHandler {
@@ -43,9 +51,11 @@ public class ManejadorErroresGlobal extends ResponseEntityExceptionHandler {
     private static final String BASE_TIPOS = "https://yachay-ayacucho.pe/errores/";
 
     private final Clock clock;
+    private final MessageSource mensajes;
 
-    public ManejadorErroresGlobal(Clock clock) {
+    public ManejadorErroresGlobal(Clock clock, MessageSource mensajes) {
         this.clock = clock;
+        this.mensajes = mensajes;
     }
 
     @ExceptionHandler(CredencialesInvalidasException.class)
@@ -53,25 +63,31 @@ public class ManejadorErroresGlobal extends ResponseEntityExceptionHandler {
         // Se registra el intento fallido pero NO el correo probado, para no
         // acabar con una lista de correos validos en los logs.
         log.info("Intento de autenticacion fallido desde {}", peticion.getRemoteAddr());
-        return construir(HttpStatus.UNAUTHORIZED, "credenciales-invalidas",
-                "Credenciales invalidas",
-                "El correo o la contrasena no son correctos.", peticion);
+        return construir(HttpStatus.UNAUTHORIZED, "credenciales-invalidas", peticion);
     }
 
     @ExceptionHandler(RefreshTokenInvalidoException.class)
     public ProblemDetail manejarRefreshInvalido(RefreshTokenInvalidoException ex,
                                                 HttpServletRequest peticion) {
         log.info("Refresh rechazado: {}", ex.getMessage());
-        return construir(HttpStatus.UNAUTHORIZED, "sesion-expirada",
-                "Sesion no valida",
-                "Tu sesion ha caducado. Vuelve a iniciar sesion.", peticion);
+        return construir(HttpStatus.UNAUTHORIZED, "sesion-expirada", peticion);
     }
 
     @ExceptionHandler(EmailYaRegistradoException.class)
     public ProblemDetail manejarEmailDuplicado(HttpServletRequest peticion) {
-        return construir(HttpStatus.CONFLICT, "email-registrado",
-                "Correo ya registrado",
-                "Ya existe una cuenta con ese correo.", peticion);
+        return construir(HttpStatus.CONFLICT, "email-registrado", peticion);
+    }
+
+    @ExceptionHandler(RecursoNoEncontradoException.class)
+    public ProblemDetail manejarNoEncontrado(RecursoNoEncontradoException ex,
+                                             HttpServletRequest peticion) {
+        log.debug("Recurso no encontrado: {}", ex.getMessage());
+        return construir(HttpStatus.NOT_FOUND, "no-encontrado", peticion);
+    }
+
+    @ExceptionHandler(LugarService.SlugDuplicadoException.class)
+    public ProblemDetail manejarSlugDuplicado(HttpServletRequest peticion) {
+        return construir(HttpStatus.CONFLICT, "slug-duplicado", peticion);
     }
 
     /** Errores de Bean Validation: 400 con el detalle campo a campo. */
@@ -82,29 +98,40 @@ public class ManejadorErroresGlobal extends ResponseEntityExceptionHandler {
             HttpStatusCode estado,
             WebRequest peticion) {
 
+        Locale idioma = LocaleContextHolder.getLocale();
+
         Map<String, String> errores = new LinkedHashMap<>();
         ex.getBindingResult().getFieldErrors()
                 .forEach(error -> errores.putIfAbsent(error.getField(), error.getDefaultMessage()));
+        // Los validadores a nivel de clase no tienen campo asociado.
+        ex.getBindingResult().getGlobalErrors()
+                .forEach(error -> errores.putIfAbsent(error.getObjectName(), error.getDefaultMessage()));
 
         ProblemDetail problema = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         problema.setType(URI.create(BASE_TIPOS + "validacion"));
-        problema.setTitle("Datos invalidos");
-        problema.setDetail("Revisa los campos marcados.");
+        problema.setTitle(texto("error.validacion.titulo", idioma));
+        problema.setDetail(texto("error.validacion.detalle", idioma));
+        problema.setProperty("errorCode", "validacion");
         problema.setProperty("errores", errores);
         problema.setProperty("timestamp", clock.instant());
 
         return ResponseEntity.badRequest().body(problema);
     }
 
-    private ProblemDetail construir(HttpStatus estado, String codigo, String titulo,
-                                    String detalle, HttpServletRequest peticion) {
+    private ProblemDetail construir(HttpStatus estado, String codigo, HttpServletRequest peticion) {
+        Locale idioma = LocaleContextHolder.getLocale();
+
         ProblemDetail problema = ProblemDetail.forStatus(estado);
         problema.setType(URI.create(BASE_TIPOS + codigo));
-        problema.setTitle(titulo);
-        problema.setDetail(detalle);
+        problema.setTitle(texto("error." + codigo + ".titulo", idioma));
+        problema.setDetail(texto("error." + codigo + ".detalle", idioma));
         problema.setInstance(URI.create(peticion.getRequestURI()));
         problema.setProperty("errorCode", codigo);
         problema.setProperty("timestamp", clock.instant());
         return problema;
+    }
+
+    private String texto(String clave, Locale idioma) {
+        return mensajes.getMessage(clave, null, clave, idioma);
     }
 }

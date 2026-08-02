@@ -41,7 +41,9 @@ public class CategoriaLugar extends EntidadBase {
     private Short orden;
 
     // Composicion real: una traduccion no existe sin su categoria, por eso
-    // lleva cascade y orphanRemoval.
+    // lleva cascade y orphanRemoval. @BatchSize evita el N+1 al listar
+    // lugares, donde cada uno necesita el nombre traducido de su categoria.
     @OneToMany(mappedBy = "categoria", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 50)
     private Set<CategoriaLugarTraduccion> traducciones = new LinkedHashSet<>();
 }

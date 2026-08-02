@@ -23,6 +23,47 @@ public interface LugarRepository extends JpaRepository<Lugar, UUID> {
 
     Optional<Lugar> findBySlug(String slug);
 
+    /**
+     * Ficha completa en una sola consulta.
+     *
+     * <p>Trae de golpe todo lo que necesita el detalle. Sin esto haria falta
+     * una consulta por cada asociacion y, peor, con {@code open-in-view=false}
+     * varias reventarian al construir la respuesta fuera de la transaccion.</p>
+     *
+     * <p>Se puede paginar sin riesgo porque devuelve un unico lugar: traer
+     * colecciones en una consulta paginada obligaria a Hibernate a paginar en
+     * memoria, algo que la configuracion tiene prohibido a proposito.</p>
+     */
+    @Query("""
+            SELECT DISTINCT l FROM Lugar l
+            JOIN FETCH l.categoria c
+            LEFT JOIN FETCH c.traducciones
+            JOIN FETCH l.distrito d
+            JOIN FETCH d.provincia
+            LEFT JOIN FETCH l.traducciones
+            LEFT JOIN FETCH l.horarios
+            WHERE l.slug = :slug
+            """)
+    Optional<Lugar> findBySlugConDetalle(String slug);
+
+    /**
+     * Listado paginado.
+     *
+     * <p>Solo se traen aqui las asociaciones a-uno. Las colecciones se cargan
+     * despues en bloque gracias a {@code @BatchSize}: mezclar colecciones con
+     * paginacion obligaria a Hibernate a traer todas las filas y paginar en
+     * memoria.</p>
+     */
+    @Query(value = """
+            SELECT l FROM Lugar l
+            JOIN FETCH l.categoria
+            JOIN FETCH l.distrito d
+            JOIN FETCH d.provincia
+            WHERE l.estado = :estado
+            """,
+            countQuery = "SELECT COUNT(l) FROM Lugar l WHERE l.estado = :estado")
+    Page<Lugar> findByEstadoConDetalle(EstadoLugar estado, Pageable pageable);
+
     boolean existsBySlug(String slug);
 
     Page<Lugar> findByEstado(EstadoLugar estado, Pageable pageable);

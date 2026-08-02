@@ -1,53 +1,56 @@
+import createIntlMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { routing } from "@/i18n/routing";
+
 /**
- * Proteccion de rutas privadas.
+ * Enrutado por idioma y proteccion de rutas privadas.
  *
  * En Next.js 16 esta convencion se llama `proxy.ts` (antes `middleware.ts`).
  *
- * IMPORTANTE — esto es experiencia de usuario, NO seguridad. Aqui solo puede
- * comprobarse si **existe** la cookie de refresh, no si es valida: su
- * contenido es un token opaco que se verifica contra la base de datos, y el
- * access token vive en memoria del navegador, fuera del alcance del servidor.
+ * El orden importa: primero se resuelve el idioma, porque hasta que next-intl
+ * no normaliza la URL no se sabe si `/perfil` es en realidad `/es/perfil`. Con
+ * la ruta ya normalizada se decide si es privada.
  *
- * Sirve para no mostrar el cascaron de una pagina privada a quien no ha
- * iniciado sesion. La autorizacion de verdad la hace el backend, con
- * `@PreAuthorize` en cada endpoint: si alguien fuerza la URL /admin, vera el
- * armazon vacio y todas las llamadas al API le responderan 403.
- *
- * ATENCION — esta comprobacion solo funciona cuando frontend y backend
- * comparten dominio, como en desarrollo. En el despliegue previsto (Vercel +
- * Railway) la cookie pertenece al dominio del backend y este proxy, que corre
- * en Vercel, **no podra verla**: dejara pasar a todo el mundo. Por eso las
- * paginas privadas llevan ademas la guarda de cliente `useSesionRequerida`,
- * que es la que realmente cubre ese caso.
+ * IMPORTANTE — la parte de proteccion es experiencia de usuario, NO seguridad.
+ * Aqui solo puede comprobarse si **existe** la cookie de refresh, no si es
+ * valida. Y en el despliegue previsto (Vercel + Railway) la cookie pertenece
+ * al dominio del backend, asi que este proxy ni siquiera la vera: quien
+ * protege de verdad es `useSesionRequerida` en el cliente y `@PreAuthorize`
+ * en el backend.
  */
 
 const COOKIE_REFRESH = "yachay_refresh";
 const RUTAS_PRIVADAS = ["/perfil", "/admin"];
 
+const intl = createIntlMiddleware(routing);
+
 export function proxy(peticion: NextRequest) {
+  // 1. Idioma: puede devolver una redireccion (por ejemplo de "/" a "/es").
+  const respuesta = intl(peticion);
+
   const { pathname } = peticion.nextUrl;
+  // Se quita el prefijo de idioma para comparar contra las rutas privadas.
+  const sinIdioma = pathname.replace(/^\/(es|en)(?=\/|$)/, "") || "/";
 
   const esPrivada = RUTAS_PRIVADAS.some(
-    (ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`),
+    (ruta) => sinIdioma === ruta || sinIdioma.startsWith(`${ruta}/`),
   );
 
-  if (!esPrivada) {
-    return NextResponse.next();
+  if (!esPrivada || peticion.cookies.has(COOKIE_REFRESH)) {
+    return respuesta;
   }
 
-  const tieneSesion = peticion.cookies.has(COOKIE_REFRESH);
-  if (tieneSesion) {
-    return NextResponse.next();
-  }
-
-  // Se recuerda a donde iba para devolverle alli tras iniciar sesion.
-  const destino = new URL("/login", peticion.url);
+  // 2. Sin sesion en una ruta privada: a /login, conservando el idioma de la
+  // URL para no devolver al usuario a otro idioma del que estaba usando.
+  const idioma = pathname.match(/^\/(es|en)(?=\/|$)/)?.[1] ?? routing.defaultLocale;
+  const destino = new URL(`/${idioma}/login`, peticion.url);
   destino.searchParams.set("continuar", pathname);
   return NextResponse.redirect(destino);
 }
 
 export const config = {
-  matcher: ["/perfil/:path*", "/admin/:path*"],
+  // Se excluyen los endpoints de API, los archivos internos de Next y
+  // cualquier ruta con extension: nada de eso necesita idioma ni sesion.
+  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
 };

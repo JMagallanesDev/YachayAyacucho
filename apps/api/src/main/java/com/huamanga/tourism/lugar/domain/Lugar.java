@@ -16,6 +16,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.SQLRestriction;
 import org.locationtech.jts.geom.Point;
 
@@ -104,10 +105,17 @@ public class Lugar extends EntidadAuditable {
     private EstadoLugar estado = EstadoLugar.BORRADOR;
 
     // Composicion: horarios y traducciones no existen sin su lugar.
+    //
+    // @BatchSize evita el N+1 en los listados. Ahi no se pueden traer las
+    // colecciones con JOIN FETCH —mezclarlas con paginacion obligaria a
+    // Hibernate a paginar en memoria—, asi que se cargan despues; con lotes,
+    // una pagina de 20 lugares cuesta una consulta extra en total y no 20.
     @OneToMany(mappedBy = "lugar", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     private Set<HorarioLugar> horarios = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "lugar", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     private Set<LugarTraduccion> traducciones = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "lugar", cascade = CascadeType.ALL, orphanRemoval = true)

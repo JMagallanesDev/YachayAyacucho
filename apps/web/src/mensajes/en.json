@@ -1,0 +1,90 @@
+{
+  "comun": {
+    "cargando": "Loading...",
+    "entrar": "Sign in",
+    "salir": "Sign out",
+    "volver": "Back",
+    "idioma": "Language",
+    "cambiarIdioma": "Change language",
+    "espanol": "Espanol",
+    "ingles": "English"
+  },
+  "portada": {
+    "etiqueta": "Block 3 · Heritage content",
+    "descripcion": "Cultural heritage of Huamanga, Ayacucho. This page checks live that the frontend, the API and the infrastructure are connected.",
+    "estadoSistema": "System status",
+    "operativo": "Operational",
+    "degradado": "Degraded",
+    "sinConexion": "No connection",
+    "apiSpring": "Spring Boot API",
+    "aplicacion": "Application {nombre}",
+    "sinConexionAyuda": "Check that Docker is running and the backend is up at {url}.",
+    "paleta": "Ayacucho palette",
+    "tesis": "Thesis: «Web application for publishing information on the cultural heritage of Ayacucho, 2026»."
+  },
+  "colores": {
+    "retablo": "Retablo",
+    "retabloOrigen": "Cochineal carmine red",
+    "anil": "Indigo",
+    "anilOrigen": "Indigo from Andean textiles",
+    "quinua": "Quinua",
+    "quinuaOrigen": "Ochre of fired clay",
+    "sillar": "Sillar",
+    "sillarOrigen": "Stone of the temples",
+    "puna": "Puna",
+    "punaOrigen": "Green of the highlands"
+  },
+  "login": {
+    "titulo": "Sign in",
+    "descripcion": "Sign in to save favourites, write reviews and stamp your heritage passport.",
+    "correo": "Email",
+    "contrasena": "Password",
+    "entrando": "Signing in...",
+    "sinCuenta": "Don't have an account?",
+    "crearCuenta": "Create one",
+    "errorGenerico": "Could not sign in",
+    "errorConexion": "Could not reach the server"
+  },
+  "registro": {
+    "titulo": "Create account",
+    "descripcion": "Exploring the heritage requires no account. You need one to save favourites, review places and collect stamps.",
+    "nombre": "Name",
+    "correo": "Email",
+    "contrasena": "Password",
+    "ayudaContrasena": "At least 8 characters, with uppercase, lowercase and a number.",
+    "crear": "Create account",
+    "creando": "Creating...",
+    "yaTienesCuenta": "Already have an account?",
+    "iniciarSesion": "Sign in",
+    "errorGenerico": "Could not create the account",
+    "errorConexion": "Could not reach the server"
+  },
+  "perfil": {
+    "titulo": "My profile",
+    "recuperando": "Restoring your session...",
+    "nombre": "Name",
+    "correo": "Email",
+    "rol": "Role"
+  },
+  "admin": {
+    "titulo": "Administration",
+    "usuarios": "Users",
+    "lugares": "Places",
+    "cargando": "Loading summary...",
+    "sinPermisos": "Your account does not have administration permissions.",
+    "errorCarga": "Could not load the summary."
+  },
+  "validacion": {
+    "correoObligatorio": "Enter your email",
+    "correoInvalido": "That email does not look valid",
+    "correoLargo": "The email is too long",
+    "contrasenaObligatoria": "Enter your password",
+    "contrasenaCorta": "Use at least 8 characters",
+    "contrasenaLarga": "The password cannot exceed 72 characters",
+    "contrasenaMinuscula": "Include at least one lowercase letter",
+    "contrasenaMayuscula": "Include at least one uppercase letter",
+    "contrasenaNumero": "Include at least one number",
+    "nombreObligatorio": "Enter your name",
+    "nombreLargo": "The name is too long"
+  }
+}

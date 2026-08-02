@@ -5,8 +5,8 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 2 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 3 — i18n base + CRUD de lugares (backend).
+- **Bloque en curso:** ninguno (Bloque 3 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 4 — Listado, detalle y búsqueda (frontend).
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
@@ -17,7 +17,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 | 0 — Cimientos | ✅ Completado | Monorepo pnpm (apps/web + apps/api), Docker Compose con PostgreSQL 16 + PostGIS 3.5 y Redis 7, `.env` único en la raíz leído por las tres partes, endpoint `/api/v1/health` con comprobación real de BD y caché (9 tests en verde), Tailwind v4 + `tokens.css` con la paleta Ayacucho en OKLCH, capa CSS de "sensación de app nativa", portada SSR que muestra el estado en vivo, Dockerfile del backend y README actualizado. **Migrado después a Spring Boot 4.1.0 y Next.js 16.2.12** (ver sección de migración) | — |
 | 1 — Modelo de datos | ✅ Completado | 35 tablas + 1 vista materializada en 14 migraciones Flyway, 36 clases JPA package-by-feature, 35 repositorios, 89 índices (GIST espaciales, GIN full-text, parciales, únicos parciales), todos los CHECK de la sección 6.5, UUID v7 en backend y en SQL, auditoría y soft delete, catálogos de referencia (11 provincias, 119 distritos, 8+7 categorías, 7 tipos de incidente, 8 insignias), seed de demostración idempotente, job de refresco de la vista con ShedLock sobre Redis, y 50 tests contra PostGIS real con Testcontainers | — |
 | 2 — Autenticación y seguridad | ✅ Completado | JWT HS256 de 15 min emitido con las clases nativas de Spring Security 7, refresh token de 7 días en cookie httpOnly hasheado con SHA-256, rotación con **detección de reutilización** que revoca todas las sesiones ante un robo (migración V15), BCrypt cost 12, `@PreAuthorize` por rol, errores 401/403 en ProblemDetail, rate limiting en Redis con lectura validada de X-Forwarded-For, y frontend con access token solo en memoria (Zustand sin persist), refresh silencioso y `proxy.ts` protegiendo /perfil y /admin. **37 tests de seguridad**, 87 en total | — |
-| 3 — i18n + CRUD lugares (backend) | Pendiente | — | — |
+| 3 — i18n + CRUD lugares (backend) | ✅ Completado | CRUD completo de `/api/v1/lugares` (solo ADMIN escribe) con guardado transaccional de lugar + traducciones + grilla horaria, DTOs con MapStruct, tres validadores propios (bounds de Ayacucho, español obligatorio, horarios sin solapes), `abiertoAhora` calculado en servidor, mensajes de error traducidos por `Accept-Language`, webhook de revalidación ISR disparado **después del commit**, y next-intl con rutas `/es` y `/en`, detección de idioma, selector con persistencia en cookie y textos y mensajes de Zod traducidos. **111 tests** | — |
 | 4 — Listado/detalle/búsqueda (frontend) | Pendiente | — | — |
 | 5 — Mapa, clima, recomendaciones, proximidad | Pendiente | — | — |
 | 6 — Reseñas, calificaciones, fotos | Pendiente | — | — |
@@ -198,6 +198,82 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 3 — i18n base + CRUD de lugares
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 111 tests, 0 fallos** (23 nuevos: 20 de CRUD, 3 de revalidación) |
+| Permisos (RF-47) | Crear/editar/borrar sin token → **401**; con rol USUARIO → **403**; con ADMIN → 201/200/204. El listado público es accesible sin cuenta (RF-34) |
+| Guardado transaccional | Un `POST` deja 1 lugar + 2 traducciones + 2 horarios; si la validación falla, **0 filas en las tres tablas** |
+| Actualización | Un `PUT` con menos traducciones y horarios los **reemplaza sin acumular** (1 y 1) |
+| Borrado | 204 y la ficha pasa a 404, pero la fila se conserva con `deleted_at` |
+| Validación | Coordenadas de Lima → 400 en `errores.longitud`; sin español → 400; turnos solapados → 400; slug con mayúsculas → 400; idioma repetido → 400 |
+| Idiomas del API | `?idioma=ES` → «Catedral de Ayacucho», `?idioma=EN` → «Ayacucho Cathedral»; sin traducción inglesa devuelve la española con `traduccionPorDefecto: true` |
+| Errores traducidos | El mismo error con `Accept-Language: es` → «Las coordenadas quedan fuera de la region Ayacucho»; con `en` → «The coordinates fall outside the Ayacucho region» y `title: Invalid data` |
+| Borradores | 404 para el público, 200 para ADMIN; el listado público no los incluye |
+| Webhook ISR | Se dispara al guardar y al dar de baja, con el secreto en cabecera; **no se dispara si la operación fue rechazada** |
+| `pnpm build` | Compilado; `/es` y `/en` generados estáticamente para las 4 páginas |
+| `type-check` / `lint` | Sin errores |
+| **Navegador real** | `/` → `/es` según `Accept-Language`; selector cambia a `/en/login` con textos en inglés; **cookie `NEXT_LOCALE=en` escrita y `/` pasa a llevar a `/en`**; login sigue funcionando bajo `/es/login` → `/es/perfil`; recarga con `200 /auth/refresh` mantiene la sesión; CRUD desde el navegador: crear 201, ES/EN correctos, validación 400 con mensaje en inglés, borrar 204; **cero errores de JavaScript** |
+
+### El bug que solo se vio en el navegador
+
+**El idioma no persistía.** El selector cambiaba la página y los textos, pero la cookie
+`NEXT_LOCALE` no se escribía nunca: al volver a `/`, el sitio regresaba al idioma detectado
+del navegador. La causa era que el selector sustituía el prefijo de la URL a mano con
+`next/navigation`, y **la cookie solo la escribe next-intl cuando el cambio pasa por sus
+propias APIs de navegación**. Se creó `src/i18n/navegacion.ts` con `createNavigation` y el
+selector ahora llama a `router.replace(ruta, { locale })`.
+
+Es exactamente el tipo de fallo que la lección del Bloque 2 anticipaba: los tests de
+backend estaban todos en verde y el `build` también, porque el defecto vivía en el
+almacén de cookies de un navegador real.
+
+### Decisiones de diseño
+
+- **Cookie en vez de `localStorage` para el idioma.** `localStorage` no existe en el
+  servidor, así que no puede decidir el idioma antes de renderizar ni redirigir a quien
+  entra por `/`. **⚠️ Hay que corregir el RF-63.**
+- **`abiertoAhora` se calcula en el servidor**, con la zona `America/Lima`. El reloj del
+  visitante puede estar en cualquier huso, y el lugar abre según la hora de Ayacucho.
+- **Un borrador responde 404, no 403.** Un 403 confirmaría que el recurso existe, y un
+  borrador es precisamente lo que aún no debe saberse que existe.
+- **Validación de turnos solapados** (aprobada, no estaba en el plan): sin ella se podría
+  guardar «9:00-13:00» y «12:00-18:00» el mismo día, y «abierto ahora» respondería sobre
+  datos contradictorios.
+- **El webhook se dispara con `@TransactionalEventListener(AFTER_COMMIT)`.** Dentro de la
+  transacción, Next regeneraría la página leyendo datos aún no confirmados —o que acaban
+  en rollback— y quedaría cacheada una versión que nunca existió. Hay un test que lo
+  comprueba.
+- **El webhook nunca rompe el guardado**: `try/catch` con timeout corto. Si Vercel está
+  caído, el lugar se guarda igual y la página se regenera cuando expire su caché.
+- **`timingSafeEqual` para el secreto de revalidación.** Con `===`, la comparación se
+  detiene en el primer byte distinto y ese tiempo es medible: se puede reconstruir el
+  secreto byte a byte.
+- **`@BatchSize` en las colecciones.** En un listado paginado no se pueden traer
+  colecciones con `JOIN FETCH` —Hibernate paginaría en memoria, algo que la configuración
+  tiene prohibido—, así que se cargan después en lotes: una página de 20 lugares cuesta
+  una consulta extra, no 20.
+- **Los esquemas Zod reciben el traductor**, en vez de tener los textos incrustados: las
+  *reglas* siguen siendo la fuente de verdad y los *textos* vienen de next-intl.
+
+### 📌 Correcciones adicionales para los documentos de tesis
+
+- **RF-63:** el idioma persiste en **cookie**, no en `localStorage`.
+- **Sección 6.4:** añadir el índice `idx_lugar_ubicacion_geog` (ya anotado en el Bloque 1).
+
+### Pendientes anotados
+
+- **Bloque 4:** las páginas `/[locale]/lugares` y `/[locale]/lugares/[slug]` aún no
+  existen; `revalidatePath` sobre una ruta no generada es inocuo, así que el circuito de
+  revalidación ya está montado y probado a la espera de ellas.
+- **Bloque 10:** el CRUD no tiene interfaz todavía; se verificó por HTTP y desde el
+  contexto del navegador.
 
 ---
 

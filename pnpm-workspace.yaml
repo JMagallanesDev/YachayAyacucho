@@ -2,10 +2,14 @@ packages:
   - "apps/*"
 
 # pnpm 11 exige aprobar los paquetes que ejecutan scripts de instalacion.
-# Ambos son parte del toolchain oficial de Next.js:
-#   sharp         -> optimizacion de imagenes de next/image (RNF-03, WebP)
-#   unrs-resolver -> resolvedor de modulos de eslint-config-next
+# Todos son herramientas de compilacion del ecosistema de Next.js:
+#   sharp            -> optimizacion de imagenes de next/image (RNF-03, WebP)
+#   unrs-resolver    -> resolvedor de modulos de eslint-config-next
+#   @swc/core        -> el compilador que ya usa Next, requerido por next-intl
+#   @parcel/watcher  -> vigila los archivos de traduccion en desarrollo
 allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
   sharp: true
   unrs-resolver: true
 

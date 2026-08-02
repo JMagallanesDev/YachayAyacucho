@@ -157,6 +157,17 @@ app:
     # dejar ningun hash de contrasena conocida en el repositorio.
     password-inicial: ${ADMIN_PASSWORD_INICIAL:}
 
+  # ----------------------------------------------------------
+  #  Revalidacion ISR bajo demanda (seccion 5.5)
+  # ----------------------------------------------------------
+  #  Al guardar un lugar, el backend avisa a Next.js para que regenere
+  #  su pagina. Si estas dos variables estan vacias, el aviso se omite
+  #  sin ruido: en un entorno sin frontend levantado no hay a quien
+  #  avisar, y el guardado debe funcionar igual.
+  revalidacion:
+    url: ${REVALIDATE_WEBHOOK_URL:}
+    secreto: ${REVALIDATE_SECRET:}
+
   # Refresco de la vista materializada EstadisticaLugar (seccion 6.3 del
   # plan): cada 5 minutos, con lock distribuido en Redis para que N
   # instancias del backend no lo ejecuten a la vez.

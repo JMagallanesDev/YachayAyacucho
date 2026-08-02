@@ -1,20 +1,18 @@
+import { getTranslations, setRequestLocale } from "next-intl/server";
+
 import { obtenerSalud } from "@/lib/api";
 import { env } from "@/lib/env";
 import type { ComponenteSalud } from "@/types/health";
 
 /**
- * Portada provisional del Bloque 0.
+ * Portada provisional.
  *
- * Es un Server Component: el estado se consulta en el servidor y llega
- * al navegador como HTML ya renderizado, sin JavaScript de cliente.
+ * <p>Es un Server Component: el estado se consulta en el servidor y llega al
+ * navegador como HTML ya renderizado, sin JavaScript de cliente.</p>
  *
- * No es un "hello world" decorativo: comprueba de verdad que el
- * frontend habla con el backend y que el backend habla con PostgreSQL
- * y Redis. Si esta pagina se ve en verde, los cimientos estan puestos.
- *
- * Nota: los textos estan escritos directamente aqui porque next-intl
- * entra en el Bloque 3. A partir de ahi todo pasa por t('clave')
- * (RF-66) y esta pagina cede su sitio a la portada real.
+ * <p>Desde el Bloque 3 todos sus textos salen de next-intl: cero cadenas
+ * escritas en el componente (RF-66). La portada real, con el listado de
+ * lugares, llega en el Bloque 4.</p>
  */
 
 const NOMBRES_COMPONENTE: Record<string, string> = {
@@ -23,27 +21,33 @@ const NOMBRES_COMPONENTE: Record<string, string> = {
 };
 
 const PALETA = [
-  { nombre: "Retablo", clase: "bg-retablo-600", origen: "Rojo carmin de cochinilla" },
-  { nombre: "Anil", clase: "bg-anil-800", origen: "Indigo de los textiles" },
-  { nombre: "Quinua", clase: "bg-quinua-500", origen: "Ocre del barro cocido" },
-  { nombre: "Sillar", clase: "bg-sillar-200", origen: "Piedra de los templos" },
-  { nombre: "Puna", clase: "bg-puna-600", origen: "Verde de altura" },
-];
+  { clave: "retablo", clase: "bg-retablo-600" },
+  { clave: "anil", clase: "bg-anil-800" },
+  { clave: "quinua", clase: "bg-quinua-500" },
+  { clave: "sillar", clase: "bg-sillar-200" },
+  { clave: "puna", clase: "bg-puna-600" },
+] as const;
 
-export default async function PaginaInicio() {
+export default async function PaginaInicio({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  const t = await getTranslations("portada");
+  const tc = await getTranslations("colores");
   const resultado = await obtenerSalud();
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-2xl flex-col gap-8 px-5 py-12">
       <header className="flex flex-col gap-3">
         <span className="text-fluid-sm font-medium uppercase tracking-widest text-accent">
-          Bloque 0 &middot; Cimientos
+          {t("etiqueta")}
         </span>
         <h1 className="text-fluid-3xl font-bold text-text">{env.appName}</h1>
-        <p className="text-fluid-base text-text-muted">
-          Patrimonio cultural de Huamanga, Ayacucho. Esta pagina comprueba en vivo que el
-          frontend, el API y la infraestructura estan conectados.
-        </p>
+        <p className="text-fluid-base text-text-muted">{t("descripcion")}</p>
       </header>
 
       <section
@@ -52,16 +56,16 @@ export default async function PaginaInicio() {
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="titulo-estado" className="text-fluid-lg font-semibold text-text">
-            Estado del sistema
+            {t("estadoSistema")}
           </h2>
           <EtiquetaEstado
             ok={resultado.alcanzable && resultado.salud.status === "UP"}
             texto={
               !resultado.alcanzable
-                ? "Sin conexion"
+                ? t("sinConexion")
                 : resultado.salud.status === "UP"
-                  ? "Operativo"
-                  : "Degradado"
+                  ? t("operativo")
+                  : t("degradado")
             }
           />
         </div>
@@ -69,8 +73,8 @@ export default async function PaginaInicio() {
         {resultado.alcanzable ? (
           <ul className="mt-5 flex flex-col divide-y divide-border-base">
             <FilaComponente
-              nombre="API Spring Boot"
-              detalle={`Aplicacion ${resultado.salud.application}`}
+              nombre={t("apiSpring")}
+              detalle={t("aplicacion", { nombre: resultado.salud.application })}
               ok
               milisegundos={null}
             />
@@ -88,8 +92,7 @@ export default async function PaginaInicio() {
           <div className="mt-5 rounded-card bg-danger-subtle p-4">
             <p className="font-medium text-text">{resultado.motivo}</p>
             <p className="mt-1 text-fluid-sm text-text-muted">
-              Comprueba que Docker esta levantado (<code>docker compose up -d</code>) y que el
-              backend corre en <code>{env.apiUrl}</code>.
+              {t("sinConexionAyuda", { url: env.apiUrl })}
             </p>
           </div>
         )}
@@ -97,28 +100,27 @@ export default async function PaginaInicio() {
 
       <section aria-labelledby="titulo-paleta" className="flex flex-col gap-4">
         <h2 id="titulo-paleta" className="text-fluid-lg font-semibold text-text">
-          Paleta Ayacucho
+          {t("paleta")}
         </h2>
-        {/* Unico lugar donde se usan colores primitivos directamente:
-            este bloque existe justamente para mostrarlos. El resto de la
+        {/* Unico lugar donde se usan colores primitivos directamente: este
+            bloque existe justamente para mostrarlos. El resto de la
             aplicacion consume solo tokens semanticos. */}
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {PALETA.map((color) => (
-            <li key={color.nombre} className="flex flex-col gap-2">
+            <li key={color.clave} className="flex flex-col gap-2">
               <span
                 className={`h-14 w-full rounded-card border border-border-base ${color.clase}`}
                 aria-hidden="true"
               />
-              <span className="text-fluid-sm font-medium text-text">{color.nombre}</span>
-              <span className="text-fluid-sm text-text-muted">{color.origen}</span>
+              <span className="text-fluid-sm font-medium text-text">{tc(color.clave)}</span>
+              <span className="text-fluid-sm text-text-muted">{tc(`${color.clave}Origen`)}</span>
             </li>
           ))}
         </ul>
       </section>
 
       <footer className="mt-auto border-t border-border-base pt-6 text-fluid-sm text-text-muted">
-        Tesis: &laquo;Aplicacion web para la publicacion de informacion del patrimonio cultural
-        de Ayacucho, 2026&raquo;.
+        {t("tesis")}
       </footer>
     </main>
   );
@@ -161,7 +163,7 @@ function FilaComponente({
         <span
           className={`size-2.5 rounded-full ${ok ? "bg-success" : "bg-danger"}`}
           role="img"
-          aria-label={ok ? "Operativo" : "Caido"}
+          aria-label={ok ? "OK" : "ERROR"}
         />
       </span>
     </li>
