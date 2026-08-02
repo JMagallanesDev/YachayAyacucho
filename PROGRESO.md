@@ -5,8 +5,8 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 1 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 2 — Autenticación y seguridad.
+- **Bloque en curso:** ninguno (Bloque 2 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 3 — i18n base + CRUD de lugares (backend).
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
@@ -16,7 +16,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 |--------|--------|-------------|--------------------|
 | 0 — Cimientos | ✅ Completado | Monorepo pnpm (apps/web + apps/api), Docker Compose con PostgreSQL 16 + PostGIS 3.5 y Redis 7, `.env` único en la raíz leído por las tres partes, endpoint `/api/v1/health` con comprobación real de BD y caché (9 tests en verde), Tailwind v4 + `tokens.css` con la paleta Ayacucho en OKLCH, capa CSS de "sensación de app nativa", portada SSR que muestra el estado en vivo, Dockerfile del backend y README actualizado. **Migrado después a Spring Boot 4.1.0 y Next.js 16.2.12** (ver sección de migración) | — |
 | 1 — Modelo de datos | ✅ Completado | 35 tablas + 1 vista materializada en 14 migraciones Flyway, 36 clases JPA package-by-feature, 35 repositorios, 89 índices (GIST espaciales, GIN full-text, parciales, únicos parciales), todos los CHECK de la sección 6.5, UUID v7 en backend y en SQL, auditoría y soft delete, catálogos de referencia (11 provincias, 119 distritos, 8+7 categorías, 7 tipos de incidente, 8 insignias), seed de demostración idempotente, job de refresco de la vista con ShedLock sobre Redis, y 50 tests contra PostGIS real con Testcontainers | — |
-| 2 — Autenticación y seguridad | Pendiente | — | — |
+| 2 — Autenticación y seguridad | ✅ Completado | JWT HS256 de 15 min emitido con las clases nativas de Spring Security 7, refresh token de 7 días en cookie httpOnly hasheado con SHA-256, rotación con **detección de reutilización** que revoca todas las sesiones ante un robo (migración V15), BCrypt cost 12, `@PreAuthorize` por rol, errores 401/403 en ProblemDetail, rate limiting en Redis con lectura validada de X-Forwarded-For, y frontend con access token solo en memoria (Zustand sin persist), refresh silencioso y `proxy.ts` protegiendo /perfil y /admin. **37 tests de seguridad**, 87 en total | — |
 | 3 — i18n + CRUD lugares (backend) | Pendiente | — | — |
 | 4 — Listado/detalle/búsqueda (frontend) | Pendiente | — | — |
 | 5 — Mapa, clima, recomendaciones, proximidad | Pendiente | — | — |
@@ -198,6 +198,157 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 2 — Autenticación y seguridad
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 88 tests, 0 fallos** (38 de seguridad) |
+| Ciclo completo en navegador real | Login → `/perfil` → recarga que mantiene la sesión → `/admin`, sin errores de JavaScript |
+| `mvnw verify` (JaCoCo) | All coverage checks met — **88%** de líneas sobre 22 clases con lógica |
+| Registro + BCrypt | `POST /auth/register` → 201; hash guardado con prefijo `$2a$12$` (cost 12, RNF-12) |
+| Login | 200 con access token de **900 s** y cookie `HttpOnly`, `SameSite=Lax`, `Path=/api/v1/auth` |
+| Refresh hasheado | En BD se guarda SHA-256 de 64 caracteres, distinto del valor de la cookie |
+| `/auth/me` con token | 200 con los datos correctos |
+| `/auth/me` sin token | **401** con ProblemDetail `no-autenticado` |
+| Token manipulado / con otro secreto / caducado / con otro emisor | **401** en los cuatro casos |
+| `/admin/resumen` con rol USUARIO | **403** `acceso-denegado` (no 401) |
+| `/admin/resumen` con rol ADMIN | 200 `{"lugares":5,"usuarios":2}` |
+| Escalada de privilegios | Reescribir el claim `rol` a ADMIN → **401**: la firma cubre el payload |
+| Rotación | Refresh → 200 con cookie **distinta**; el token anterior → **401** |
+| **Reutilización** | Presentar un token ya rotado → 401 **y se revocan todas las sesiones**: en BD `usados=1 revocados=2 vivos=0` |
+| Logout | 204 con `Max-Age=0`; el refresh deja de servir |
+| Enumeración de usuarios | Correo inexistente y contraseña incorrecta devuelven **cuerpos idénticos** |
+| Rate limiting | Corta en el intento 7 con **429** y `Retry-After: 60` |
+| XFF falsificado | Ignorado desde un peer no confiable; tres cabeceras distintas dan la misma identidad |
+| Auditoría | `created_by`/`updated_by` se rellenan solos desde el SecurityContext |
+| `proxy.ts` | `/perfil` y `/admin` sin cookie → **307** a `/login?continuar=...`; con cookie → 200 |
+| `pnpm lint` / `type-check` / `build` | Sin errores; 5 rutas compiladas |
+
+### Corrección posterior: el login no funcionaba en el navegador
+
+Los 87 tests y las pruebas con `curl` pasaban, pero al abrir la aplicación de verdad el
+login no llegaba a `/perfil`. Se diagnosticó con un navegador real (Edge headless dirigido
+por CDP, sin añadir dependencias) y salieron **tres defectos encadenados** que ni los tests
+de MockMvc ni `curl` podían ver, porque ninguno de los dos guarda cookies como un
+navegador ni ejecuta React:
+
+1. **La cookie era invisible para `proxy.ts`.** Se emitía con `Path=/api/v1/auth` por
+   minimizar su alcance, pero un navegador solo envía una cookie a rutas que empiecen por
+   su `Path`. El proxy de Next.js corre en `/perfil`, así que nunca la veía y **rebotaba al
+   usuario a `/login` justo después de un login correcto**. Se amplió a `Path=/`, que es
+   el alcance habitual de una cookie de sesión; sigue siendo httpOnly, Secure y SameSite,
+   que son las protecciones que de verdad importan.
+2. **Dos cookies con el mismo nombre.** Al cambiar el `Path`, cualquier navegador que ya
+   tuviera la cookie antigua acababa con dos, y enviaba primero la caducada por ser la de
+   ruta más específica. El login y el logout emiten ahora también una orden de borrado para
+   la ruta antigua, así que se limpia sola sin que nadie tenga que borrar cookies a mano.
+3. **La detección de reutilización se disparaba sola.** React StrictMode ejecuta los
+   efectos dos veces en desarrollo, así que salían dos `/auth/refresh` con la misma cookie
+   y el segundo se interpretaba como robo: **la propia medida de seguridad cerraba la
+   sesión del usuario legítimo**. Se resolvió compartiendo una única promesa de renovación
+   (*single-flight*), que además hacía falta en producción: varias peticiones que caduquen
+   a la vez dispararían una renovación cada una.
+
+También se corrigió que **`proxy.ts` no puede proteger nada en el despliegue previsto**:
+con el frontend en Vercel y el backend en Railway, la cookie pertenece al dominio del
+backend y el proxy nunca la verá. Se añadió la guarda de cliente `useSesionRequerida`,
+que es la que cubre ese caso.
+
+De propina se silenciaron los ~40 avisos de Spring Data Redis al arrancar
+(`spring.data.redis.repositories.enabled: false`): no existe ningún repositorio de Redis
+en el proyecto, la caché y el rate limiting usan `StringRedisTemplate` directamente.
+
+**Verificado en navegador real, perfil limpio:** login → `/perfil` con los datos correctos
+→ recarga con `200 /auth/refresh` y la sesión persiste → `/admin` accesible con rol ADMIN
+→ cero errores de JavaScript → una sola cookie, httpOnly y `Path=/`.
+
+**Lección para los siguientes bloques:** MockMvc y `curl` no sustituyen a un navegador.
+No manejan el almacén de cookies con sus reglas de `Path`, ni ejecutan React, ni
+reproducen StrictMode. Conviene una comprobación en navegador real al cerrar cada bloque
+que toque sesión o formularios.
+
+### Cuatro bugs que los tests destaparon
+
+1. **La revocación en cascada se deshacía sola.** Al detectar la reutilización de un
+   refresh token, el servicio revocaba todas las sesiones y acto seguido lanzaba una
+   excepción — y Spring hace *rollback* ante cualquier `RuntimeException`, así que la
+   revocación se borraba. El sistema detectaba el robo y no hacía nada. Se corrigió con
+   `noRollbackFor`: la excepción es una señal de negocio, no un fallo que deba anular el
+   trabajo ya hecho. **Es el bug más grave del bloque y solo se ve con un test que
+   compruebe el efecto, no el código de respuesta.**
+2. **`LazyInitializationException` al rotar.** El servicio devolvía el `Usuario` como
+   proxy perezoso y la respuesta se construía fuera de la transacción. Con
+   `open-in-view=false` —que el CLAUDE.md exige justamente para esto— reventaba. Se
+   añadió un `JOIN FETCH` del usuario y su rol en la consulta del token.
+3. **El perfil `dev` nunca estuvo activo.** `SPRING_PROFILES_ACTIVE=dev` en el `.env` no
+   activaba nada: esa forma en mayúsculas solo la reconoce Spring cuando llega como
+   variable de entorno real del sistema; leída de un archivo de propiedades es una clave
+   más. Venía así desde el Bloque 0 y no se notó porque nada dependía del perfil. Se
+   declaró `spring.profiles.active` de forma explícita en `application.yml`.
+4. **Jackson 3 en Boot 4:** `com.fasterxml.jackson.databind.ObjectMapper` ya no es un
+   bean. Los tests pasaron a usar JsonPath, que no depende de la versión de Jackson.
+
+### Decisiones de seguridad
+
+- **Access token de 15 minutos**, no 24 horas. Un JWT no se puede revocar: si se filtra,
+  el atacante lo usa hasta que caduque. La rotación del refresh permite tenerlo corto sin
+  que el usuario lo note, porque el frontend lo renueva en silencio.
+  **⚠️ Hay que corregir RF-32 y la sección 5.3 de la tesis, que dicen 24 h.**
+- **`spring-boot-starter-oauth2-resource-server` en vez de jjwt.** Evita escribir un
+  filtro propio que extraiga el Bearer, lo valide y construya el `Authentication`: ese
+  filtro casero es donde se cuelan los fallos. Aquí lo aporta Spring ya auditado.
+- **Detección de reutilización.** Rotar borrando la fila deja al sistema ciego: no
+  distingue "token caducado" de "token robado y reproducido". Guardando `usado_en`, un
+  token ya rotado que reaparece solo puede significar robo, y la respuesta correcta es
+  cortar **todas** las sesiones del usuario, no solo esa petición.
+- **SHA-256 y no BCrypt para el refresh token.** BCrypt es lento a propósito para
+  proteger secretos de baja entropía elegidos por humanos. Un refresh son 256 bits
+  aleatorios: no hay diccionario que valga, y el hash debe ser rápido y determinista
+  porque el token se busca *por su hash* en cada renovación.
+- **Mitigación de enumeración de usuarios.** Cuando el correo no existe se ejecuta
+  igualmente un BCrypt contra un hash señuelo, para que el tiempo de respuesta no
+  delate qué correos están registrados.
+- **X-Forwarded-For validado.** Solo se lee si la conexión directa viene de un proxy
+  conocido, y se recorre de derecha a izquierda. Leída a ciegas, la cabecera convierte
+  el rate limiting en decoración: basta con mandar una IP inventada distinta cada vez.
+- **Rate limiting *fail-open*.** Si Redis cae, la petición pasa. Degradar el límite es
+  preferible a dejar el sistema inaccesible por una caída de la caché.
+- **La protección de rutas del frontend es UX, no seguridad.** `proxy.ts` solo puede
+  comprobar si *existe* la cookie, no validarla. La autorización real es del backend con
+  `@PreAuthorize`: quien fuerce `/admin` verá el cascarón y recibirá 403 en cada llamada.
+
+### ⚠️ Pendiente para el despliegue: `SameSite`
+
+`COOKIE_SAMESITE=Lax` funciona en local, pero **con el frontend en Vercel y el backend en
+Railway son dominios distintos y el navegador no enviaría la cookie**: `/auth/refresh`
+dejaría de funcionar en cuanto se despliegue. Al desplegar hay que poner
+`COOKIE_SAMESITE=None` y `COOKIE_SECURE=true`. La defensa CSRF que lo compensa ya está
+implementada: `/auth/refresh` exige la cabecera `X-Refresh-Request`, que un formulario de
+otro dominio no puede añadir sin un preflight CORS que el allowlist rechaza.
+Con dominio propio (`yachay.pe` + `api.yachay.pe`) se podría volver a `Lax`, que es más
+limpio.
+
+### 📌 Correcciones adicionales para los documentos de tesis
+
+Se suman a las anteriores:
+- **RF-32 y sección 5.3:** el access token dura **15 minutos**, no 24 horas.
+- **Sección 5.6:** `src/middleware.ts` se llama `src/proxy.ts` desde Next.js 16.
+- **Sección 5.3:** añadir que `SameSite` será `None` en el despliegue actual, con la
+  cabecera anti-CSRF como compensación.
+
+### Pendientes anotados para bloques siguientes
+
+- **Bloque 3:** el job de limpieza de refresh tokens caducados
+  (`RefreshTokenRepository.eliminarCaducados`) está escrito pero aún no programado.
+- **Bloque 10:** `AdminController` solo expone `/admin/resumen`, creado para poder
+  verificar la autorización por rol de extremo a extremo. El panel real llega allí.
+- **Producción:** `ADMIN_PASSWORD_INICIAL` solo actúa en perfil `dev`. En producción el
+  administrador debe crearse por otra vía.
 
 ---
 

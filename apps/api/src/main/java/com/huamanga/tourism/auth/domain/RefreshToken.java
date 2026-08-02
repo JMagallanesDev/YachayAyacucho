@@ -42,7 +42,36 @@ public class RefreshToken extends EntidadCreacion {
     @Column(name = "expira_en", nullable = false)
     private Instant expiraEn;
 
+    /** Momento en que se roto. No nulo = ya se uso y no debe volver a servir. */
+    @Column(name = "usado_en")
+    private Instant usadoEn;
+
+    /** Invalidado por logout o por revocacion en cascada tras un robo. */
+    @Column(name = "revocado_en")
+    private Instant revocadoEn;
+
     public boolean estaExpirado(Instant ahora) {
         return expiraEn.isBefore(ahora);
+    }
+
+    public boolean fueUsado() {
+        return usadoEn != null;
+    }
+
+    public boolean estaRevocado() {
+        return revocadoEn != null;
+    }
+
+    /** Solo es utilizable un token vivo: ni usado, ni revocado, ni caducado. */
+    public boolean esUtilizable(Instant ahora) {
+        return !fueUsado() && !estaRevocado() && !estaExpirado(ahora);
+    }
+
+    public void marcarUsado(Instant momento) {
+        this.usadoEn = momento;
+    }
+
+    public void revocar(Instant momento) {
+        this.revocadoEn = momento;
     }
 }

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 
+import { ProveedorSesion } from "@/components/ProveedorSesion";
 import { env } from "@/lib/env";
 import "./globals.css";
 
@@ -65,7 +66,11 @@ export default function RootLayout({
       className={`${inter.variable} ${playfair.variable}`}
       data-scroll-behavior="smooth"
     >
-      <body>{children}</body>
+      <body>
+        {/* Intenta recuperar la sesion con la cookie httpOnly al cargar.
+            El access token vive en memoria, asi que cada recarga lo pierde. */}
+        <ProveedorSesion>{children}</ProveedorSesion>
+      </body>
     </html>
   );
 }

@@ -85,7 +85,9 @@ Abre el `.env` y pega los valores reales. **Recupéralos desde tu copia privada*
 Ninguno de los tres necesita una librería extra, y en los tres casos **una variable ya definida en el entorno real gana sobre la del archivo**. Por eso en producción mandan las variables del panel de Vercel/Railway y la ausencia del `.env` no rompe nada.
 
 > Notas sobre valores concretos:
-> - `JWT_SECRET` puede ser distinto en cada equipo (cambiarlo solo invalida sesiones viejas).
+> - `JWT_SECRET` puede ser distinto en cada equipo (cambiarlo solo invalida sesiones viejas). Mínimo 32 bytes: HS256 exige una clave de 256 bits.
+> - `ADMIN_PASSWORD_INICIAL` da acceso al administrador del seed. Solo se aplica en perfil `dev` y solo si la cuenta sigue sin contraseña.
+> - `COOKIE_SAMESITE` debe ser `Lax` en local y **`None` en producción** (con `COOKIE_SECURE=true`), porque frontend y backend están en dominios distintos.
 > - `REVALIDATE_SECRET` es un único valor compartido por `web` y `api`; al vivir en un solo archivo ya no hay forma de que se descuadren.
 > - `COOKIE_SECURE` debe ser `false` en local (HTTP) y `true` en producción (HTTPS).
 > - Las claves de terceros (MapTiler, Cloudinary, OpenWeather) pueden quedar vacías: no se usan hasta los Bloques 5 y 6.

@@ -11,6 +11,16 @@ spring:
   application:
     name: yachay-api
 
+  # El perfil activo se declara aqui de forma explicita.
+  #
+  # No basta con tener SPRING_PROFILES_ACTIVE en el .env: esa forma en
+  # mayusculas solo la reconoce Spring cuando llega como variable de entorno
+  # real del sistema. Leida desde un archivo de propiedades es una clave mas,
+  # sin relacion con spring.profiles.active, y el perfil quedaba sin activar
+  # en silencio.
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
   # ----------------------------------------------------------
   #  Carga del .env unico de la raiz del proyecto.
   #  La pista [.properties] le dice a Spring que lea el archivo
@@ -43,6 +53,15 @@ spring:
       url: ${REDIS_URL}
       timeout: 2s
       connect-timeout: 2s
+      # Con Spring Data JPA y Spring Data Redis a la vez en el classpath,
+      # Spring intenta adivinar a que motor pertenece cada repositorio y
+      # emite un aviso por cada uno que no puede clasificar: unos 40 al
+      # arrancar. Aqui no existe ningun repositorio de Redis —la cache y el
+      # rate limiting usan StringRedisTemplate directamente—, asi que se
+      # desactiva su escaneo. Ademas de silenciar el ruido, acelera el
+      # arranque y evita que un repositorio JPA acabe asignado por error.
+      repositories:
+        enabled: false
 
   # ----------------------------------------------------------
   #  JPA / Hibernate
@@ -117,6 +136,26 @@ springdoc:
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+  # ----------------------------------------------------------
+  #  Seguridad (Bloque 2)
+  # ----------------------------------------------------------
+  seguridad:
+    jwt-secret: ${JWT_SECRET}
+    # Access token corto a proposito: un JWT no se puede revocar, asi que
+    # cuanto menos viva, menos dura una filtracion. La rotacion del refresh
+    # permite que el usuario no note la diferencia.
+    access-expiration: ${JWT_EXPIRATION:900000}ms
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}ms
+    cookie-secure: ${COOKIE_SECURE:false}
+    cookie-same-site: ${COOKIE_SAMESITE:Lax}
+    proxies-confiables: ${PROXIES_CONFIABLES:127.0.0.1/32,::1/128}
+    emisor: yachay-ayacucho
+
+  admin:
+    # Solo se usa en perfil dev, para dar acceso al admin del seed sin
+    # dejar ningun hash de contrasena conocida en el repositorio.
+    password-inicial: ${ADMIN_PASSWORD_INICIAL:}
 
   # Refresco de la vista materializada EstadisticaLugar (seccion 6.3 del
   # plan): cada 5 minutos, con lock distribuido en Redis para que N
