@@ -214,6 +214,29 @@ class LugarCrudTest extends BasePostgis {
         }
 
         @Test
+        @DisplayName("la hora guardada es la misma que se envio, sin desplazamiento horario")
+        void horariosSinDesfase() throws Exception {
+            // Regresion. `hibernate.jdbc.time_zone: UTC` es necesario para los
+            // instantes, pero Hibernate lo aplicaba tambien a las columnas TIME,
+            // que aqui son hora de pared. Con la JVM en Lima, un horario enviado
+            // como 09:00 acababa almacenado como 14:00 y se leia otra vez como
+            // 09:00: la aplicacion parecia coherente consigo misma, pero el dato
+            // en la base era falso y no coincidia con el cargado por SQL.
+            //
+            // Por eso este test mira la COLUMNA, no la respuesta del API: una
+            // asercion sobre el JSON pasaba igual con el fallo presente.
+            crearComoAdmin("horario-fiel");
+
+            String apertura = jdbc.queryForObject(
+                    "SELECT hora_apertura::text FROM horario_lugar ORDER BY hora_apertura LIMIT 1",
+                    String.class);
+
+            assertThat(apertura)
+                    .as("la hora de pared no debe convertirse entre zonas")
+                    .startsWith("09:00");
+        }
+
+        @Test
         @DisplayName("el borrado es logico: la fila se conserva")
         void borradoEsLogico() throws Exception {
             String id = crearComoAdmin("por-borrar");

@@ -55,7 +55,9 @@ public class SecurityConfig {
             // POST, PUT y DELETE sobre /lugares caen en anyRequest() y ademas
             // llevan @PreAuthorize("hasRole('ADMIN')") en el controller.
             "/lugares",
-            "/lugares/**"
+            "/lugares/**",
+            // Catalogo de categorias: alimenta los chips de filtro del listado.
+            "/categorias"
     };
 
     private final PropiedadesSeguridad propiedades;

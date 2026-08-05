@@ -5,8 +5,8 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 3 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 4 — Listado, detalle y búsqueda (frontend).
+- **Bloque en curso:** ninguno (Bloque 4 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 5 — Mapa, clima, recomendaciones y proximidad.
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
@@ -18,7 +18,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 | 1 — Modelo de datos | ✅ Completado | 35 tablas + 1 vista materializada en 14 migraciones Flyway, 36 clases JPA package-by-feature, 35 repositorios, 89 índices (GIST espaciales, GIN full-text, parciales, únicos parciales), todos los CHECK de la sección 6.5, UUID v7 en backend y en SQL, auditoría y soft delete, catálogos de referencia (11 provincias, 119 distritos, 8+7 categorías, 7 tipos de incidente, 8 insignias), seed de demostración idempotente, job de refresco de la vista con ShedLock sobre Redis, y 50 tests contra PostGIS real con Testcontainers | — |
 | 2 — Autenticación y seguridad | ✅ Completado | JWT HS256 de 15 min emitido con las clases nativas de Spring Security 7, refresh token de 7 días en cookie httpOnly hasheado con SHA-256, rotación con **detección de reutilización** que revoca todas las sesiones ante un robo (migración V15), BCrypt cost 12, `@PreAuthorize` por rol, errores 401/403 en ProblemDetail, rate limiting en Redis con lectura validada de X-Forwarded-For, y frontend con access token solo en memoria (Zustand sin persist), refresh silencioso y `proxy.ts` protegiendo /perfil y /admin. **37 tests de seguridad**, 87 en total | — |
 | 3 — i18n + CRUD lugares (backend) | ✅ Completado | CRUD completo de `/api/v1/lugares` (solo ADMIN escribe) con guardado transaccional de lugar + traducciones + grilla horaria, DTOs con MapStruct, tres validadores propios (bounds de Ayacucho, español obligatorio, horarios sin solapes), `abiertoAhora` calculado en servidor, mensajes de error traducidos por `Accept-Language`, webhook de revalidación ISR disparado **después del commit**, y next-intl con rutas `/es` y `/en`, detección de idioma, selector con persistencia en cookie y textos y mensajes de Zod traducidos. **111 tests** | — |
-| 4 — Listado/detalle/búsqueda (frontend) | Pendiente | — | — |
+| 4 — Listado/detalle/búsqueda (frontend) | ✅ Completado | Listado `/lugares` con búsqueda por texto completo (debounce 300 ms), filtros por categoría, filtros combinados, tres órdenes y paginación, **todo reflejado en la URL**; tarjetas con insignia abierto/cerrado calculada en el navegador y distancia a pie tras un gesto explícito; ficha `/lugares/[slug]` renderizada en el servidor con galería Embla (swipe + pinch-zoom), bloque «Antes de ir» y grilla horaria; ISR (listado 5 min, fichas 1 h) con prefetch a TanStack Query e hidratación sin parpadeo; en el backend, endpoint único `explorar` con `to_tsvector` en español, `/categorias`, y estadísticas en el resumen; seed ampliado a 15 lugares. **125 tests** + 23 comprobaciones en navegador real | — |
 | 5 — Mapa, clima, recomendaciones, proximidad | Pendiente | — | — |
 | 6 — Reseñas, calificaciones, fotos | Pendiente | — | — |
 | 7 — Favoritos, check-in, pasaporte, reportes | Pendiente | — | — |
@@ -198,6 +198,108 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 4 — Listado, ficha y búsqueda
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 125 tests, 0 fallos** (14 nuevos: 13 del explorador + 1 de regresión horaria) |
+| Búsqueda full-text | «templos» encuentra «Templo…» y también la Catedral por su descripción (lematización del diccionario `spanish`); término en blanco **no filtra**; sin resultados devuelve una página vacía, no un error |
+| Filtros y orden | Categoría, calificación mínima y texto **combinables entre sí**; tres órdenes; un lugar recién publicado aparece **aunque la vista materializada no se haya refrescado** |
+| `pnpm lint` / `type-check` | Sin errores |
+| `pnpm build` | Compilado. **30 fichas pre-generadas** (15 lugares × 2 idiomas), listado con `revalidate 5m`, fichas con `1h` |
+| **Navegador real** | **23/23 comprobaciones**, dos pasadas seguidas: 12 tarjetas de 15, buscar «museo» deja 2 sin recargar, chips de categoría filtran, categoría + texto conviven en la URL, la paginación pasa a la 2.ª página (3 tarjetas), esqueletos visibles en red lenta, la ficha abre y muestra insignia, «Antes de ir» (8 datos) y los 7 días de horario, el contenido patrimonial **viaja en el HTML del servidor**, el listado en inglés sin textos incrustados, ninguna distancia antes del gesto y minutos a pie después, **consola limpia y sin avisos de hidratación** |
+
+### Dos fallos reales que la verificación destapó
+
+**1. Los horarios se guardaban y leían con cinco horas de desfase.** La base tenía
+06:00–20:00 y el API devolvía 01:00–15:00. La causa era
+`hibernate.jdbc.time_zone: UTC` (correcto y necesario para los instantes): Hibernate lo
+aplicaba **también a las columnas `TIME`**, que aquí son *hora de pared* —«el templo abre
+a las 09:00» no es un instante y no debe convertirse a nada—. Con la JVM en Lima, un
+horario enviado como 09:00 se almacenaba como 14:00 y se volvía a leer como 09:00:
+**escritura y lectura se compensaban entre sí**, así que la aplicación parecía coherente
+consigo misma y los tests pasaban; la discrepancia solo salía a la luz frente a los datos
+cargados por SQL, y el resultado dependía de la zona horaria de la máquina.
+
+La corrección es un bloque estático en `TourismApplication` que fija la JVM en UTC, con lo
+que la conversión pasa a ser la identidad. Va en un bloque estático y no en `main` porque
+los tests no pasan por `main` pero sí cargan la clase. Nada de la aplicación dependía de
+la zona por defecto: el `Clock` es `systemUTC()` y los cálculos sobre la hora de Ayacucho
+nombran su zona explícitamente.
+
+El test de regresión mira **la columna de la base, no la respuesta del API**: una
+aserción sobre el JSON pasaba igual con el fallo presente. Se comprobó que el test falla
+al desactivar la corrección y pasa al restaurarla.
+
+**2. `useSearchParams()` sin límite de Suspense rompía el `build`.** En `next dev`
+funcionaba; al compilar, Next no puede pre-generar una página cuyo componente cliente lee
+parámetros que solo existen al servir la petición. Se envolvió el explorador en
+`<Suspense>` con el esqueleto como respaldo: ahora lo que se pre-genera y cachea es el
+esqueleto, y los filtros se resuelven al llegar la petición.
+
+### Decisiones de diseño
+
+- **La insignia abierto/cerrado se calcula en el navegador, con la zona de Ayacucho
+  fijada.** Es la única forma de que conviva con el cacheado: un «Abierto» calculado al
+  generar el HTML seguiría diciéndolo horas después. Se usa `useSyncExternalStore`, que
+  resuelve dos cosas a la vez: distingue servidor de cliente sin efectos —evitando el
+  aviso de hidratación— y, con una suscripción por minuto, hace que la insignia cambie
+  sola cuando el lugar abre o cierra con la página abierta. Por eso el API sigue enviando
+  la **grilla horaria** y no un booleano ya calculado.
+- **La geolocalización nunca se pide al cargar.** Un diálogo de permiso que aparece antes
+  de que se entienda qué se gana con él se deniega, y **una denegación es pegajosa**: el
+  navegador no vuelve a preguntar y la función queda muerta en ese dispositivo. Al montar
+  solo se *consulta* el estado con la Permissions API, que no abre ningún diálogo; el
+  botón únicamente aparece si el permiso está sin decidir.
+- **La posición no se persiste.** Una ubicación guardada de ayer mentiría sobre la
+  distancia de hoy.
+- **4 km/h ajustados por altitud**, en un único sitio (`lib/geo.ts`). A partir de 90 min
+  se muestran kilómetros: «a 407 min caminando» es cierto e inservible. *(Si el usuario
+  localiza una fuente académica sobre el efecto de la altitud en la marcha, se cita en la
+  tesis.)*
+- **Los criterios viven en la URL**, no en estado local: la búsqueda se puede compartir,
+  el botón atrás funciona y recargar no pierde los filtros. La URL se sincroniza con el
+  texto **ya estabilizado**, no con cada tecla: escribir «catedral» dejaría ocho entradas
+  en el historial.
+- **`LEFT JOIN` con la vista materializada, no `JOIN`.** Con un `JOIN` normal, un lugar
+  recién publicado desaparecería del listado hasta el siguiente refresco de la vista
+  (hasta 5 minutos). Hay un test que lo cubre.
+- **El orden viaja como código numérico**, nunca como texto concatenado en el `ORDER BY`.
+- **Las estadísticas de la página se traen en una sola consulta** por identificadores y se
+  cruzan en memoria: pedirlas una a una serían 21 viajes a la base para pintar 20
+  estrellas.
+- **El `QueryClient` se crea con `useState`**, jamás como constante de módulo: en el
+  servidor un módulo se comparte entre peticiones y mezclaría los datos de distintos
+  visitantes.
+- **Los esqueletos miden exactamente lo que la tarjeta real** (`h-52`). Si midieran
+  distinto, la página daría un salto al llegar los datos y el CLS se saldría del 0.1 que
+  exige el RNF-24.
+
+### Correcciones a los documentos de tesis (las hace el usuario)
+
+- **Sección 8 del plan, Bloque 4.** El bloque se describe como solo de frontend, pero el
+  backend del Bloque 3 no tenía búsqueda, filtros combinados, rankings ni estadísticas en
+  el resumen: sin eso no hay listado que construir. Esas piezas se añadieron **dentro del
+  Bloque 4**, tal como se acordó.
+- **Nuevo endpoint público `GET /api/v1/categorias`**, no previsto en el plan. Alimenta
+  los chips de filtro; es catálogo de solo lectura.
+- **La ficha expone ahora `fotos`** (solo las aprobadas por moderación). El campo existe y
+  la galería está construida y conectada, pero **viene vacío**: la subida de fotos es un
+  bloque posterior y el seed no trae imágenes. Conviene decidir si en la sustentación se
+  cargan fotos reales con su autoría.
+
+### Límites conocidos de este bloque
+
+- **Los rankings salen planos con los datos actuales.** «Mejor valorados» y «Más
+  visitados» funcionan —hay tests que los prueban insertando datos—, pero el seed no tiene
+  reseñas ni visitas porque ambas llegan en bloques posteriores, así que en pantalla el
+  orden coincide con el alfabético.
+- **La galería no muestra nada todavía**, por lo mismo: no hay fotos que mostrar.
 
 ---
 

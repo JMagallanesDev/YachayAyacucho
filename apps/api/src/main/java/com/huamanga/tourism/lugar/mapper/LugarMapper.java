@@ -1,7 +1,9 @@
 package com.huamanga.tourism.lugar.mapper;
 
 import com.huamanga.tourism.common.domain.Idioma;
+import com.huamanga.tourism.foto.domain.Foto;
 import com.huamanga.tourism.horario.domain.HorarioLugar;
+import com.huamanga.tourism.lugar.domain.EstadisticaLugar;
 import com.huamanga.tourism.lugar.domain.Lugar;
 import com.huamanga.tourism.lugar.domain.LugarTraduccion;
 import com.huamanga.tourism.lugar.dto.HorarioResponse;
@@ -10,6 +12,7 @@ import com.huamanga.tourism.lugar.dto.LugarResumenResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Named;
 
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -69,6 +72,11 @@ public interface LugarMapper {
     }
 
     default LugarDetalleResponse aDetalle(Lugar lugar, Idioma idioma, boolean abiertoAhora) {
+        return aDetalle(lugar, idioma, abiertoAhora, List.of());
+    }
+
+    default LugarDetalleResponse aDetalle(Lugar lugar, Idioma idioma, boolean abiertoAhora,
+                                          List<Foto> fotos) {
         LugarTraduccion traduccion = traduccionPara(lugar, idioma).orElseThrow(
                 () -> new IllegalStateException(
                         "Lugar " + lugar.getSlug() + " sin traduccion en espanol: revisar la validacion de guardado"));
@@ -101,10 +109,19 @@ public interface LugarMapper {
                 lugar.getEstado(),
                 aHorarios(lugar.getHorarios()),
                 abiertoAhora,
+                fotos.stream()
+                        .map(foto -> new LugarDetalleResponse.FotoResponse(foto.getId(), foto.getCloudinaryUrl()))
+                        .toList(),
                 lugar.getUpdatedAt());
     }
 
-    default LugarResumenResponse aResumen(Lugar lugar, Idioma idioma) {
+    /**
+     * @param estadistica agregados de la vista materializada; puede faltar si
+     *                    la vista aun no se ha refrescado tras crear el lugar,
+     *                    en cuyo caso se devuelven ceros en vez de nulos para
+     *                    que la tarjeta no tenga que defenderse de ellos
+     */
+    default LugarResumenResponse aResumen(Lugar lugar, Idioma idioma, EstadisticaLugar estadistica) {
         LugarTraduccion traduccion = traduccionPara(lugar, idioma).orElseThrow(
                 () -> new IllegalStateException("Lugar " + lugar.getSlug() + " sin traduccion en espanol"));
 
@@ -118,7 +135,11 @@ public interface LugarMapper {
                 lugar.getUbicacion().getY(),
                 lugar.getPrecioEntradaPen(),
                 lugar.getDuracionVisitaMin(),
-                lugar.getEstado());
+                lugar.getEstado(),
+                aHorarios(lugar.getHorarios()),
+                estadistica != null ? estadistica.getCalificacionPromedio() : BigDecimal.ZERO,
+                estadistica != null ? estadistica.getTotalResenas() : 0L,
+                estadistica != null ? estadistica.getTotalVisitas() : 0L);
     }
 
     private LugarDetalleResponse.CategoriaResponse aCategoria(Lugar lugar, Idioma idioma) {

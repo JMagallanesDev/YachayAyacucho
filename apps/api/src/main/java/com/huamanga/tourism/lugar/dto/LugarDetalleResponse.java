@@ -70,11 +70,25 @@ public record LugarDetalleResponse(
         @Schema(description = "Si el lugar esta abierto en este momento")
         boolean abiertoAhora,
 
+        @Schema(description = "Fotos aprobadas por moderacion, para la galeria (RF-10)")
+        List<FotoResponse> fotos,
+
         Instant actualizadoEn
 ) {
 
     @Schema(description = "Categoria del lugar, con su nombre traducido")
     public record CategoriaResponse(UUID id, String codigo, String nombre, String icono, String colorHex) {
+    }
+
+    /**
+     * Foto lista para pintar.
+     *
+     * <p>Solo salen la URL publica y el identificador. El {@code public_id} de
+     * Cloudinary se queda dentro: es la llave para borrar el binario del CDN y
+     * no tiene por que viajar al navegador.</p>
+     */
+    @Schema(description = "Foto aprobada de un lugar")
+    public record FotoResponse(UUID id, String url) {
     }
 
     @Schema(description = "Distrito y provincia a los que pertenece")

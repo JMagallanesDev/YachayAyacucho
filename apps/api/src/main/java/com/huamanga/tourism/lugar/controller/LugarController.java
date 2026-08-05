@@ -1,6 +1,7 @@
 package com.huamanga.tourism.lugar.controller;
 
 import com.huamanga.tourism.common.domain.Idioma;
+import com.huamanga.tourism.lugar.domain.OrdenLugares;
 import com.huamanga.tourism.lugar.dto.LugarDetalleResponse;
 import com.huamanga.tourism.lugar.dto.LugarRequest;
 import com.huamanga.tourism.lugar.dto.LugarResumenResponse;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -56,19 +58,33 @@ public class LugarController {
     // ---------------------------------------------------------------
 
     @GetMapping
-    @Operation(summary = "Listar lugares publicados",
-            description = "Paginado. Solo devuelve lugares en estado PUBLICADO.")
-    public Page<LugarResumenResponse> listar(
+    @Operation(summary = "Explorar lugares publicados",
+            description = """
+                    Buscar, filtrar y ordenar en una sola llamada
+                    (RF-01, RF-02, RF-04, RF-05, RF-06). Todos los parametros
+                    son opcionales: sin ninguno devuelve el catalogo completo
+                    ordenado por nombre.
+
+                    Cada resultado incluye su grilla horaria, para que el
+                    cliente calcule el estado abierto/cerrado en el momento de
+                    mirarlo, y sus coordenadas, para calcular la distancia a
+                    pie sin llamadas adicionales.
+                    """)
+    public Page<LugarResumenResponse> explorar(
             @Parameter(description = "Idioma del contenido; si se omite se usa Accept-Language")
             @RequestParam(required = false) Idioma idioma,
+            @Parameter(description = "Texto libre: busca en nombre, descripcion e historia")
+            @RequestParam(required = false) String q,
             @Parameter(description = "Filtrar por categoria")
             @RequestParam(required = false) UUID categoriaId,
-            @PageableDefault(size = 20, sort = "slug") Pageable pagina) {
+            @Parameter(description = "Calificacion minima, de 0 a 5")
+            @RequestParam(required = false) BigDecimal calificacionMinima,
+            @Parameter(description = "ALFABETICO, MEJOR_VALORADOS o MAS_VISITADOS")
+            @RequestParam(required = false) OrdenLugares orden,
+            @PageableDefault(size = 12) Pageable pagina) {
 
-        Idioma resuelto = resolverIdioma(idioma);
-        return categoriaId == null
-                ? lugarService.listarPublicados(resuelto, pagina)
-                : lugarService.listarPorCategoria(categoriaId, resuelto, pagina);
+        var criterios = new LugarService.CriteriosBusqueda(q, categoriaId, calificacionMinima, orden);
+        return lugarService.explorar(criterios, resolverIdioma(idioma), pagina);
     }
 
     @GetMapping("/{slug}")

@@ -3,10 +3,16 @@ package com.huamanga.tourism.lugar.service;
 import com.huamanga.tourism.common.domain.Idioma;
 import com.huamanga.tourism.common.exception.RecursoNoEncontradoException;
 import com.huamanga.tourism.common.seguridad.UsuarioActual;
+import com.huamanga.tourism.foto.domain.EstadoFoto;
+import com.huamanga.tourism.foto.domain.Foto;
+import com.huamanga.tourism.foto.repository.FotoRepository;
 import com.huamanga.tourism.geografia.repository.DistritoRepository;
 import com.huamanga.tourism.horario.domain.HorarioLugar;
+import com.huamanga.tourism.lugar.domain.EstadisticaLugar;
 import com.huamanga.tourism.lugar.domain.EstadoLugar;
 import com.huamanga.tourism.lugar.domain.Lugar;
+import com.huamanga.tourism.lugar.domain.OrdenLugares;
+import com.huamanga.tourism.lugar.repository.EstadisticaLugarRepository;
 import com.huamanga.tourism.lugar.domain.LugarTraduccion;
 import com.huamanga.tourism.lugar.domain.LugarTraduccionId;
 import com.huamanga.tourism.lugar.dto.HorarioRequest;
@@ -28,10 +34,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Reglas de negocio de los lugares patrimoniales (RF-47).
@@ -49,6 +59,8 @@ public class LugarService {
     private final LugarRepository lugarRepository;
     private final CategoriaLugarRepository categoriaRepository;
     private final DistritoRepository distritoRepository;
+    private final EstadisticaLugarRepository estadisticaRepository;
+    private final FotoRepository fotoRepository;
     private final LugarMapper mapper;
     private final ApplicationEventPublisher eventos;
     private final Clock clock;
@@ -56,12 +68,16 @@ public class LugarService {
     public LugarService(LugarRepository lugarRepository,
                         CategoriaLugarRepository categoriaRepository,
                         DistritoRepository distritoRepository,
+                        EstadisticaLugarRepository estadisticaRepository,
+                        FotoRepository fotoRepository,
                         LugarMapper mapper,
                         ApplicationEventPublisher eventos,
                         Clock clock) {
         this.lugarRepository = lugarRepository;
         this.categoriaRepository = categoriaRepository;
         this.distritoRepository = distritoRepository;
+        this.estadisticaRepository = estadisticaRepository;
+        this.fotoRepository = fotoRepository;
         this.mapper = mapper;
         this.eventos = eventos;
         this.clock = clock;
@@ -71,17 +87,61 @@ public class LugarService {
     //  Lectura
     // ---------------------------------------------------------------
 
-    /** Listado publico: solo lugares publicados (RF-01). */
+    /**
+     * Buscar, filtrar y ordenar lugares publicados
+     * (RF-01, RF-02, RF-04, RF-05, RF-06).
+     *
+     * <p>Las estadisticas de la pagina se traen en <strong>una sola
+     * consulta</strong> por identificadores y se cruzan en memoria. Pedirlas
+     * una a una seria el problema N+1 clasico: una pagina de 20 tarjetas
+     * costaria 21 viajes a la base solo para pintar las estrellas.</p>
+     */
     @Transactional(readOnly = true)
-    public Page<LugarResumenResponse> listarPublicados(Idioma idioma, Pageable pagina) {
-        return lugarRepository.findByEstadoConDetalle(EstadoLugar.PUBLICADO, pagina)
-                .map(lugar -> mapper.aResumen(lugar, idioma));
+    public Page<LugarResumenResponse> explorar(CriteriosBusqueda criterios, Idioma idioma, Pageable pagina) {
+        Page<Lugar> lugares = lugarRepository.explorar(
+                criterios.terminoNormalizado(),
+                criterios.categoriaId(),
+                criterios.calificacionMinima(),
+                criterios.orden().codigo(),
+                pagina);
+
+        Map<UUID, EstadisticaLugar> estadisticas = estadisticasDe(lugares.getContent());
+
+        return lugares.map(lugar -> mapper.aResumen(lugar, idioma, estadisticas.get(lugar.getId())));
     }
 
-    @Transactional(readOnly = true)
-    public Page<LugarResumenResponse> listarPorCategoria(UUID categoriaId, Idioma idioma, Pageable pagina) {
-        return lugarRepository.findByCategoriaIdAndEstado(categoriaId, EstadoLugar.PUBLICADO, pagina)
-                .map(lugar -> mapper.aResumen(lugar, idioma));
+    private Map<UUID, EstadisticaLugar> estadisticasDe(List<Lugar> lugares) {
+        if (lugares.isEmpty()) {
+            return Map.of();
+        }
+        List<UUID> ids = lugares.stream().map(Lugar::getId).toList();
+        return estadisticaRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(EstadisticaLugar::getLugarId, e -> e));
+    }
+
+    /**
+     * Criterios del explorador. Todos opcionales: sin ninguno, devuelve el
+     * catalogo completo ordenado alfabeticamente.
+     */
+    public record CriteriosBusqueda(
+            String termino,
+            UUID categoriaId,
+            BigDecimal calificacionMinima,
+            OrdenLugares orden) {
+
+        public CriteriosBusqueda {
+            orden = orden == null ? OrdenLugares.ALFABETICO : orden;
+        }
+
+        /**
+         * Un termino en blanco equivale a no buscar.
+         *
+         * <p>Sin esta normalizacion, borrar el buscador dejaria una cadena
+         * vacia que la consulta trataria como filtro y no devolveria nada.</p>
+         */
+        String terminoNormalizado() {
+            return termino == null || termino.isBlank() ? null : termino.trim();
+        }
     }
 
     /**
@@ -98,7 +158,13 @@ public class LugarService {
                 .filter(candidato -> candidato.getEstado() == EstadoLugar.PUBLICADO || esAdministrador())
                 .orElseThrow(() -> new RecursoNoEncontradoException("lugar", slug));
 
-        return mapper.aDetalle(lugar, idioma, estaAbiertoAhora(lugar));
+        // Las fotos se traen aparte y no con un JOIN FETCH mas: sumarlas a la
+        // consulta que ya trae traducciones y horarios multiplicaria las filas
+        // (producto cartesiano de tres colecciones) y Hibernate tendria que
+        // paginar en memoria.
+        List<Foto> fotos = fotoRepository.findByLugarIdAndEstado(lugar.getId(), EstadoFoto.APROBADA);
+
+        return mapper.aDetalle(lugar, idioma, estaAbiertoAhora(lugar), fotos);
     }
 
     // ---------------------------------------------------------------

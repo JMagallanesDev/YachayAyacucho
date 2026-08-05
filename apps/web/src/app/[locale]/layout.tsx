@@ -5,6 +5,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { ProveedorQuery } from "@/components/ProveedorQuery";
 import { ProveedorSesion } from "@/components/ProveedorSesion";
 import { SelectorIdioma } from "@/components/SelectorIdioma";
 import { routing } from "@/i18n/routing";
@@ -90,12 +91,16 @@ export default async function LayoutIdioma({
     >
       <body>
         <NextIntlClientProvider>
-          {/* Intenta recuperar la sesion con la cookie httpOnly al cargar.
-              El access token vive en memoria, asi que cada recarga lo pierde. */}
-          <ProveedorSesion>
-            <SelectorIdioma />
-            {children}
-          </ProveedorSesion>
+          {/* Cache de estado de servidor compartida por toda la app: sin ella
+              cada componente cliente refetchearia por su cuenta. */}
+          <ProveedorQuery>
+            {/* Intenta recuperar la sesion con la cookie httpOnly al cargar.
+                El access token vive en memoria, asi que cada recarga lo pierde. */}
+            <ProveedorSesion>
+              <SelectorIdioma />
+              {children}
+            </ProveedorSesion>
+          </ProveedorQuery>
         </NextIntlClientProvider>
       </body>
     </html>

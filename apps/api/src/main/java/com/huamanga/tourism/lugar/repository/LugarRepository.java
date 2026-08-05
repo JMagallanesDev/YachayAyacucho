@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -105,6 +106,76 @@ public interface LugarRepository extends JpaRepository<Lugar, UUID> {
     Double distanciaEnMetros(@Param("lugarId") UUID lugarId,
                              @Param("longitud") double longitud,
                              @Param("latitud") double latitud);
+
+    /**
+     * Consulta unica del explorador de lugares (RF-01, RF-02, RF-04 a RF-06).
+     *
+     * <p>Una sola consulta cubre buscar, filtrar y ordenar porque en la
+     * interfaz son la misma accion: el visitante teclea, marca una categoria y
+     * cambia el orden sin que nada de eso sea una pantalla distinta. Partirlo
+     * en cuatro endpoints obligaria al frontend a decidir a cual llamar segun
+     * la combinacion, que es justo la logica que no debe vivir alli.</p>
+     *
+     * <p>Cada filtro se anula solo cuando su parametro es nulo, de modo que
+     * PostgreSQL puede seguir usando los indices de los que si llegan.</p>
+     *
+     * <ul>
+     *   <li>{@code termino}: busqueda de texto completo en espanol sobre
+     *       nombre, descripcion e historia. Usa el indice GIN
+     *       {@code idx_lugartrad_fulltext}. {@code unaccent} no esta
+     *       instalado, asi que la configuracion 'spanish' se encarga tambien
+     *       de normalizar (lematiza y quita acentos de las raices).</li>
+     *   <li>{@code orden}: 0 = alfabetico, 1 = mejor valorados,
+     *       2 = mas visitados (RF-06).</li>
+     * </ul>
+     *
+     * <p>El LEFT JOIN con la vista materializada <strong>no es un descuido</strong>.
+     * La vista se refresca cada 5 minutos, asi que un lugar recien publicado
+     * todavia no tiene fila en ella; con un JOIN normal desapareceria del
+     * listado hasta el siguiente refresco, y el administrador veria que
+     * publica algo y no aparece. Con LEFT JOIN sale de inmediato, con sus
+     * contadores a cero hasta que la vista se ponga al dia.</p>
+     */
+    @Query(value = """
+            SELECT l.* FROM lugar l
+            LEFT JOIN estadistica_lugar e ON e.lugar_id = l.id
+            LEFT JOIN lugar_traduccion t ON t.lugar_id = l.id AND t.idioma = 'es'
+            WHERE l.deleted_at IS NULL
+              AND l.estado = 'PUBLICADO'
+              AND (:categoriaId IS NULL OR l.categoria_lugar_id = :categoriaId)
+              AND (:calificacionMinima IS NULL OR e.calificacion_promedio >= :calificacionMinima)
+              AND (
+                    :termino IS NULL
+                 OR to_tsvector('spanish',
+                        COALESCE(t.nombre, '') || ' ' || COALESCE(t.descripcion, '') || ' ' || COALESCE(t.historia, ''))
+                    @@ plainto_tsquery('spanish', CAST(:termino AS text))
+              )
+            ORDER BY
+              CASE WHEN :orden = 1 THEN e.calificacion_promedio END DESC NULLS LAST,
+              CASE WHEN :orden = 2 THEN e.total_visitas END DESC NULLS LAST,
+              t.nombre ASC
+            """,
+            countQuery = """
+                    SELECT COUNT(*) FROM lugar l
+                    LEFT JOIN estadistica_lugar e ON e.lugar_id = l.id
+                    LEFT JOIN lugar_traduccion t ON t.lugar_id = l.id AND t.idioma = 'es'
+                    WHERE l.deleted_at IS NULL
+                      AND l.estado = 'PUBLICADO'
+                      AND (:categoriaId IS NULL OR l.categoria_lugar_id = :categoriaId)
+                      AND (:calificacionMinima IS NULL OR e.calificacion_promedio >= :calificacionMinima)
+                      AND (
+                            :termino IS NULL
+                         OR to_tsvector('spanish',
+                                COALESCE(t.nombre, '') || ' ' || COALESCE(t.descripcion, '') || ' ' || COALESCE(t.historia, ''))
+                            @@ plainto_tsquery('spanish', CAST(:termino AS text))
+                      )
+                    """,
+            nativeQuery = true)
+    Page<Lugar> explorar(@Param("termino") String termino,
+                         @Param("categoriaId") UUID categoriaId,
+                         @Param("calificacionMinima") BigDecimal calificacionMinima,
+                         @Param("orden") int orden,
+                         Pageable pageable);
 
     /**
      * Busqueda de texto completo sobre las traducciones en espanol (RF-02).
