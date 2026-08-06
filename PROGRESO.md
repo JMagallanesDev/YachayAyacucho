@@ -5,8 +5,8 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 6 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 7 — Favoritos, check-in, pasaporte y reportes de contenido.
+- **Bloque en curso:** ninguno (Bloque 7 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 8 — Preservación ciudadana (el diferenciador).
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
@@ -21,7 +21,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 | 4 — Listado/detalle/búsqueda (frontend) | ✅ Completado | Listado `/lugares` con búsqueda por texto completo (debounce 300 ms), filtros por categoría, filtros combinados, tres órdenes y paginación, **todo reflejado en la URL**; tarjetas con insignia abierto/cerrado calculada en el navegador y distancia a pie tras un gesto explícito; ficha `/lugares/[slug]` renderizada en el servidor con galería Embla (swipe + pinch-zoom), bloque «Antes de ir» y grilla horaria; ISR (listado 5 min, fichas 1 h) con prefetch a TanStack Query e hidratación sin parpadeo; en el backend, endpoint único `explorar` con `to_tsvector` en español, `/categorias`, y estadísticas en el resumen; seed ampliado a 15 lugares. **125 tests** + 23 comprobaciones en navegador real | — |
 | 5 — Mapa, clima, recomendaciones, proximidad | ✅ Completado | Mapa MapLibre + MapTiler con vista 3D inclinada y edificios extruidos, clusters en GPU, límites de Ayacucho, GPS, toggles por categoría, 3 rutas temáticas como polilíneas y deep links a Google Maps/Waze/Apple Maps; clima de OpenWeatherMap con **caché de dos niveles** (fresco 30 min + último bueno 24 h) y circuit breaker programático, pronóstico agregado por días y consejos por altitud; `RecomendacionService` que cruza apertura, clima, hora y categoría devolviendo **el motivo de cada sugerencia**; planificador por fecha; `useProximidad` con histéresis 50/80 m y supresión de 2 h. **155 tests** + 22 comprobaciones en navegador real | — |
 | 6 — Reseñas, calificaciones, fotos | ✅ Completado | CRUD de reseñas con una sola por persona y lugar, edición y baja lógica **reutilizable**; promedio leído solo de la vista materializada, con **carril rápido de 30 s** para que no tarde 5 min en moverse; subida de fotos a Cloudinary con petición firmada desde el backend, **tres barreras de validación** (tamaño, números mágicos y decodificación real) y transformaciones de entrega `f_auto,q_auto`; galería pública solo con aprobadas; bandejas de moderación de fotos y reseñas en `/admin`, con borrado real del binario **e invalidación del CDN** al rechazar; anti-spam por cuenta en Redis; seed con 6 usuarios y 31 reseñas que hace que los rankings del Bloque 4 por fin ordenen. **185 tests** + 17 comprobaciones en navegador real | — |
-| 7 — Favoritos, check-in, pasaporte, reportes | Pendiente | — | — |
+| 7 — Favoritos, check-in, pasaporte, reportes | ✅ Completado | Favoritos guardados en el servidor con corazón optimista (RF-35, RF-95) y `/perfil/favoritos`; check-in por GPS validado en el backend con PostGIS sobre `geography`, **cuatro barreras** (radio 150 m, precisión mínima, enfriamiento de 24 h y detección de salto imposible) y el punto enviado guardado para auditoría; motor de insignias que **interpreta el criterio JSONB** y concede **en la misma transacción** que la visita; pasaporte con sellos, las 8 insignias —obtenidas y por obtener— y progreso por ruta **calculado al vuelo**, más diploma compartible; reportes de contenido con XOR de las dos FK y paso a `EN_REVISION` al tercero; seed de 29 check-ins que llena el ranking «más visitados». **210 tests** + 14 comprobaciones en navegador real | — |
 | 8 — Preservación ciudadana | Pendiente | — | — |
 | 9 — Agenda cultural | Pendiente | — | — |
 | 10 — Panel de administración | Pendiente | — | — |
@@ -198,6 +198,139 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 7 — Favoritos, check-in, pasaporte y reportes
+
+### Lo que el check-in garantiza y lo que no (léase antes que nada)
+
+**Desde una web no se puede impedir que alguien falsee su posición.** La API de
+geolocalización del navegador se sobrescribe desde las herramientas de desarrollo en dos
+clics; de hecho, **el propio guion de verificación de este proyecto lo hace** para poder
+probar la función. Impedirlo de verdad exigiría atestación de aplicación nativa, que está
+fuera del alcance de una aplicación web.
+
+Lo que sí se hace es **encarecer el fraude y dejarlo registrado**, y encuadrar la función
+donde corresponde: el check-in alimenta sellos e insignias —un incentivo lúdico— y **no
+desbloquea nada crítico**: ni permisos, ni contenido reservado, ni ventajas sobre otros
+usuarios. Ese es el motivo por el que este nivel de garantía basta aquí y no bastaría para
+un control de acceso. Las cuatro barreras:
+
+| Barrera | Qué detiene |
+|---|---|
+| **Distancia en el servidor**, `ST_DWithin` sobre `geography` | Enviar cualquier coordenada. Nunca se acepta una distancia calculada por el cliente |
+| **Precisión mínima** (se rechaza `accuracy` > 200 m) | La lectura de un navegador que triangula por IP, que no prueba cercanía a nada |
+| **Enfriamiento de 24 h por lugar** | Inflar «más visitados» repitiendo el mismo check-in |
+| **Salto imposible** (> 300 km/h desde el anterior) | Un script recorriendo los quince lugares en un minuto |
+
+Y una quinta que no es barrera sino consecuencia: **se guarda el punto que envió el
+cliente**, no el del lugar, de modo que un patrón absurdo queda registrado y es auditable.
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 210 tests, 0 fallos** (25 nuevos) |
+| Check-in aceptado | Encima del lugar → 201 con distancia 0; **a 100 m también**, porque el radio son 150 |
+| Check-in rechazado | A 1,5 km → 422 con la distancia real y el radio; precisión de 2 km → 422; segundo del mismo día → 409 y **una sola fila**; salto de 230 km en 2 min → 422 |
+| Enfriamiento | Pasadas 24 h se vuelve a poder registrar (2 filas) |
+| Auditoría | Se guarda la **coordenada enviada**, no la del lugar |
+| Insignias | El primer check-in concede `PRIMER_PASO`; **no se duplica** al reevaluar; `HISTORIADOR` no se concede con un museo de tres; un `tipo` desconocido **no rompe el check-in**; visita e insignia quedan en el mismo commit |
+| Pasaporte | Sellos, las 8 insignias con su estado, y progreso por ruta 1/2 → 2/2 al completar, que concede `RUTA_COMPLETA`. Un test comprueba que **no existe ninguna columna** `progreso`, `lugares_visitados` ni `sellos` |
+| Reportes | Tercer reporte distinto → `EN_REVISION` y la reseña **desaparece de la lista pública**; duplicado → 409; autorreporte → 422; ni una ni dos FK a la vez → 400 |
+| `pnpm lint` / `type-check` / `build` | Sin errores; 51 páginas generadas, incluidas `/perfil/favoritos` y `/perfil/pasaporte` |
+| **Navegador real** | **14/14 comprobaciones**, dos pasadas seguidas: marcar favorito y verlo en el perfil, **check-in con posición simulada**, celebrar `PRIMER_PASO` y `FOTOGRAFO` en el momento, abrir el pasaporte con sus sellos y el progreso de las 3 rutas, compartir el diploma, reportar una reseña ajena, y el ranking «más visitados» ordenando `9, 5, 4, 3, 3, 2`. **Consola limpia** |
+
+### Tres fallos reales que la verificación destapó
+
+**1. `obtenida_en` se insertaba como NULL contra una columna `NOT NULL`.** `insignia_usuario`
+no lleva listener de auditoría —a diferencia de casi todas las demás tablas—, así que
+construir la entidad con *setters* dejaba el sello de tiempo vacío y **todo check-in
+fallaba** en cuanto había una insignia que conceder. La entidad ya ofrecía un constructor
+que compone la PK y exige la fecha; se usa ese, con el `Clock` inyectado.
+
+**2. Mi test dejaba basura en la base compartida.** El test del criterio desconocido inserta
+una insignia ficticia y no la retiraba; los contenedores de Testcontainers son **singletons
+de toda la suite**, así que el catálogo pasaba a tener 9 insignias y rompía
+`EsquemaYMapeoTest`, que comprueba que la migración siembra exactamente 8. Se limpia ahora
+en el `@BeforeEach` y tras el propio test.
+
+**3. Las rutas se acumulaban entre pruebas.** El `@BeforeEach` borraba `lugar_ruta` pero no
+`ruta_tematica`, de modo que `rutas[0]` del pasaporte acababa siendo una ruta sobrante de la
+prueba anterior, con 0 visitas. El progreso por ruta era correcto; lo que estaba mal era
+contra qué se comprobaba.
+
+### Decisiones de diseño
+
+- **150 m y no los 100 del RF-39.** Decisión del usuario, y con buen argumento: en el centro
+  histórico de Huamanga, entre calles estrechas y muros de piedra, el error típico del GPS
+  de un móvil ronda los 20-50 m y empeora. Con 100 m se bloquearían check-ins de gente que
+  está en la puerta. Se prioriza que el visitante honesto pueda usar la función; hacer
+  trampa desde 140 m no da ningún premio que no diera desde 90.
+- **La insignia se concede en la misma transacción que la visita.** Si se hiciera después,
+  en un evento posterior al commit, una caída de red o del proceso justo en medio dejaría el
+  sello puesto y la insignia perdida, sin forma de recuperarla salvo volver al lugar. Atadas
+  al mismo commit, o se guardan las dos cosas o ninguna.
+- **Un criterio JSONB desconocido se ignora, no revienta.** Lo peor que puede pasar es que
+  una insignia no se conceda; jamás que falle el check-in que disparó la evaluación. Perder
+  una visita real por un error de configuración sería mucho peor que no dar un premio.
+- **El criterio es JSON y no columnas** porque cada insignia se gana de forma distinta;
+  modelarlo con columnas daría una tabla llena de nulos o una tabla por tipo. Como la base
+  **nunca consulta dentro** del JSON —lo interpreta el service—, no hay atributo
+  multivaluado y la 1FN queda intacta. Añadir una insignia es un `INSERT`.
+- **El progreso por ruta y los sellos se calculan al vuelo.** Son atributos derivados de los
+  check-ins; almacenarlos exigiría triggers para mantenerlos sincronizados. Mismo criterio
+  que con la calificación promedio del Bloque 6.
+- **Ningún endpoint recibe un identificador de usuario**: todos operan sobre el del token.
+  Si la ruta fuera `/usuarios/{id}/favoritos`, bastaría con olvidar una comprobación para
+  que cualquiera leyera los favoritos ajenos; tomando siempre el id del token, ese error no
+  se puede cometer.
+- **Dos FK nullables y no una polimórfica** en `reporte_contenido`. Una sola columna con un
+  `tipo` al lado sería más compacta, pero PostgreSQL no puede validar una FK que apunte a
+  dos tablas: se perdería la integridad referencial y el `ON DELETE CASCADE`.
+- **Contar filas equivale a contar denunciantes** porque los dos índices únicos parciales ya
+  impiden que una persona reporte dos veces lo mismo: no hace falta `COUNT DISTINCT`.
+- **El favorito es optimista** (RF-95): el corazón cambia en el mismo fotograma del toque y
+  la petición sale después; si falla, se revierte. Esperar la ida y vuelta daría un retardo
+  perceptible en una acción que debe sentirse instantánea. Respeta `prefers-reduced-motion`.
+- **Marcar favorito es idempotente**, no un 409: en un botón que se pulsa con el pulgar, el
+  doble toque accidental es la norma y no debería castigarse.
+- **«Reportar» es un enlace discreto, no un botón llamativo.** Un botón prominente junto a
+  cada opinión invita a usarlo como «no estoy de acuerdo», y tres reportes retiran el
+  contenido de la vista pública.
+- **El diploma se compone en el cliente** y se ofrece a la API nativa de compartir, con
+  copia al portapapeles como respaldo. No se genera ninguna página pública: eso expondría
+  nombre y progreso a cualquiera con el enlace, y para un diploma no compensa.
+
+### Correcciones a los documentos de tesis (las hace el usuario)
+
+- **RF-39: el radio pasa de 100 m a 150 m.** Justificación arriba. Conviene reflejarlo en el
+  requisito y, si se cita en la memoria, explicar el porqué: es una decisión de usabilidad
+  informada por el error real del GPS, no una relajación arbitraria.
+- **Encuadre del check-in.** El RF-39 conviene que diga explícitamente que es un incentivo
+  lúdico con validación de proximidad en servidor, **no una credencial** ni una prueba de
+  presencia. Es defendible en la sustentación y evita una pregunta incómoda.
+- **Endpoints nuevos no previstos en el plan:** `POST`/`GET`/`DELETE /lugares/{slug}/favorito`,
+  `GET /perfil/favoritos`, `POST /lugares/{slug}/check-in`, `GET /perfil/pasaporte` y
+  `POST /reportes-contenido`.
+- **RF-39b, «diploma compartible»:** se implementó como texto compartido con la Web Share
+  API, sin página pública. Si en la sustentación se quiere enseñar un diploma visual, sería
+  un añadido de este bloque, no algo ya cubierto.
+
+### Límites conocidos de este bloque
+
+- **La insignia `GUARDIAN` no es obtenible todavía.** Su criterio es `REPORTES_APROBADOS`,
+  que se refiere a los **reportes ciudadanos de preservación** (tabla `reporte`, Bloque 8), y
+  **no** a los reportes de contenido de este bloque: son cosas distintas con nombres
+  parecidos. El evaluador está implementado y devuelve 0 hasta el Bloque 8.
+- **`EN_REVISION` en fotos aún no tiene bandeja propia.** La bandeja del Bloque 6 lista las
+  `PENDIENTE`; una foto que llega a `EN_REVISION` por reportes desaparece de la galería pero
+  no aparece en la cola de moderación. Conviene resolverlo en el Bloque 10, con el panel
+  completo.
+- **Un `GET` a `/lugares/{slug}/favorito` sin sesión responde 403 y no 401**, porque el
+  patrón público `/lugares/**` deja pasar el filtro y es `@PreAuthorize` quien deniega. La
+  protección es correcta; solo el código de estado es menos preciso de lo ideal.
 
 ---
 

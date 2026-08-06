@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { BotonReportar } from "@/components/participacion/BotonReportar";
 import { Estrellas } from "@/components/resenas/Estrellas";
 import { ErrorApi } from "@/lib/auth";
 import {
@@ -234,6 +235,9 @@ export function PanelResenas({
               {resena.comentario && (
                 <p className="text-fluid-base text-text">{resena.comentario}</p>
               )}
+              {/* Solo en las ajenas: reportar la propia no tiene sentido y el
+                  servidor lo rechaza igualmente. */}
+              {resena.autorId !== usuario?.id && <BotonReportar resenaId={resena.id} />}
             </li>
           ))}
         </ul>

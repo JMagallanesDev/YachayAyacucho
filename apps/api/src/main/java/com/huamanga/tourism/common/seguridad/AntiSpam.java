@@ -36,6 +36,10 @@ public class AntiSpam {
     /** Fotos por hora y cuenta. Cada una pasa por moderacion manual. */
     private static final int FOTOS_POR_HORA = 20;
 
+    private static final int CHECKINS_POR_HORA = 30;
+
+    private static final int REPORTES_POR_HORA = 10;
+
     private static final Duration VENTANA = Duration.ofHours(1);
 
     private final StringRedisTemplate redis;
@@ -50,6 +54,29 @@ public class AntiSpam {
 
     public void comprobarFoto() {
         comprobar("foto", FOTOS_POR_HORA);
+    }
+
+    /**
+     * Check-ins por hora y cuenta.
+     *
+     * <p>Es un limite generoso porque el enfriamiento de 24 h por lugar ya hace
+     * el trabajo pesado: con 15 lugares publicados no se pueden registrar mas
+     * de 15 visitas al dia por muchas peticiones que se envien. Esto solo frena
+     * el martilleo.</p>
+     */
+    public void comprobarCheckIn() {
+        comprobar("checkin", CHECKINS_POR_HORA);
+    }
+
+    /**
+     * Reportes por hora y cuenta.
+     *
+     * <p>Deliberadamente bajo: el reporte es un arma. Tres personas distintas
+     * retiran un contenido de la vista publica, asi que conviene que una sola
+     * cuenta no pueda ir sembrando denuncias por todo el sitio en un minuto.</p>
+     */
+    public void comprobarReporte() {
+        comprobar("reporte", REPORTES_POR_HORA);
     }
 
     private void comprobar(String accion, int maximo) {

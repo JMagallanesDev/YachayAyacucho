@@ -67,6 +67,9 @@ public interface LugarRepository extends JpaRepository<Lugar, UUID> {
 
     boolean existsBySlug(String slug);
 
+    /** Total publicado, para el porcentaje del pasaporte (RF-39b). */
+    long countByEstado(EstadoLugar estado);
+
     Page<Lugar> findByEstado(EstadoLugar estado, Pageable pageable);
 
     Page<Lugar> findByCategoriaIdAndEstado(UUID categoriaId, EstadoLugar estado, Pageable pageable);

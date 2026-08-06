@@ -3,7 +3,9 @@ package com.huamanga.tourism.common.exception;
 import com.huamanga.tourism.auth.exception.CredencialesInvalidasException;
 import com.huamanga.tourism.auth.exception.EmailYaRegistradoException;
 import com.huamanga.tourism.auth.exception.RefreshTokenInvalidoException;
+import com.huamanga.tourism.checkin.service.ValidadorProximidad;
 import com.huamanga.tourism.common.seguridad.AntiSpam;
+import com.huamanga.tourism.moderacion.service.ReporteContenidoService;
 import com.huamanga.tourism.foto.service.ClienteCloudinary;
 import com.huamanga.tourism.foto.service.FotoService;
 import com.huamanga.tourism.foto.service.ValidadorImagen;
@@ -144,6 +146,52 @@ public class ManejadorErroresGlobal extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ClienteCloudinary.SubidaFallidaException.class)
     public ProblemDetail manejarSubidaFallida(HttpServletRequest peticion) {
         return construir(HttpStatus.BAD_GATEWAY, "subida-fallida", peticion);
+    }
+
+    // ---------------------------------------------------------------
+    //  Bloque 7: check-in y reportes
+    // ---------------------------------------------------------------
+
+    /**
+     * Check-in fuera de radio.
+     *
+     * <p>Se devuelve la distancia real y el radio exigido. No es una fuga de
+     * informacion: quien hace la peticion ya conoce su propia posicion y las
+     * coordenadas del lugar son publicas. A cambio, permite decir "estas a
+     * 340 m" en vez de un "no se pudo" que nadie sabe como resolver.</p>
+     */
+    @ExceptionHandler(ValidadorProximidad.DemasiadoLejosException.class)
+    public ProblemDetail manejarDemasiadoLejos(ValidadorProximidad.DemasiadoLejosException error,
+                                               HttpServletRequest peticion) {
+        ProblemDetail problema = construir(HttpStatus.UNPROCESSABLE_CONTENT, "demasiado-lejos", peticion);
+        problema.setProperty("distanciaMetros", error.distancia());
+        problema.setProperty("radioMetros", error.radio());
+        return problema;
+    }
+
+    @ExceptionHandler(ValidadorProximidad.PrecisionInsuficienteException.class)
+    public ProblemDetail manejarPrecisionInsuficiente(HttpServletRequest peticion) {
+        return construir(HttpStatus.UNPROCESSABLE_CONTENT, "precision-insuficiente", peticion);
+    }
+
+    @ExceptionHandler(ValidadorProximidad.YaHizoCheckInException.class)
+    public ProblemDetail manejarCheckInRepetido(HttpServletRequest peticion) {
+        return construir(HttpStatus.CONFLICT, "checkin-repetido", peticion);
+    }
+
+    @ExceptionHandler(ValidadorProximidad.SaltoImposibleException.class)
+    public ProblemDetail manejarSaltoImposible(HttpServletRequest peticion) {
+        return construir(HttpStatus.UNPROCESSABLE_CONTENT, "salto-imposible", peticion);
+    }
+
+    @ExceptionHandler(ReporteContenidoService.ReporteDuplicadoException.class)
+    public ProblemDetail manejarReporteDuplicado(HttpServletRequest peticion) {
+        return construir(HttpStatus.CONFLICT, "reporte-duplicado", peticion);
+    }
+
+    @ExceptionHandler(ReporteContenidoService.AutorreporteException.class)
+    public ProblemDetail manejarAutorreporte(HttpServletRequest peticion) {
+        return construir(HttpStatus.UNPROCESSABLE_CONTENT, "autorreporte", peticion);
     }
 
     @ExceptionHandler(AntiSpam.DemasiadasPeticionesException.class)

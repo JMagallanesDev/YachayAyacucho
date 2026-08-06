@@ -20,6 +20,9 @@ public interface FotoRepository extends JpaRepository<Foto, UUID> {
 
     long countByUsuarioIdAndLugarId(UUID usuarioId, UUID lugarId);
 
+    /** Insignia FOTOGRAFO: fotos aprobadas de una persona (RF-39b). */
+    long countByUsuarioIdAndEstado(UUID usuarioId, EstadoFoto estado);
+
     /**
      * Galeria publica de un lugar, con el autor ya cargado.
      *

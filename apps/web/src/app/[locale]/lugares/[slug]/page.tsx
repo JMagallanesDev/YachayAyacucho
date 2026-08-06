@@ -7,6 +7,8 @@ import { GaleriaInmersiva } from "@/components/lugares/GaleriaInmersiva";
 import { TablaHorarios } from "@/components/lugares/TablaHorarios";
 import { routing } from "@/i18n/routing";
 import { Link } from "@/i18n/navegacion";
+import { BotonCheckIn } from "@/components/participacion/BotonCheckIn";
+import { BotonFavorito } from "@/components/participacion/BotonFavorito";
 import { PanelResenas } from "@/components/resenas/PanelResenas";
 import { SubirFoto } from "@/components/resenas/SubirFoto";
 import { obtenerLugar, slugsPublicados } from "@/lib/lugares";
@@ -103,9 +105,12 @@ export default async function PaginaLugar({
           <BadgeApertura horarios={lugar.horarios} />
         </div>
 
-        <h1 data-testid="titulo-lugar" className="text-fluid-3xl font-bold text-text">
-          {lugar.nombre}
-        </h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 data-testid="titulo-lugar" className="text-fluid-3xl font-bold text-text">
+            {lugar.nombre}
+          </h1>
+          <BotonFavorito slug={slug} />
+        </div>
 
         <p className="text-fluid-sm text-text-muted">
           {[lugar.direccion, lugar.distrito.nombre, lugar.distrito.provincia]
@@ -173,6 +178,8 @@ export default async function PaginaLugar({
           </p>
         </section>
       )}
+
+      <BotonCheckIn slug={slug} />
 
       <SubirFoto slug={slug} />
 

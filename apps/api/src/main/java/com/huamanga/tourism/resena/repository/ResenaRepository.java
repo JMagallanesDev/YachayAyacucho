@@ -59,4 +59,7 @@ public interface ResenaRepository extends JpaRepository<Resena, UUID> {
     boolean existsByUsuarioIdAndLugarId(UUID usuarioId, UUID lugarId);
 
     long countByLugarIdAndEstado(UUID lugarId, EstadoResena estado);
+
+    /** Insignia CRONISTA: resenas publicadas por una persona (RF-39b). */
+    long countByUsuarioIdAndEstado(UUID usuarioId, EstadoResena estado);
 }

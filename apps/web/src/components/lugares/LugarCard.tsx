@@ -3,6 +3,7 @@
 import { useFormatter, useTranslations } from "next-intl";
 
 import { BadgeApertura } from "@/components/lugares/BadgeApertura";
+import { BotonFavorito } from "@/components/participacion/BotonFavorito";
 import { Link } from "@/i18n/navegacion";
 import { distanciaKm, proximidad } from "@/lib/geo";
 import { useUbicacion } from "@/stores/ubicacion";
@@ -46,6 +47,9 @@ export function LugarCard({ lugar }: { lugar: LugarResumen }) {
           {lugar.categoria.nombre}
         </span>
         <BadgeApertura horarios={lugar.horarios} />
+        <span className="ml-auto">
+          <BotonFavorito slug={lugar.slug} compacto />
+        </span>
       </div>
 
       <h3 className="text-fluid-lg font-semibold text-text">{lugar.nombre}</h3>
