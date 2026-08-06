@@ -5,8 +5,8 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 5 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 6 — Reseñas, calificaciones y fotos.
+- **Bloque en curso:** ninguno (Bloque 6 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 7 — Favoritos, check-in, pasaporte y reportes de contenido.
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
@@ -20,7 +20,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 | 3 — i18n + CRUD lugares (backend) | ✅ Completado | CRUD completo de `/api/v1/lugares` (solo ADMIN escribe) con guardado transaccional de lugar + traducciones + grilla horaria, DTOs con MapStruct, tres validadores propios (bounds de Ayacucho, español obligatorio, horarios sin solapes), `abiertoAhora` calculado en servidor, mensajes de error traducidos por `Accept-Language`, webhook de revalidación ISR disparado **después del commit**, y next-intl con rutas `/es` y `/en`, detección de idioma, selector con persistencia en cookie y textos y mensajes de Zod traducidos. **111 tests** | — |
 | 4 — Listado/detalle/búsqueda (frontend) | ✅ Completado | Listado `/lugares` con búsqueda por texto completo (debounce 300 ms), filtros por categoría, filtros combinados, tres órdenes y paginación, **todo reflejado en la URL**; tarjetas con insignia abierto/cerrado calculada en el navegador y distancia a pie tras un gesto explícito; ficha `/lugares/[slug]` renderizada en el servidor con galería Embla (swipe + pinch-zoom), bloque «Antes de ir» y grilla horaria; ISR (listado 5 min, fichas 1 h) con prefetch a TanStack Query e hidratación sin parpadeo; en el backend, endpoint único `explorar` con `to_tsvector` en español, `/categorias`, y estadísticas en el resumen; seed ampliado a 15 lugares. **125 tests** + 23 comprobaciones en navegador real | — |
 | 5 — Mapa, clima, recomendaciones, proximidad | ✅ Completado | Mapa MapLibre + MapTiler con vista 3D inclinada y edificios extruidos, clusters en GPU, límites de Ayacucho, GPS, toggles por categoría, 3 rutas temáticas como polilíneas y deep links a Google Maps/Waze/Apple Maps; clima de OpenWeatherMap con **caché de dos niveles** (fresco 30 min + último bueno 24 h) y circuit breaker programático, pronóstico agregado por días y consejos por altitud; `RecomendacionService` que cruza apertura, clima, hora y categoría devolviendo **el motivo de cada sugerencia**; planificador por fecha; `useProximidad` con histéresis 50/80 m y supresión de 2 h. **155 tests** + 22 comprobaciones en navegador real | — |
-| 6 — Reseñas, calificaciones, fotos | Pendiente | — | — |
+| 6 — Reseñas, calificaciones, fotos | ✅ Completado | CRUD de reseñas con una sola por persona y lugar, edición y baja lógica **reutilizable**; promedio leído solo de la vista materializada, con **carril rápido de 30 s** para que no tarde 5 min en moverse; subida de fotos a Cloudinary con petición firmada desde el backend, **tres barreras de validación** (tamaño, números mágicos y decodificación real) y transformaciones de entrega `f_auto,q_auto`; galería pública solo con aprobadas; bandejas de moderación de fotos y reseñas en `/admin`, con borrado real del binario **e invalidación del CDN** al rechazar; anti-spam por cuenta en Redis; seed con 6 usuarios y 31 reseñas que hace que los rankings del Bloque 4 por fin ordenen. **185 tests** + 17 comprobaciones en navegador real | — |
 | 7 — Favoritos, check-in, pasaporte, reportes | Pendiente | — | — |
 | 8 — Preservación ciudadana | Pendiente | — | — |
 | 9 — Agenda cultural | Pendiente | — | — |
@@ -198,6 +198,132 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 6 — Reseñas, calificaciones y fotos
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 185 tests, 0 fallos** (30 nuevos) |
+| Unicidad (RF-37) | Una segunda reseña del mismo usuario en el mismo lugar da **409** y **no** deja una segunda fila; el mismo usuario sí puede opinar en lugares distintos |
+| Rangos | Calificaciones 0, 6 y −1 → 400 y **cero filas**; comentario de 501 caracteres → 400; solo estrellas sin comentario → 201 |
+| Propiedad | Nadie puede editar la reseña de otro (**403**, y la original queda intacta); editar una reseña **oculta no la republica** |
+| Promedio | Sale de la vista materializada, y hay un test que comprueba que **no existe ninguna columna de promedio en `lugar`**; ocultar la reseña de 1 estrella sube el promedio de 3.0 a 5.0; restaurarla lo devuelve a 3.0 |
+| Validación de imagen | Acepta PNG y JPEG reales; **rechaza** un script PHP con nombre y cabecera de imagen, una cabecera JPEG válida seguida de basura, un SVG con `<script>`, un GIF, un archivo de 5 MB + 1 byte y uno vacío. El formato se decide por el **contenido**: un PNG llamado `.txt` y declarado `text/plain` se acepta igual |
+| `pnpm lint` / `type-check` / `build` | Sin errores |
+| **Navegador real** | **17/17 comprobaciones**, dos pasadas seguidas: iniciar sesión, opinar con la nota elegida (`nota=4`), editarla (`4 → 2`, marcada como editada), comprobar que ya no se ofrece escribir otra, **subir una foto de verdad a Cloudinary**, verla como pendiente y **confirmar que no aparece en la galería pública**, aprobarla desde `/admin` y verla entrar en la galería, ver el promedio moverse en ambos sentidos por el carril rápido, y el ranking «mejor valorados» ordenando `4.75, 4.67, 4.67, 4.5, 4.33, 4`. **Consola limpia** |
+
+### Cuatro fallos reales que la verificación destapó
+
+**1. Borrar una reseña vetaba a esa persona en ese lugar para siempre.** La baja lógica
+conserva la fila, y existe un `UNIQUE (usuario_id, lugar_id)`: al intentar opinar de nuevo,
+la base rechazaba la inserción y el endpoint respondía 409. Peor aún, `/resenas/mia` seguía
+devolviendo la reseña borrada, así que la interfaz ofrecía «editar» algo que el usuario ya
+había eliminado. Ahora `mia` ignora las `ELIMINADA` y **crear reutiliza esa misma fila** en
+lugar de rechazar: la baja lógica deja de ser una condena permanente. Cubierto por dos tests
+nuevos.
+
+**2. Rechazar una foto la borraba del almacenamiento pero seguía sirviéndose.** `destroy`
+elimina el **original** —comprobado: la URL sin transformar pasa a 404—, pero las versiones
+transformadas que el CDN ya había servido **seguían cacheadas en el borde y respondían
+200**. Una foto retirada por inapropiada continuaba siendo accesible para cualquiera que
+tuviera su URL. Se añadió `invalidate=true` a la petición firmada de borrado; tras el
+cambio, la URL transformada devuelve **404 en el acto**.
+
+**3. El botón de iniciar sesión mostraba el literal `login.entrar`.** La clave existía en el
+espacio `comun` pero el formulario la pedía en `login`, así que next-intl caía en su
+fallback y pintaba el nombre de la clave. Estaba así **desde el Bloque 3**: ni el lint ni el
+`build` ni los tests de backend pueden detectarlo, y las pruebas de navegador anteriores
+nunca miraron el texto de ese botón. Salió porque esta vez el guion tuvo que iniciar sesión
+de verdad.
+
+**4. Una aserción del propio guion no comprobaba nada.** Daba por buena la reseña con solo
+mirar que apareciera, y el texto que leía mostraba «5 estrellas» aunque se hubiera pulsado
+la 4: el componente pinta **siempre las cinco** (unas doradas y otras grises) y
+`textContent` las concatena todas. La nota se estaba guardando bien, pero la comprobación
+habría pasado igual si no. Se expuso `data-calificacion` en cada reseña y ahora la
+verificación afirma la nota exacta y su cambio al editar.
+
+### Decisiones de diseño
+
+- **El promedio nunca se guarda en `lugar`.** Sale solo de `estadistica_lugar`; una columna
+  derivada rompería la 3FN. Hay un test que consulta `information_schema` para que, si
+  alguien añade esa columna en el futuro, el fallo salte solo.
+- **Carril rápido de 30 s en vez de columna derivada.** La vista se refresca cada 5 minutos,
+  y ese retraso hacía parecer rota la aplicación: quien puntúa y no ve moverse la nota
+  vuelve a puntuar. Al crear, editar, borrar o **moderar** una reseña se publica un evento
+  `AFTER_COMMIT` que marca la vista como desfasada; un refresco **coalescente** la recalcula
+  como mucho una vez cada 30 s. Se agrupan las peticiones a propósito:
+  `REFRESH ... CONCURRENTLY` recalcula la vista entera, y hacerlo por cada reseña encadenaría
+  refrescos sin descanso. El job de 5 minutos se queda como suelo de seguridad, porque cubre
+  lo que entra por SQL sin pasar por la aplicación.
+- **La marca «desfasada» se limpia ANTES de refrescar.** Al revés habría una ventana en la
+  que una reseña nueva marcara la vista y el refresco en curso —que no la incluye— borrara
+  esa marca al terminar, dejando el cambio sin recalcular hasta el ciclo de 5 minutos.
+- **La lista de reseñas se lee en vivo; el promedio, de la vista.** Por eso una reseña recién
+  escrita aparece al instante aunque la nota tarde. Es una diferencia real y la interfaz no
+  la disimula.
+- **Tres barreras para las imágenes, en orden creciente de coste** (RNF-15): tamaño en
+  Tomcat, números mágicos y decodificación real con `ImageIO`. La segunda para el script
+  renombrado; la tercera para lo que la segunda no puede ver —una cabecera JPEG válida
+  seguida de basura—. **El `Content-Type` no se mira**: lo escribe el cliente, es una
+  declaración de intenciones y no una prueba.
+- **El nombre del archivo original no se usa jamás.** El `public_id` lo genera el servidor
+  (`lugares/{slug}/{uuid}`), lo que elimina de raíz el recorrido de rutas y las colisiones.
+- **Se valida antes de subir.** Al revés, un archivo malicioso ya estaría alojado en el CDN
+  cuando decidiéramos rechazarlo. Y la subida remota va antes de escribir en la base: si
+  Cloudinary falla no queda una fila apuntando a una imagen inexistente; el riesgo inverso
+  deja un binario huérfano, que es el fallo barato de los dos.
+- **Transformaciones en la URL de entrega, no al subir.** Al subir se guardaría una copia por
+  tamaño y cada una consumiría plan; en la URL, Cloudinary genera la variante la primera vez
+  que se pide y la cachea. `f_auto,q_auto` deja las fotos muy por debajo de los 200 KB del
+  RNF-03 y cambiar de tamaño mañana es editar una cadena.
+- **Sin SDK de Cloudinary.** La firma son cuatro líneas de SHA-1 y la subida un `POST`
+  multipart con el `RestClient` que ya usa el clima. Mismo criterio que con Resilience4j:
+  menos superficie que se rompa al cambiar de versión.
+- **El `api_secret` no sale nunca del servidor**, y la verificación lo comprueba: ninguna
+  petición del navegador lleva credenciales de Cloudinary.
+- **Anti-spam por cuenta, aparte del rate limit por IP.** Son cosas distintas: aquel frena la
+  fuerza bruta contra el login, este impide llenar la base de contenido. Una persona cambia
+  de IP y varias comparten una. Falla abriendo, como se acordó en el Bloque 2.
+- **Editar no manda a moderación, pero se marca.** En este modelo las reseñas son
+  post-moderadas (nacen `PUBLICADA`) y `EN_REVISION` ya significa «acumuló 3 reportes»
+  (RF-45). Pre-moderarlas exigiría una columna nueva, es decir, tocar el modelo. En su lugar,
+  una reseña editada tras publicarse **aparece marcada en la bandeja** (se detecta por
+  `updated_at > created_at`) y editar una oculta **no la republica**: no hay cambiazo
+  posible tras una revisión.
+- **Al rechazar, se conserva la fila y se borra el binario.** Trazabilidad de la decisión y
+  detección de reincidentes, sin gastar almacenamiento. Si el borrado remoto falla, la foto
+  queda rechazada igualmente —deja de verse— y el huérfano se anota en el log: manda el
+  estado en nuestra base.
+
+### Correcciones a los documentos de tesis (las hace el usuario)
+
+- **Endpoints nuevos no previstos en el plan:** `GET/POST /lugares/{slug}/resenas`,
+  `GET /lugares/{slug}/resenas/mia`, `PUT`/`DELETE /lugares/{slug}/resenas/{id}`,
+  `GET/POST /lugares/{slug}/fotos`, `GET /lugares/{slug}/fotos/mias`, y las seis rutas de
+  `/admin/moderacion`.
+- **RF-38 conviene precisar el límite:** «hasta 5 fotos» se implementó como **5 por usuario
+  y lugar**, no 5 en total por lugar, que dejaría la galería a merced de quien llegara
+  primero.
+- **Marca de agua en las fotos:** se dejó fuera por decisión tuya, para no entorpecer la
+  vista del patrimonio. Si algún día interesa, Cloudinary la aplica como una transformación
+  más en la URL de entrega (`l_logo,o_60,g_south_east`), sin tocar el original ni volver a
+  subir nada: sería un cambio de una línea en `TransformacionesCloudinary`.
+
+### Límites conocidos de este bloque
+
+- **`MAS_VISITADOS` sigue plano.** El ranking funciona y está probado, pero los check-ins
+  llegan en el Bloque 7, así que todos los lugares tienen 0 visitas y el orden cae en el
+  desempate alfabético. `MEJOR_VALORADOS` sí ordena ya.
+- **Una reseña revivida aparece marcada como «editada».** Al reutilizar la fila se conserva
+  su `created_at`, así que la bandeja la señala. Para moderación es el comportamiento
+  deseable —el contenido cambió después de publicarse—, pero conviene saber por qué ocurre.
+- **RF-45 (reportes de contenido) no entra aquí:** es del Bloque 7. El estado `EN_REVISION`
+  existe en el modelo y la bandeja ya lo muestra, pero todavía nada lo activa.
 
 ---
 

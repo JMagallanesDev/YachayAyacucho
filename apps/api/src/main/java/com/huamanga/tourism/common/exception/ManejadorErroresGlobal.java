@@ -3,7 +3,12 @@ package com.huamanga.tourism.common.exception;
 import com.huamanga.tourism.auth.exception.CredencialesInvalidasException;
 import com.huamanga.tourism.auth.exception.EmailYaRegistradoException;
 import com.huamanga.tourism.auth.exception.RefreshTokenInvalidoException;
+import com.huamanga.tourism.common.seguridad.AntiSpam;
+import com.huamanga.tourism.foto.service.ClienteCloudinary;
+import com.huamanga.tourism.foto.service.FotoService;
+import com.huamanga.tourism.foto.service.ValidadorImagen;
 import com.huamanga.tourism.lugar.service.LugarService;
+import com.huamanga.tourism.resena.service.ResenaService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -88,6 +93,96 @@ public class ManejadorErroresGlobal extends ResponseEntityExceptionHandler {
     @ExceptionHandler(LugarService.SlugDuplicadoException.class)
     public ProblemDetail manejarSlugDuplicado(HttpServletRequest peticion) {
         return construir(HttpStatus.CONFLICT, "slug-duplicado", peticion);
+    }
+
+    // ---------------------------------------------------------------
+    //  Bloque 6: resenas y fotos
+    // ---------------------------------------------------------------
+
+    @ExceptionHandler(ResenaService.ResenaDuplicadaException.class)
+    public ProblemDetail manejarResenaDuplicada(HttpServletRequest peticion) {
+        return construir(HttpStatus.CONFLICT, "resena-duplicada", peticion);
+    }
+
+    /**
+     * Editar o borrar contenido ajeno.
+     *
+     * <p>403 y no 404: quien lo intenta ya sabe que la resena existe —la esta
+     * viendo—, asi que ocultarlo no aporta nada y confundiria el diagnostico.</p>
+     */
+    @ExceptionHandler(ResenaService.ResenaAjenaException.class)
+    public ProblemDetail manejarResenaAjena(HttpServletRequest peticion) {
+        return construir(HttpStatus.FORBIDDEN, "resena-ajena", peticion);
+    }
+
+    @ExceptionHandler(FotoService.DemasiadasFotosException.class)
+    public ProblemDetail manejarDemasiadasFotos(HttpServletRequest peticion) {
+        return construir(HttpStatus.CONFLICT, "limite-fotos", peticion);
+    }
+
+    /**
+     * Archivo que no supera la validacion de imagen (RNF-15).
+     *
+     * <p>El codigo concreto viaja aparte para poder traducir el motivo, pero
+     * <strong>sin detallar la comprobacion que fallo</strong>: quien este
+     * probando que cuela no necesita saber si le paro la firma de bytes o la
+     * decodificacion.</p>
+     */
+    @ExceptionHandler(ValidadorImagen.ImagenInvalidaException.class)
+    public ProblemDetail manejarImagenInvalida(ValidadorImagen.ImagenInvalidaException error,
+                                               HttpServletRequest peticion) {
+        ProblemDetail problema = construir(HttpStatus.BAD_REQUEST, "imagen-invalida", peticion);
+        problema.setProperty("motivo", error.codigo());
+        return problema;
+    }
+
+    @ExceptionHandler(ClienteCloudinary.CloudinaryNoConfiguradoException.class)
+    public ProblemDetail manejarCloudinarySinConfigurar(HttpServletRequest peticion) {
+        return construir(HttpStatus.SERVICE_UNAVAILABLE, "fotos-no-configuradas", peticion);
+    }
+
+    @ExceptionHandler(ClienteCloudinary.SubidaFallidaException.class)
+    public ProblemDetail manejarSubidaFallida(HttpServletRequest peticion) {
+        return construir(HttpStatus.BAD_GATEWAY, "subida-fallida", peticion);
+    }
+
+    @ExceptionHandler(AntiSpam.DemasiadasPeticionesException.class)
+    public ProblemDetail manejarSpam(HttpServletRequest peticion) {
+        return construir(HttpStatus.TOO_MANY_REQUESTS, "demasiadas-peticiones", peticion);
+    }
+
+    /**
+     * Archivo mayor que el limite de multipart (RNF-15).
+     *
+     * <p>Se <strong>sobrescribe</strong> el metodo heredado en vez de declarar
+     * un {@code @ExceptionHandler} propio: {@code ResponseEntityExceptionHandler}
+     * ya mapea esta excepcion, y anadir otro handler para el mismo tipo hace
+     * que Spring no arranque con «Ambiguous @ExceptionHandler method mapped».</p>
+     *
+     * <p>Tomcat corta el envio antes de que llegue a la aplicacion, asi que
+     * este es el unico punto donde se puede convertir en un ProblemDetail
+     * coherente con el resto del API.</p>
+     */
+    @Override
+    protected ResponseEntity<Object> handleMaxUploadSizeExceededException(
+            org.springframework.web.multipart.MaxUploadSizeExceededException ex,
+            @Nullable HttpHeaders cabeceras,
+            HttpStatusCode estado,
+            WebRequest peticion) {
+
+        Locale idioma = LocaleContextHolder.getLocale();
+
+        // CONTENT_TOO_LARGE y no PAYLOAD_TOO_LARGE: el mismo 413, renombrado en
+        // Spring 7 para seguir la RFC 9110.
+        ProblemDetail problema = ProblemDetail.forStatus(HttpStatus.CONTENT_TOO_LARGE);
+        problema.setType(URI.create(BASE_TIPOS + "imagen-invalida"));
+        problema.setTitle(texto("error.imagen-invalida.titulo", idioma));
+        problema.setDetail(texto("error.imagen-invalida.detalle", idioma));
+        problema.setProperty("errorCode", "imagen-invalida");
+        problema.setProperty("motivo", "archivo-demasiado-grande");
+        problema.setProperty("timestamp", clock.instant());
+
+        return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(problema);
     }
 
     /** Errores de Bean Validation: 400 con el detalle campo a campo. */

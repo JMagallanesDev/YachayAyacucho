@@ -19,10 +19,11 @@
     "docker:reset": "docker compose down -v && docker compose up -d",
     "docker:logs": "docker compose logs -f",
     "db:migrate": "pnpm --filter api db:migrate",
-    "db:seed": "pnpm db:seed:demo && pnpm db:seed:lugares && pnpm db:seed:rutas",
+    "db:seed": "pnpm db:seed:demo && pnpm db:seed:lugares && pnpm db:seed:rutas && pnpm db:seed:resenas",
     "db:seed:demo": "docker compose exec -T postgres psql -U postgres -d huamanga -v ON_ERROR_STOP=1 -f /seed/seed_demo.sql",
     "db:seed:lugares": "docker compose exec -T postgres psql -U postgres -d huamanga -v ON_ERROR_STOP=1 -f /seed/seed_lugares.sql",
     "db:seed:rutas": "docker compose exec -T postgres psql -U postgres -d huamanga -v ON_ERROR_STOP=1 -f /seed/seed_rutas.sql",
+    "db:seed:resenas": "docker compose exec -T postgres psql -U postgres -d huamanga -v ON_ERROR_STOP=1 -f /seed/seed_resenas.sql",
     "db:studio": "docker compose exec postgres psql -U postgres -d huamanga"
   }
 }

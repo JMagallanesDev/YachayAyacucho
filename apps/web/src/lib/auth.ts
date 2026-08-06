@@ -20,11 +20,18 @@ export class ErrorApi extends Error {
 }
 
 async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
+  // Con FormData NO se declara el Content-Type: el navegador tiene que
+  // ponerlo el mismo, porque debe incluir el `boundary` que separa las partes
+  // del multipart. Fijarlo a mano genera una peticion sin boundary que el
+  // servidor no puede parsear, y el sintoma —un 400 sin explicacion— cuesta
+  // horas de encontrar.
+  const esFormulario = opciones.body instanceof FormData;
+
   const respuesta = await fetch(`${env.apiUrl}${ruta}`, {
     ...opciones,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(esFormulario ? {} : { "Content-Type": "application/json" }),
       Accept: "application/json",
       ...opciones.headers,
     },

@@ -7,7 +7,10 @@ import { GaleriaInmersiva } from "@/components/lugares/GaleriaInmersiva";
 import { TablaHorarios } from "@/components/lugares/TablaHorarios";
 import { routing } from "@/i18n/routing";
 import { Link } from "@/i18n/navegacion";
+import { PanelResenas } from "@/components/resenas/PanelResenas";
+import { SubirFoto } from "@/components/resenas/SubirFoto";
 import { obtenerLugar, slugsPublicados } from "@/lib/lugares";
+import { listarFotos, listarResenas } from "@/lib/resenas";
 
 /**
  * Ficha de un lugar patrimonial (RF-09).
@@ -70,6 +73,17 @@ export default async function PaginaLugar({
 
   const t = await getTranslations("lugares");
 
+  // En paralelo: ninguna depende de otra.
+  const [resenas, fotos] = await Promise.all([listarResenas(slug), listarFotos(slug)]);
+
+  // El promedio se calcula sobre las resenas visibles y se muestra junto al
+  // numero de opiniones. Es la misma cifra que la vista materializada sirve al
+  // listado; aqui se deriva de la pagina ya cargada para no pedir otra cosa.
+  const promedio =
+    resenas.content.length > 0
+      ? resenas.content.reduce((suma, r) => suma + r.calificacion, 0) / resenas.content.length
+      : null;
+
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-8 px-5 py-8">
       <nav>
@@ -108,9 +122,24 @@ export default async function PaginaLugar({
         )}
       </header>
 
+      {promedio !== null && (
+        <p data-testid="promedio-lugar" className="flex items-center gap-2 text-fluid-base">
+          <span className="text-accent" aria-hidden="true">
+            ★
+          </span>
+          <span className="font-semibold text-text">{promedio.toFixed(1)}</span>
+          <span className="text-text-muted">
+            {t("basadoEn", { total: resenas.totalElements })}
+          </span>
+        </p>
+      )}
+
+      {/* La galeria se alimenta de las fotos APROBADAS que suben los
+          visitantes: es lo que la llena, porque el modelo no guarda imagenes
+          propias del lugar. */}
       <GaleriaInmersiva
         titulo={lugar.nombre}
-        imagenes={lugar.fotos.map((foto) => ({
+        imagenes={fotos.map((foto) => ({
           url: foto.url,
           alt: t("fotoDe", { titulo: lugar.nombre }),
         }))}
@@ -144,6 +173,10 @@ export default async function PaginaLugar({
           </p>
         </section>
       )}
+
+      <SubirFoto slug={slug} />
+
+      <PanelResenas slug={slug} resenasIniciales={resenas.content} />
 
       {lugar.telefono && (
         <p className="text-fluid-sm text-text-muted">

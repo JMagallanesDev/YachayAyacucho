@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { Moderacion } from "./Moderacion";
 import { ResumenAdmin } from "./ResumenAdmin";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
@@ -25,9 +26,10 @@ export default async function PaginaAdmin({
   const t = await getTranslations("admin");
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-2xl flex-col gap-8 px-5 py-12">
+    <main className="mx-auto flex min-h-svh w-full max-w-4xl flex-col gap-8 px-5 py-12">
       <h1 className="text-fluid-2xl font-bold text-text">{t("titulo")}</h1>
       <ResumenAdmin />
+      <Moderacion />
     </main>
   );
 }

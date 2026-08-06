@@ -65,7 +65,13 @@ public class SecurityConfig {
             "/rutas",
             "/rutas/**",
             "/recomendaciones",
-            "/recomendaciones/**"
+            "/recomendaciones/**",
+            // Bloque 6. Leer resenas y ver la galeria no exige cuenta (RF-34);
+            // escribirlas si, y lo comprueba @PreAuthorize en cada metodo.
+            // Ojo: estos patrones solo abren el GET, porque la lista
+            // RUTAS_PUBLICAS_GET se aplica unicamente a ese verbo.
+            "/lugares/*/resenas",
+            "/lugares/*/fotos"
     };
 
     private final PropiedadesSeguridad propiedades;

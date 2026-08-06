@@ -105,6 +105,21 @@ spring:
     virtual:
       enabled: true
 
+  # ----------------------------------------------------------
+  #  Subida de archivos (Bloque 6, RNF-15)
+  # ----------------------------------------------------------
+  #  Primera barrera de las tres: Tomcat rechaza el archivo antes de que
+  #  llegue a la aplicacion, de modo que un envio de 500 MB no consume
+  #  memoria ni tiempo. Las otras dos —firma de bytes y decodificacion
+  #  real— viven en ValidadorImagen.
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      # Algo mayor que el archivo: el multipart lleva ademas las cabeceras
+      # de cada parte, y ajustarlo al milimetro rechazaria imagenes de
+      # exactamente 5 MB que si deberian pasar.
+      max-request-size: 6MB
+
 server:
   port: 8080
   # Todo el API cuelga de /api/v1 (RNF-28). Los controllers solo
@@ -175,6 +190,21 @@ app:
     refresco-cron: "0 */5 * * * *"
     lock-maximo: PT4M
     lock-minimo: PT30S
+    # Carril rapido (Bloque 6): al dejar o moderar una resena, el promedio se
+    # recalcula en 30 s como mucho en vez de esperar al ciclo de 5 minutos. Sin
+    # esto, quien punt�a un lugar no ve moverse la nota y vuelve a puntuar.
+    intervalo-carril-rapido: PT30S
+
+# ----------------------------------------------------------
+#  Cloudinary (Bloque 6, RF-38)
+# ----------------------------------------------------------
+#  Una sola variable con las tres credenciales, en el formato que
+#  entrega el propio panel de Cloudinary. El api_secret NUNCA sale del
+#  backend: solo se usa para firmar. Si esta vacia, la subida responde
+#  503 y el resto de la aplicacion funciona igual.
+cloudinary:
+  url: ${CLOUDINARY_URL:}
+  carpeta-base: yachay-ayacucho
 
 # ----------------------------------------------------------
 #  Clima (Bloque 5, RF-25 a RF-27)
