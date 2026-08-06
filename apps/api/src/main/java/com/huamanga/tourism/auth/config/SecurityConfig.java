@@ -57,7 +57,15 @@ public class SecurityConfig {
             "/lugares",
             "/lugares/**",
             // Catalogo de categorias: alimenta los chips de filtro del listado.
-            "/categorias"
+            "/categorias",
+            // Bloque 5. Clima, rutas y recomendaciones acompanan la visita y
+            // no exigen cuenta; ninguno expone datos de usuario.
+            "/clima",
+            "/clima/**",
+            "/rutas",
+            "/rutas/**",
+            "/recomendaciones",
+            "/recomendaciones/**"
     };
 
     private final PropiedadesSeguridad propiedades;

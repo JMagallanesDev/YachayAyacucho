@@ -255,9 +255,23 @@ class AutenticacionSeguridadTest extends BasePostgis {
         registrar("manipulado@yachay.pe", PASSWORD_VALIDA);
         String token = tokenDe(login("manipulado@yachay.pe", PASSWORD_VALIDA).andReturn());
 
-        // Se altera el ultimo caracter de la firma.
-        String alterado = token.substring(0, token.length() - 1)
-                + (token.endsWith("A") ? "B" : "A");
+        // Se altera el PRIMER caracter de la firma, no el ultimo.
+        //
+        // Cambiar el ultimo parecia equivalente y no lo es: la firma HMAC-256
+        // son 32 bytes que en Base64URL ocupan 43 caracteres, y 43 x 6 = 258
+        // bits para 256 significativos. Es decir, el ultimo caracter solo
+        // aporta 4 bits utiles y sus dos bits finales se descartan al
+        // decodificar. Cambiar 'A' por 'B' ahi da EXACTAMENTE los mismos
+        // bytes, la firma sigue siendo valida y el endpoint responde 200.
+        //
+        // El test fallaba de forma intermitente por eso, segun como terminara
+        // la firma generada en cada ejecucion. El primer caracter, en cambio,
+        // aporta sus 6 bits completos.
+        int inicioFirma = token.lastIndexOf('.') + 1;
+        char primero = token.charAt(inicioFirma);
+        String alterado = token.substring(0, inicioFirma)
+                + (primero == 'A' ? 'Z' : 'A')
+                + token.substring(inicioFirma + 1);
 
         mockMvc.perform(get("/auth/me").header("Authorization", "Bearer " + alterado))
                 .andExpect(status().isUnauthorized());

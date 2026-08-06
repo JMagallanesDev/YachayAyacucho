@@ -15,6 +15,7 @@ import com.huamanga.tourism.lugar.domain.OrdenLugares;
 import com.huamanga.tourism.lugar.repository.EstadisticaLugarRepository;
 import com.huamanga.tourism.lugar.domain.LugarTraduccion;
 import com.huamanga.tourism.lugar.domain.LugarTraduccionId;
+import com.huamanga.tourism.lugar.dto.GeoJsonResponse;
 import com.huamanga.tourism.lugar.dto.HorarioRequest;
 import com.huamanga.tourism.lugar.dto.LugarDetalleResponse;
 import com.huamanga.tourism.lugar.dto.LugarRequest;
@@ -142,6 +143,56 @@ public class LugarService {
         String terminoNormalizado() {
             return termino == null || termino.isBlank() ? null : termino.trim();
         }
+    }
+
+    /**
+     * Todos los lugares publicados en GeoJSON, para el mapa (RF-17, RF-18).
+     *
+     * <p>No se pagina: MapLibre necesita el conjunto completo para agrupar en
+     * clusters correctamente. Paginarlo haria que al alejarse el mapa mostrara
+     * numeros falsos, porque contaria solo la pagina cargada. Son unas decenas
+     * de puntos con cuatro campos cada uno; el peso es despreciable comparado
+     * con la primera tanda de tiles.</p>
+     */
+    @Transactional(readOnly = true)
+    public GeoJsonResponse paraMapa(Idioma idioma) {
+        List<GeoJsonResponse.Feature> puntos = lugarRepository
+                .explorar(null, null, null, OrdenLugares.ALFABETICO.codigo(),
+                        Pageable.unpaged())
+                .getContent().stream()
+                .map(lugar -> aPunto(lugar, idioma))
+                .toList();
+
+        return GeoJsonResponse.de(puntos);
+    }
+
+    private GeoJsonResponse.Feature aPunto(Lugar lugar, Idioma idioma) {
+        var categoria = lugar.getCategoria();
+
+        String nombreLugar = mapper.traduccionPara(lugar, idioma)
+                .map(t -> t.getNombre())
+                .orElse(lugar.getSlug());
+
+        String nombreCategoria = categoria.getTraducciones().stream()
+                .filter(t -> t.getId().getIdioma() == idioma)
+                .findFirst()
+                .or(() -> categoria.getTraducciones().stream()
+                        .filter(t -> t.getId().getIdioma() == Idioma.ES)
+                        .findFirst())
+                .map(t -> t.getNombre())
+                .orElse(categoria.getCodigo());
+
+        return GeoJsonResponse.Feature.punto(
+                lugar.getUbicacion().getX(),
+                lugar.getUbicacion().getY(),
+                new GeoJsonResponse.Propiedades(
+                        lugar.getId().toString(),
+                        lugar.getSlug(),
+                        nombreLugar,
+                        categoria.getCodigo(),
+                        nombreCategoria,
+                        categoria.getColorHex(),
+                        categoria.getIcono()));
     }
 
     /**

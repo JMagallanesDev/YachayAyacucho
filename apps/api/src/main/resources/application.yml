@@ -176,6 +176,27 @@ app:
     lock-maximo: PT4M
     lock-minimo: PT30S
 
+# ----------------------------------------------------------
+#  Clima (Bloque 5, RF-25 a RF-27)
+# ----------------------------------------------------------
+#  La clave de OpenWeatherMap NO lleva prefijo NEXT_PUBLIC_ a proposito:
+#  se queda en el servidor y el navegador nunca la ve. Si esta vacia, el
+#  modulo responde "no disponible" y el resto de la aplicacion sigue
+#  funcionando; asi el proyecto arranca sin necesidad de una cuenta.
+clima:
+  api-key: ${OPENWEATHER_API_KEY:}
+  url-base: https://api.openweathermap.org
+  # Plaza Mayor de Huamanga.
+  latitud: -13.1588
+  longitud: -74.2236
+  # Fresco: cada cuanto se vuelve a preguntar (RF-25).
+  ttl-fresco: PT30M
+  # Ultimo bueno: red de seguridad ante una caida del proveedor. Es mucho
+  # mas largo a proposito; su trabajo no es ahorrar llamadas sino que
+  # siempre haya algo que mostrar.
+  ttl-ultimo-bueno: PT24H
+  timeout: PT3S
+
 logging:
   level:
     com.huamanga.tourism: INFO

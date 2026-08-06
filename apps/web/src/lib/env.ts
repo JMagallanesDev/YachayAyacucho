@@ -22,6 +22,17 @@ export const env = {
   /** URL base del API Spring Boot, ya con el prefijo /api/v1. */
   apiUrl: requerida(process.env.NEXT_PUBLIC_API_URL, "NEXT_PUBLIC_API_URL"),
 
+  /**
+   * Clave de MapTiler. Es PUBLICA por diseno: viaja con cada peticion de tile
+   * y no hay forma de ocultarla en un mapa de cliente. Su proteccion no es el
+   * secreto sino el ambito: en el panel de MapTiler se restringe por origenes
+   * HTTP permitidos, de modo que solo funcione desde nuestro dominio.
+   *
+   * No es `requerida()` a proposito: sin ella el mapa muestra un aviso de
+   * configuracion y el resto del sitio funciona igual.
+   */
+  maptilerKey: process.env.NEXT_PUBLIC_MAPTILER_KEY ?? "",
+
   appName: process.env.NEXT_PUBLIC_APP_NAME ?? "Yachay Ayacucho",
 
   defaultLocale: process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? "es",

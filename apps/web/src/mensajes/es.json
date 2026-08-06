@@ -134,6 +134,71 @@
       "sabado": "Sabado"
     }
   },
+  "mapa": {
+    "titulo": "Mapa del patrimonio",
+    "descripcion": "Explora Huamanga en 3D: templos, museos y miradores situados sobre el terreno, con rutas tematicas y enlaces para llegar.",
+    "sinClave": "El mapa no esta configurado: falta la clave de MapTiler en el archivo .env de la raiz del proyecto.",
+    "ver3D": "Ver en 3D",
+    "ver2D": "Ver plano",
+    "filtros": "Filtros",
+    "categorias": "Categorias",
+    "rutas": "Rutas tematicas",
+    "ningunaRuta": "Ninguna",
+    "verFicha": "Ver ficha completa",
+    "paradas": "{total, plural, =1 {1 parada} other {# paradas}}",
+    "listaAccesible": "Todos los lugares del mapa",
+    "googleMaps": "Google Maps",
+    "waze": "Waze",
+    "appleMaps": "Apple Maps",
+    "abrirEnAyuda": "Se abre en una aplicacion de navegacion externa"
+  },
+  "clima": {
+    "titulo": "Clima ahora en Huamanga",
+    "obsoleto": "Ultimo dato disponible, medido {cuando}. El servicio de clima no responde en este momento.",
+    "condicion": {
+      "Clear": "Despejado",
+      "Clouds": "Nublado",
+      "Rain": "Lluvia",
+      "Drizzle": "Llovizna",
+      "Thunderstorm": "Tormenta",
+      "Snow": "Nieve",
+      "Mist": "Neblina",
+      "Fog": "Niebla",
+      "Haze": "Bruma"
+    },
+    "consejo": {
+      "lluvia": "Lleva impermeable: los patios de los templos coloniales no tienen techo.",
+      "tormenta": "Hay tormenta: evita los miradores y las zonas altas.",
+      "frioMadrugada": "La madrugada es fria en altura; abrigate si sales temprano.",
+      "hidratacion": "Bebe agua con frecuencia: a 2 761 m se deshidrata uno antes de tener sed.",
+      "protectorSolar": "Usa protector solar. En altura la radiacion es fuerte aunque no haga calor.",
+      "uvAlto": "Radiacion alta a esta hora: gorra y proteccion solar.",
+      "vientoFuerte": "Sopla viento fuerte; cuidado en los miradores.",
+      "atardecerMirador": "Buena hora para subir a un mirador y ver el atardecer."
+    }
+  },
+  "recomendaciones": {
+    "titulo": "¿Que hago ahora?",
+    "descripcion": "Sugerencias segun la hora, el clima y lo que esta abierto en este momento.",
+    "nadaAbierto": "A esta hora no hay lugares abiertos. Casi todo el patrimonio de Huamanga abre por la manana; vuelve manana o planifica tu visita por fecha.",
+    "motivo": {
+      "abiertoAhora": "Abierto ahora",
+      "aCubierto": "A cubierto de la lluvia",
+      "cieloDespejado": "Cielo despejado",
+      "mejorPorLaManana": "Mejor por la manana",
+      "horaDelAtardecer": "Hora del atardecer",
+      "horaDeComer": "Hora de comer",
+      "bienValorado": "Bien valorado",
+      "entradaLibre": "Entrada libre"
+    }
+  },
+  "proximidad": {
+    "activar": "Avisarme cuando llegue a un lugar",
+    "buscando": "Te avisaremos al llegar a un lugar patrimonial.",
+    "estasEn": "Estas en",
+    "verFicha": "Ver",
+    "descartar": "Descartar aviso"
+  },
   "validacion": {
     "correoObligatorio": "Escribe tu correo",
     "correoInvalido": "Ese correo no parece valido",

@@ -134,6 +134,71 @@
       "sabado": "Saturday"
     }
   },
+  "mapa": {
+    "titulo": "Heritage map",
+    "descripcion": "Explore Huamanga in 3D: temples, museums and viewpoints placed on the terrain, with themed routes and links to get there.",
+    "sinClave": "The map is not configured: the MapTiler key is missing from the .env file at the project root.",
+    "ver3D": "View in 3D",
+    "ver2D": "View flat",
+    "filtros": "Filters",
+    "categorias": "Categories",
+    "rutas": "Themed routes",
+    "ningunaRuta": "None",
+    "verFicha": "See full entry",
+    "paradas": "{total, plural, =1 {1 stop} other {# stops}}",
+    "listaAccesible": "All places on the map",
+    "googleMaps": "Google Maps",
+    "waze": "Waze",
+    "appleMaps": "Apple Maps",
+    "abrirEnAyuda": "Opens in an external navigation app"
+  },
+  "clima": {
+    "titulo": "Weather now in Huamanga",
+    "obsoleto": "Latest available reading, taken {cuando}. The weather service is not responding right now.",
+    "condicion": {
+      "Clear": "Clear",
+      "Clouds": "Cloudy",
+      "Rain": "Rain",
+      "Drizzle": "Drizzle",
+      "Thunderstorm": "Thunderstorm",
+      "Snow": "Snow",
+      "Mist": "Mist",
+      "Fog": "Fog",
+      "Haze": "Haze"
+    },
+    "consejo": {
+      "lluvia": "Bring a raincoat: the courtyards of the colonial temples are open to the sky.",
+      "tormenta": "There is a thunderstorm: avoid viewpoints and high ground.",
+      "frioMadrugada": "Early mornings are cold at altitude; wrap up if you head out early.",
+      "hidratacion": "Drink water often: at 2,761 m you dehydrate before you feel thirsty.",
+      "protectorSolar": "Wear sunscreen. At altitude the radiation is strong even when it is not hot.",
+      "uvAlto": "High UV at this hour: hat and sun protection.",
+      "vientoFuerte": "Strong wind is blowing; take care at the viewpoints.",
+      "atardecerMirador": "Good time to head up to a viewpoint for the sunset."
+    }
+  },
+  "recomendaciones": {
+    "titulo": "What can I do now?",
+    "descripcion": "Suggestions based on the time, the weather and what is open right now.",
+    "nadaAbierto": "Nothing is open at this hour. Most of Huamanga's heritage opens in the morning; come back tomorrow or plan your visit by date.",
+    "motivo": {
+      "abiertoAhora": "Open now",
+      "aCubierto": "Sheltered from the rain",
+      "cieloDespejado": "Clear skies",
+      "mejorPorLaManana": "Best in the morning",
+      "horaDelAtardecer": "Sunset hour",
+      "horaDeComer": "Mealtime",
+      "bienValorado": "Well rated",
+      "entradaLibre": "Free entry"
+    }
+  },
+  "proximidad": {
+    "activar": "Notify me when I arrive at a place",
+    "buscando": "We will let you know when you reach a heritage site.",
+    "estasEn": "You are at",
+    "verFicha": "Open",
+    "descartar": "Dismiss notice"
+  },
   "validacion": {
     "correoObligatorio": "Enter your email",
     "correoInvalido": "That email does not look valid",

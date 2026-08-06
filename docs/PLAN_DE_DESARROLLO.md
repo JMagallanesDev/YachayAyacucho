@@ -2,12 +2,12 @@
 
 Sistema Web de Turismo Inteligente y Patrimonio Cultural
 
-*Huamanga · Ayacucho · Perú*
+_Huamanga · Ayacucho · Perú_
 
-**Versión 9.1 — Documento de planificación técnica**
+**Versión 9.2 — Documento de planificación técnica**
 
-*Tesis: «Aplicación web para la publicación de información del
-patrimonio cultural de Ayacucho, 2026»*
+_Tesis: «Aplicación web para la publicación de información del
+patrimonio cultural de Ayacucho, 2026»_
 
 Escuela de Posgrado — Pontificia
 
@@ -15,14 +15,12 @@ Ingeniería de Sistemas
 
 Año 2026
 
-**Aplicación WEB (no PWA, sin modo offline)** Stack: Next.js 15 (SSR/SSG/ISR) + Spring Boot 3 + PostgreSQL/PostGIS Base de datos en 3FN estricta · 35 entidades + 1 vista materializada  
----
-
+## **Aplicación WEB (no PWA, sin modo offline)** Stack: Next.js 16 (SSR/SSG/ISR) + Spring Boot 4 + PostgreSQL/PostGIS Base de datos en 3FN estricta · 35 entidades + 1 vista materializada
 
 **Contenido**
 
-*(Para actualizar la numeración de páginas: clic derecho sobre la tabla
-→ Actualizar campos.)*
+_(Para actualizar la numeración de páginas: clic derecho sobre la tabla
+→ Actualizar campos.)_
 
 **Nota sobre esta versión (9.1)**
 
@@ -81,7 +79,7 @@ comunidad.
 **Cifras clave**
 
 | **Indicador**              | **Valor**                                                                                                       |
-|----------------------------|-----------------------------------------------------------------------------------------------------------------|
+| -------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Naturaleza del producto    | Aplicación web tradicional (SSR/SSG/ISR), no PWA, sin offline                                                   |
 | Requisitos Funcionales     | 76 RF (68 del alcance base + 8 RF de experiencia turística)                                                     |
 | Requisitos No Funcionales  | 30 RNF con métricas objetivas (se retira el RNF de modo offline)                                                |
@@ -128,8 +126,8 @@ instalación) por la decisión de construir una web tradicional.
 **2.1 Frontend**
 
 | **Capa**             | **Tecnología**                | **Función**                                               |
-|----------------------|-------------------------------|-----------------------------------------------------------|
-| Framework            | Next.js 15 (App Router)       | SSR/SSG/CSR híbrido, ISR con revalidación bajo demanda    |
+| -------------------- | ----------------------------- | --------------------------------------------------------- |
+| Framework            | Next.js 16 (App Router)       | SSR/SSG/CSR híbrido, ISR con revalidación bajo demanda    |
 | Lenguaje             | TypeScript 5                  | Tipado estricto end-to-end                                |
 | Estilos              | Tailwind CSS v4 + tokens.css  | Utility-first, design tokens centralizados                |
 | Componentes UI       | shadcn/ui + Radix UI          | Componentes accesibles y personalizables                  |
@@ -140,15 +138,13 @@ instalación) por la decisión de construir una web tradicional.
 | Estado del cliente   | Zustand                       | Estado global minimalista (usuario, tema, idioma, fechas) |
 | Formularios          | React Hook Form + Zod         | Validación tipada, performance optimizada                 |
 
-**Retirado del frontend** Se elimina next-pwa y toda la capa de Progressive Web App: sin service worker, sin caché offline, sin manifest instalable. La web se sirve directamente desde el navegador. Se conserva únicamente el diseño responsivo mobile-first, que es CSS puro.  
----
-
+## **Retirado del frontend** Se elimina next-pwa y toda la capa de Progressive Web App: sin service worker, sin caché offline, sin manifest instalable. La web se sirve directamente desde el navegador. Se conserva únicamente el diseño responsivo mobile-first, que es CSS puro.
 
 **2.2 Backend**
 
 | **Capa**            | **Tecnología**                     | **Función**                                                            |
-|---------------------|------------------------------------|------------------------------------------------------------------------|
-| Framework           | Spring Boot 3.x                    | API REST, IoC, autoconfiguración                                       |
+| ------------------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| Framework           | Spring Boot 4.x                    | API REST, IoC, autoconfiguración                                       |
 | Lenguaje            | Java 21 LTS                        | Records, pattern matching, virtual threads                             |
 | Seguridad           | Spring Security + JWT              | Autenticación stateless; access en memoria, refresh en cookie httpOnly |
 | Hash de contraseñas | BCrypt (cost 12)                   | Cumple RNF-12                                                          |
@@ -166,7 +162,7 @@ instalación) por la decisión de construir una web tradicional.
 **2.3 Datos y servicios externos**
 
 | **Servicio**   | **Proveedor**                      | **Función**                                                  |
-|----------------|------------------------------------|--------------------------------------------------------------|
+| -------------- | ---------------------------------- | ------------------------------------------------------------ |
 | BD producción  | Supabase (PostgreSQL 16 + PostGIS) | BD gestionada, backups, dashboard                            |
 | BD local       | PostgreSQL 16 + PostGIS en Docker  | Desarrollo offline, queries en ms                            |
 | Caché          | Upstash Redis                      | Caché de clima, rate limiting, anti-spam TTL, locks ShedLock |
@@ -175,14 +171,12 @@ instalación) por la decisión de construir una web tradicional.
 | Tiles del mapa | MapTiler                           | Renderizado vectorial del mapa                               |
 | Correos        | SMTP (JavaMail)                    | Notificaciones y alertas                                     |
 
-**Rol de Supabase en la arquitectura** Supabase se emplea estrictamente como PostgreSQL 16 gestionado con PostGIS y backups automáticos. La autenticación se resuelve con Spring Security + JWT, el almacenamiento de medios con Cloudinary y la API con Spring Boot: la lógica de negocio, la seguridad y las transacciones viven en la capa empresarial Java. Esta separación es deliberada y mantiene el sistema portable (RNF-39): la base gestionada es intercambiable por Neon, Railway Postgres o RDS sin tocar el código de aplicación.  
----
-
+## **Rol de Supabase en la arquitectura** Supabase se emplea estrictamente como PostgreSQL 16 gestionado con PostGIS y backups automáticos. La autenticación se resuelve con Spring Security + JWT, el almacenamiento de medios con Cloudinary y la API con Spring Boot: la lógica de negocio, la seguridad y las transacciones viven en la capa empresarial Java. Esta separación es deliberada y mantiene el sistema portable (RNF-39): la base gestionada es intercambiable por Neon, Railway Postgres o RDS sin tocar el código de aplicación.
 
 **2.4 Hosting y DevOps**
 
 | **Capa**            | **Proveedor**                    | **Costo**                 |
-|---------------------|----------------------------------|---------------------------|
+| ------------------- | -------------------------------- | ------------------------- |
 | Frontend Next.js    | Vercel (Hobby tier)              | 0 USD                     |
 | Backend Spring Boot | Railway (plan B: Fly.io / Koyeb) | 0–5 USD (ver riesgo, 7.6) |
 | Base de datos       | Supabase (Free tier)             | 0 USD                     |
@@ -199,15 +193,13 @@ gestiona en el backend mediante Spring Security y se verifica en cada
 endpoint protegido conforme al RNF-16.
 
 | **Rol**             | **Descripción**        | **Capacidades principales**                                                                                                                                                                  |
-|---------------------|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Visitante anónimo   | Turista sin cuenta     | Explorar lugares patrimoniales, búsqueda, mapa, clima, recomendaciones contextuales, agenda cultural, «durante mi visita», directorio básico, reportar incidentes anónimamente               |
 | Usuario registrado  | Turista con cuenta     | Todo lo anterior + favoritos, reseñas con calificación, subida de fotos, check-in, pasaporte patrimonial con insignias, reporte de contenido inapropiado                                     |
 | Negocio / Proveedor | Dueño de negocio local | Panel propio con perfil editable (descripción traducible), contacto por WhatsApp, visualización en directorio                                                                                |
 | Administrador       | Único gestor interno   | CRUD completo de lugares patrimoniales (descripciones, precios, horarios estructurados), eventos y rutas; moderación de fotos, reseñas, reportes ciudadanos y negocios; métricas y auditoría |
 
-**Decisión de gestión de contenido** Todo el contenido de dominio (descripciones patrimoniales, historias, precios de entrada, horarios, datos prácticos) se gestiona exclusivamente desde el panel de administración y se persiste en la base de datos. No se hardcodea en el frontend. El rendimiento de contenido «estático» se logra en la capa de entrega (ISR de Next.js + caché Redis), no acoplando datos a la presentación. Ver secciones 5.5 y 10.  
----
-
+## **Decisión de gestión de contenido** Todo el contenido de dominio (descripciones patrimoniales, historias, precios de entrada, horarios, datos prácticos) se gestiona exclusivamente desde el panel de administración y se persiste en la base de datos. No se hardcodea en el frontend. El rendimiento de contenido «estático» se logra en la capa de entrega (ISR de Next.js + caché Redis), no acoplando datos a la presentación. Ver secciones 5.5 y 10.
 
 **4. Alcance del sistema**
 
@@ -223,7 +215,7 @@ diferenciadores patrimoniales del proyecto.
 **Módulo 1 — Descubrimiento y búsqueda (7 RF)**
 
 | **ID** | **Nombre**                                                                                                      | **Prioridad** |
-|--------|-----------------------------------------------------------------------------------------------------------------|---------------|
+| ------ | --------------------------------------------------------------------------------------------------------------- | ------------- |
 | RF-01  | Listado de lugares paginado                                                                                     | Alta          |
 | RF-02  | Búsqueda por texto con debounce 300 ms                                                                          | Alta          |
 | RF-04  | Filtrado por categoría                                                                                          | Alta          |
@@ -234,22 +226,22 @@ diferenciadores patrimoniales del proyecto.
 
 **Módulo 2 — Detalle de lugar (9 RF)**
 
-| **ID** | **Nombre**                                                                                    | **Prioridad** |
-|--------|-----------------------------------------------------------------------------------------------|---------------|
-| RF-09  | Ficha completa del lugar patrimonial                                                          | Alta          |
-| RF-09b | NUEVO — Estado «abierto/cerrado ahora» calculado sobre HorarioLugar                           | Alta          |
-| RF-09c | NUEVO — Duración de visita + distancia/tiempo a pie (ST_Distance PostGIS, ajuste 2 760 msnm)  | Alta          |
-| RF-09d | NUEVO — Bloque «Antes de ir»: tarjeta, baños, accesibilidad, apto niños, costo taxi, consejos | Media         |
-| RF-10  | Galería inmersiva con swipe y zoom                                                            | Alta          |
-| RF-11  | Slider antes/después histórico                                                                | Alta          |
-| RF-11b | NUEVO — Slider geolocalizado «Párate aquí» (radio 50 m abre pantalla completa)                | Media         |
-| RF-12  | Videos de festividades                                                                        | Alta          |
-| RF-15  | Compartir lugar (URL, QR, share nativo)                                                       | Media         |
+| **ID** | **Nombre**                                                                                                                  | **Prioridad** |
+| ------ | --------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| RF-09  | Ficha completa del lugar patrimonial                                                                                        | Alta          |
+| RF-09b | NUEVO — Estado «abierto/cerrado ahora» calculado sobre HorarioLugar                                                         | Alta          |
+| RF-09c | NUEVO — Duración de visita + distancia/tiempo a pie (ST_Distance PostGIS; velocidad 4 km/h ajustada por altitud 2 760 msnm) | Alta          |
+| RF-09d | NUEVO — Bloque «Antes de ir»: tarjeta, baños, accesibilidad, apto niños, costo taxi, consejos                               | Media         |
+| RF-10  | Galería inmersiva con swipe y zoom                                                                                          | Alta          |
+| RF-11  | Slider antes/después histórico                                                                                              | Alta          |
+| RF-11b | NUEVO — Slider geolocalizado «Párate aquí» (radio 50 m abre pantalla completa)                                              | Media         |
+| RF-12  | Videos de festividades                                                                                                      | Alta          |
+| RF-15  | Compartir lugar (URL, QR, share nativo)                                                                                     | Media         |
 
 **Módulo 3 — Mapa interactivo (8 RF)**
 
 | **ID** | **Nombre**                                                                                              | **Prioridad** |
-|--------|---------------------------------------------------------------------------------------------------------|---------------|
+| ------ | ------------------------------------------------------------------------------------------------------- | ------------- |
 | RF-17  | Mapa MapLibre, vista 3D inclinada (pitch 55° escritorio / 45° móvil), edificios extruidos, toggle 2D/3D | Alta          |
 | RF-18  | Clusters automáticos de marcadores                                                                      | Alta          |
 | RF-19  | Ubicación GPS del usuario en tiempo real                                                                | Alta          |
@@ -262,7 +254,7 @@ diferenciadores patrimoniales del proyecto.
 **Módulo 4 — Clima inteligente (4 RF)**
 
 | **ID** | **Nombre**                                                  | **Prioridad** |
-|--------|-------------------------------------------------------------|---------------|
+| ------ | ----------------------------------------------------------- | ------------- |
 | RF-25  | Clima actual con caché Redis 30 min y fallback Resilience4j | Alta          |
 | RF-26  | Pronóstico 7 días                                           | Alta          |
 | RF-27  | Consejos automáticos según clima                            | Alta          |
@@ -271,9 +263,9 @@ diferenciadores patrimoniales del proyecto.
 **Módulo 5 — Usuarios y comunidad (9 RF)**
 
 | **ID** | **Nombre**                                                                              | **Prioridad** |
-|--------|-----------------------------------------------------------------------------------------|---------------|
+| ------ | --------------------------------------------------------------------------------------- | ------------- |
 | RF-31  | Registro con email + contraseña validada                                                | Alta          |
-| RF-32  | Login JWT 24h + refresh token 7d                                                        | Alta          |
+| RF-32  | Login JWT access 15 min (en memoria) + refresh token 7d (cookie httpOnly, con rotación) | Alta          |
 | RF-34  | Navegación anónima permitida                                                            | Alta          |
 | RF-35  | Lista de favoritos persistente                                                          | Alta          |
 | RF-37  | Reseñas (500 chars) + calificación 1-5                                                  | Alta          |
@@ -285,7 +277,7 @@ diferenciadores patrimoniales del proyecto.
 **Módulo 6 — Panel de administración (9 RF)**
 
 | **ID** | **Nombre**                                                                                         | **Prioridad** |
-|--------|----------------------------------------------------------------------------------------------------|---------------|
+| ------ | -------------------------------------------------------------------------------------------------- | ------------- |
 | RF-47  | CRUD de lugares: descripciones e historia (ES/EN), precio, horarios estructurados, datos prácticos | Alta          |
 | RF-48  | Gestión de multimedia con Cloudinary (incluye punto de captura de imágenes históricas)             | Alta          |
 | RF-49  | Moderación de fotos pendientes                                                                     | Alta          |
@@ -299,10 +291,10 @@ diferenciadores patrimoniales del proyecto.
 **Módulo 7 — Multilenguaje i18n (6 RF)**
 
 | **ID** | **Nombre**                                                    | **Prioridad** |
-|--------|---------------------------------------------------------------|---------------|
+| ------ | ------------------------------------------------------------- | ------------- |
 | RF-59  | Cambio de idioma inmediato sin recarga                        | Alta          |
 | RF-60  | Español (es-PE) + Inglés en el alcance                        | Alta          |
-| RF-63  | Persistencia de idioma en localStorage                        | Alta          |
+| RF-63  | Persistencia de idioma en cookie (compatible con SSR)         | Alta          |
 | RF-64  | Detección automática del navegador (ES/EN/FR/DE con fallback) | Media         |
 | RF-66  | UI 100% traducida (cero hardcoded)                            | Alta          |
 | RF-67  | Formato local con Intl API                                    | Media         |
@@ -310,7 +302,7 @@ diferenciadores patrimoniales del proyecto.
 **Módulo 8 — Preservación ciudadana (6 RF) — DIFERENCIADOR**
 
 | **ID** | **Nombre**                                   | **Prioridad** |
-|--------|----------------------------------------------|---------------|
+| ------ | -------------------------------------------- | ------------- |
 | RF-69  | Formulario de reporte completable en \< 60 s | Alta          |
 | RF-70  | 7 tipos de incidente predefinidos            | Alta          |
 | RF-71  | Geolocalización GPS + pin ajustable          | Alta          |
@@ -321,7 +313,7 @@ diferenciadores patrimoniales del proyecto.
 **Módulo 9 — Agenda cultural (7 RF)**
 
 | **ID** | **Nombre**                                                                                       | **Prioridad** |
-|--------|--------------------------------------------------------------------------------------------------|---------------|
+| ------ | ------------------------------------------------------------------------------------------------ | ------------- |
 | RF-79  | Calendario interactivo mensual                                                                   | Alta          |
 | RF-80  | Ficha completa de evento                                                                         | Alta          |
 | RF-84  | «Próximos eventos» en Home con countdown                                                         | Alta          |
@@ -333,7 +325,7 @@ diferenciadores patrimoniales del proyecto.
 **Módulo 10 — Identidad visual (6 RF)**
 
 | **ID** | **Nombre**                                         | **Prioridad** |
-|--------|----------------------------------------------------|---------------|
+| ------ | -------------------------------------------------- | ------------- |
 | RF-89  | Design tokens centralizados (cero hex hardcodeado) | Alta          |
 | RF-90  | Paleta Ayacucho (5 colores oficiales)              | Alta          |
 | RF-91  | Tipografía dual Inter + Playfair Display           | Alta          |
@@ -344,7 +336,7 @@ diferenciadores patrimoniales del proyecto.
 **Módulo 13 — Directorio básico de negocios (4 RF)**
 
 | **ID** | **Nombre**                                       | **Prioridad** |
-|--------|--------------------------------------------------|---------------|
+| ------ | ------------------------------------------------ | ------------- |
 | RF-104 | Registro de negocio (pendiente hasta aprobación) | Alta          |
 | RF-105 | Listado público de negocios aprobados            | Alta          |
 | RF-107 | Panel propio del negocio (perfil básico)         | Media         |
@@ -353,12 +345,10 @@ diferenciadores patrimoniales del proyecto.
 **Extra — Accesibilidad mínima (1 RF)**
 
 | **ID** | **Nombre**                         | **Prioridad** |
-|--------|------------------------------------|---------------|
+| ------ | ---------------------------------- | ------------- |
 | RF-100 | CSS lógico para soporte RTL futuro | Media         |
 
-**RF retirado respecto a la versión PWA** Se elimina el antiguo requisito de instalación PWA / manifiesto. El modo offline (que dependía del service worker) desaparece del alcance. La galería, favoritos y demás funcionalidades siguen disponibles, pero requieren conexión, como cualquier web tradicional.  
----
-
+## **RF retirado respecto a la versión PWA** Se elimina el antiguo requisito de instalación PWA / manifiesto. El modo offline (que dependía del service worker) desaparece del alcance. La galería, favoritos y demás funcionalidades siguen disponibles, pero requieren conexión, como cualquier web tradicional.
 
 **4.2 Gestión de alcance por prioridad (MoSCoW)**
 
@@ -367,12 +357,11 @@ explícitamente. Un recorte ejecutado con este criterio documentado es
 una decisión de gestión, no un incumplimiento. Al no haber sprints, la
 revisión de prioridad se hace de forma continua contra el avance real.
 
-**Categoría** | **Contenido** | **Regla**  
----|---|---  
-MUST (núcleo intocable) | Módulos 1, 2 (sin RF-12), 3, 5 (sin RF-39/39b), 6 (CRUD + moderación), 7 (es/en), 8 completo (diferenciador), 10 (tokens + dark mode), RF-08, RF-09b, RF-09c | Nunca se recorta  
-SHOULD (alto valor) | Módulo 4 (clima), Módulo 9 (agenda + RF-84b), Módulo 13 (negocios), RF-11, RF-52, RF-09d, RF-19b, RF-11b | Se recorta solo en riesgo crítico  
-COULD (válvulas de escape) | RF-29, RF-39 + RF-39b, RF-52b, RF-64 (fr/de), RF-88, RF-12, RF-95, RF-53 (dejar como seed) | Primeros candidatos a recorte ante atraso
-
+| **Categoría**              | **Contenido**                                                                                                                                                | **Regla**                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| MUST (núcleo intocable)    | Módulos 1, 2 (sin RF-12), 3, 5 (sin RF-39/39b), 6 (CRUD + moderación), 7 (es/en), 8 completo (diferenciador), 10 (tokens + dark mode), RF-08, RF-09b, RF-09c | Nunca se recorta                          |
+| SHOULD (alto valor)        | Módulo 4 (clima), Módulo 9 (agenda + RF-84b), Módulo 13 (negocios), RF-11, RF-52, RF-09d, RF-19b, RF-11b                                                     | Se recorta solo en riesgo crítico         |
+| COULD (válvulas de escape) | RF-29, RF-39 + RF-39b, RF-52b, RF-64 (fr/de), RF-88, RF-12, RF-95, RF-53 (dejar como seed)                                                                   | Primeros candidatos a recorte ante atraso |
 
 **4.3 Alcance excluido (documentado)**
 
@@ -406,7 +395,7 @@ Frente a un jurado que exija coherencia estricta con el título
 ordena así:
 
 | **Relación con el título**             | **Módulos**                                                                                                                        |
-|----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Núcleo patrimonial directo             | M1 Descubrimiento, M2 Detalle de lugar patrimonial, M3 Mapa, M7 i18n, M8 Preservación ciudadana, M9 Agenda cultural, M10 Identidad |
 | Capa de contextualización de la visita | M4 Clima, RF-08 recomendaciones, RF-09b/c/d datos prácticos                                                                        |
 | Capa de comunidad y difusión           | M5 Usuarios/reseñas/fotos, RF-39b pasaporte                                                                                        |
@@ -417,7 +406,7 @@ ordena así:
 **Rendimiento (6 RNF)**
 
 | **ID** | **Descripción y métrica**                          |
-|--------|----------------------------------------------------|
+| ------ | -------------------------------------------------- |
 | RNF-01 | First Contentful Paint \< 3 s en 4G (Lighthouse)   |
 | RNF-02 | Tiempo de respuesta API: P95 \< 500 ms (JMeter)    |
 | RNF-03 | Imágenes WebP \< 200 KB, LCP \< 2.5 s              |
@@ -428,29 +417,29 @@ ordena así:
 **Disponibilidad y confiabilidad (2 RNF)**
 
 | **ID** | **Descripción y métrica**                                                           |
-|--------|-------------------------------------------------------------------------------------|
+| ------ | ----------------------------------------------------------------------------------- |
 | RNF-07 | Uptime mensual ≥ 99% (UptimeRobot), sujeto a condiciones del hosting gratuito (7.6) |
 | RNF-09 | Backups diarios con retención 30 días (Supabase)                                    |
 
-*Retirado: el antiguo RNF de modo offline vía Service Worker ya no
-aplica (web tradicional).*
+_Retirado: el antiguo RNF de modo offline vía Service Worker ya no
+aplica (web tradicional)._
 
 **Seguridad (7 RNF)**
 
-| **ID** | **Descripción y métrica**                                                                         |
-|--------|---------------------------------------------------------------------------------------------------|
-| RNF-11 | HTTPS obligatorio con TLS válido, sin contenido mixto                                             |
-| RNF-12 | Contraseñas con BCrypt cost 12, nunca en texto plano                                              |
-| RNF-13 | Protección SQL injection vía JPA parametrizado                                                    |
-| RNF-14 | Rate limiting 100 req/min por IP real (X-Forwarded-For tras proxy confiable; HTTP 429 al superar) |
-| RNF-15 | Validación MIME real y tamaño \< 5 MB en fotos                                                    |
-| RNF-16 | JWT + validación de rol en cada endpoint protegido                                                |
-| RNF-17 | Secrets en .env, nunca en historial de Git                                                        |
+| **ID** | **Descripción y métrica**                                                                                                                                                                                                                                                                                   |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RNF-11 | HTTPS obligatorio con TLS válido, sin contenido mixto                                                                                                                                                                                                                                                       |
+| RNF-12 | Contraseñas con BCrypt cost 12, nunca en texto plano                                                                                                                                                                                                                                                        |
+| RNF-13 | Protección SQL injection vía JPA parametrizado                                                                                                                                                                                                                                                              |
+| RNF-14 | Rate limiting 100 req/min por IP real (X-Forwarded-For validado solo desde proxy confiable; HTTP 429 al superar). Comportamiento fail-open: si Redis no está disponible, el límite se omite en vez de bloquear el acceso, priorizando la disponibilidad del servicio sobre esta capa de defensa secundaria. |
+| RNF-15 | Validación MIME real y tamaño \< 5 MB en fotos                                                                                                                                                                                                                                                              |
+| RNF-16 | JWT + validación de rol en cada endpoint protegido                                                                                                                                                                                                                                                          |
+| RNF-17 | Secrets en .env, nunca en historial de Git                                                                                                                                                                                                                                                                  |
 
 **Usabilidad y accesibilidad (8 RNF)**
 
 | **ID** | **Descripción y métrica**                                             |
-|--------|-----------------------------------------------------------------------|
+| ------ | --------------------------------------------------------------------- |
 | RNF-19 | Tap targets ≥ 44×44 px (guías Apple/Google)                           |
 | RNF-20 | Responsive 320 px (iPhone SE) a 1920 px (full HD)                     |
 | RNF-21 | WCAG 2.1 AA: contraste 4.5:1, navegación por teclado, Lighthouse ≥ 90 |
@@ -463,7 +452,7 @@ aplica (web tradicional).*
 **Compatibilidad, escalabilidad y mantenibilidad (7 RNF)**
 
 | **ID** | **Descripción y métrica**                                                                         |
-|--------|---------------------------------------------------------------------------------------------------|
+| ------ | ------------------------------------------------------------------------------------------------- |
 | RNF-27 | Últimas 2 versiones de Chrome, Firefox, Safari iOS y Edge                                         |
 | RNF-28 | API versionada bajo /api/v1/                                                                      |
 | RNF-30 | Índices JPA + GIST PostGIS, EXPLAIN sin Seq Scan en consultas principales                         |
@@ -482,14 +471,14 @@ forma independiente.
 **5.1 Vista general**
 
 | **Capa**           | **Componente principal**           | **Tecnologías**                          |
-|--------------------|------------------------------------|------------------------------------------|
+| ------------------ | ---------------------------------- | ---------------------------------------- |
 | Cliente            | Navegador (móvil/escritorio) + CDN | Web tradicional, Vercel Edge             |
 | Presentación       | Aplicación Next.js                 | React Server Components, App Router, ISR |
 | Aplicación         | API Spring Boot                    | REST /api/v1, Spring Security, JPA       |
 | Datos              | PostgreSQL, Redis, Cloudinary      | PostGIS, caché, CDN de medios            |
 | Servicios externos | OpenWeatherMap, MapTiler, SMTP     | APIs de terceros con circuit breaker     |
 
-*Nota: la capa Cliente ya no incluye Service Worker (se retiró la PWA).*
+_Nota: la capa Cliente ya no incluye Service Worker (se retiró la PWA)._
 
 **5.2 Arquitectura del backend Spring Boot**
 
@@ -502,18 +491,26 @@ coordenadas dentro de Ayacucho), Integration (Cloudinary,
 OpenWeatherMap, mail), Audit (@EntityListeners, RF-56) y Util.
 
 Organización por feature, no por capa: paquetes por dominio funcional
-bajo com.huamanga.tourism {common, lugar, horario, usuario, reporte,
-evento, resena, foto, ruta, negocio, insignia, auth, admin, clima,
-recomendacion}. Cada paquete contiene su Controller, Service,
-Repository, Mapper, dominio y dto.
+bajo com.huamanga.tourism {common, geografia, lugar, horario, usuario,
+favorito, checkin, moderacion, analitica, reporte, evento, resena, foto,
+ruta, negocio, insignia, auth, admin, clima, recomendacion}. Cada paquete
+contiene su Controller, Service, Repository, Mapper, dominio y dto. Los
+paquetes geografia (provincia/distrito), favorito, checkin, moderacion
+(reportes de contenido) y analitica se separan de los dominios afines para
+preservar la cohesión: p. ej. ReporteContenido no vive en `reporte` (que es
+el reporte ciudadano de incidentes, un dominio distinto) sino en
+`moderacion`.
 
 **5.3 Seguridad de sesión: patrón de tokens**
 
-- **Access token JWT (24 h):** vive únicamente en memoria (Zustand, sin
+- **Access token JWT (15 min):** vive únicamente en memoria (Zustand, sin
   persistir). Se envía por header Authorization. Al recargar, se
   recupera silenciosamente con el refresh token.
 
-- **Refresh token (7 d):** cookie httpOnly + Secure + SameSite=Lax,
+- **Refresh token (7 d):** cookie httpOnly + Secure + SameSite,
+  configurable por entorno: SameSite=Lax en desarrollo (mismo host) y
+  SameSite=None + cabecera anti-CSRF `X-Refresh-Request` en despliegue
+  cross-dominio (Vercel + Railway),
   inaccesible desde JavaScript (mitiga XSS). Hasheado en BD con rotación
   en cada renovación.
 
@@ -521,6 +518,12 @@ Repository, Mapper, dominio y dto.
   legible por Zustand sería vulnerable a XSS; si el access token se
   persistiera en localStorage, también. Cada token vive donde su riesgo
   es menor.
+- **Detección de reutilización de refresh tokens:** cada refresh token
+  usado se marca; si se presenta uno ya consumido, es señal inequívoca de
+  robo (dos actores con el mismo token) y el sistema revoca todas las
+  sesiones de ese usuario. El access token se acota a 15 minutos porque un
+  JWT no se puede revocar: minimiza la ventana de un token filtrado, y la
+  renovación silenciosa hace que el usuario no note la expiración.
 
 **5.4 Resiliencia y jobs distribuidos**
 
@@ -556,21 +559,21 @@ software, no del contenido.
 
 **5.6 Arquitectura del frontend Next.js**
 
-| **Capa**          | **Carpeta**           | **Función**                                                            |
-|-------------------|-----------------------|------------------------------------------------------------------------|
-| Rutas             | src/app/\[locale\]/   | App Router con prefijo de idioma                                       |
-| Componentes UI    | src/components/       | shadcn/ui + propios                                                    |
-| Lógica de cliente | src/lib/              | Clientes HTTP, validación Zod, utilidades                              |
-| Hooks custom      | src/hooks/            | useAuth, useGeolocation, useDebounce, useTheme, useProximidad (RF-19b) |
-| Estado global     | src/stores/           | Zustand: usuario, tema, favoritos, fechas de viaje (RF-84b)            |
-| Tipos             | src/types/            | TypeScript types compartidos                                           |
-| Estilos           | src/styles/tokens.css | Design tokens centralizados (RF-89, RF-90)                             |
-| Traducciones      | src/locales/          | es.json y en.json (RF-60, RF-66)                                       |
-| Middleware        | src/middleware.ts     | Autenticación de rutas + routing por locale                            |
+| **Capa**          | **Carpeta**                       | **Función**                                                                                          |
+| ----------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Rutas             | src/app/\[locale\]/               | App Router con prefijo de idioma                                                                     |
+| Componentes UI    | src/components/                   | shadcn/ui + propios                                                                                  |
+| Lógica de cliente | src/lib/                          | Clientes HTTP, validación Zod, utilidades                                                            |
+| Hooks custom      | src/hooks/                        | useAuth, useGeolocation, useDebounce, useTheme, useProximidad (RF-19b)                               |
+| Estado global     | src/stores/                       | Zustand: usuario, tema, favoritos, fechas de viaje (RF-84b)                                          |
+| Tipos             | src/types/                        | TypeScript types compartidos                                                                         |
+| Estilos           | src/styles/tokens.css             | Design tokens centralizados (RF-89, RF-90)                                                           |
+| Traducciones      | src/locales/                      | es.json y en.json (RF-60, RF-66)                                                                     |
+| Guarda de rutas   | src/proxy.ts + useSesionRequerida | Redirección UX por sesión (la seguridad real está en @PreAuthorize del backend) + routing por locale |
 
-*Nota: se retira la carpeta/configuración de PWA (manifest, sw). Ya no
+_Nota: se retira la carpeta/configuración de PWA (manifest, sw). Ya no
 hay caché de favoritos offline en Zustand; los favoritos se leen del
-backend.*
+backend._
 
 **6. Modelo de datos**
 
@@ -586,7 +589,7 @@ sin cambios estructurales.
 **6.1 Cumplimiento de Formas Normales**
 
 | **Forma** | **Estado** | **Justificación**                                                                                                                                                                                                                                                            |
-|-----------|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1FN       | Cumple     | Atributos de dominio atómicos; horarios en filas de HorarioLugar, no columnas por día; PK en todas las tablas. Los campos JSONB (criterio de insignia, detalles de auditoría) son valores de configuración/log opacos al modelo, no datos relacionales de dominio (ver 6.6). |
 | 2FN       | Cumple     | Sin dependencias parciales: en PKs compuestas todo atributo no-clave depende de la PK completa.                                                                                                                                                                              |
 | 3FN       | Cumple     | Sin dependencias transitivas; cero atributos derivados en tablas base (promedios y progreso se calculan).                                                                                                                                                                    |
@@ -600,9 +603,7 @@ hechos ES la fuente primaria, por lo que cumple 3FN. Defensa en 10.3.
 
 **6.2 Entidades por grupo (35)**
 
-**Desglose del conteo (35 entidades)** Las 35 entidades se componen de: 24 entidades de dominio propiamente dichas, 8 tablas de traducción (patrón i18n, una por cada entidad con contenido multilingüe) y 3 tablas pivote N:M puras (Favorito, LugarRuta, InsigniaUsuario). Este desglose es deliberado y defendible: cada tabla de traducción existe para que agregar un idioma sea un INSERT y no un ALTER TABLE, y cada pivote modela una relación muchos-a-muchos con integridad referencial nativa.  
----
-
+## **Desglose del conteo (35 entidades)** Las 35 entidades se componen de: 24 entidades de dominio propiamente dichas, 8 tablas de traducción (patrón i18n, una por cada entidad con contenido multilingüe) y 3 tablas pivote N:M puras (Favorito, LugarRuta, InsigniaUsuario). Este desglose es deliberado y defendible: cada tabla de traducción existe para que agregar un idioma sea un INSERT y no un ALTER TABLE, y cada pivote modela una relación muchos-a-muchos con integridad referencial nativa. Nota de implementación: en el código hay 36 clases anotadas con `@Entity` pero 35 tablas físicas, porque `EstadisticaLugar` mapea la vista materializada como entidad de solo lectura (no es una tabla adicional). El soft delete (columna deleted_at) se aplica a las 6 entidades con auditoría completa (Usuario, Lugar, Evento, RutaTematica, Negocio, Reporte); el resto modela su ciclo de vida con su campo `estado`.
 
 **Grupo 0 — Jerarquía geográfica (2)**
 
@@ -762,33 +763,32 @@ existe trigger ni columna de promedio en Lugar. Para dashboards en
 tiempo real, un endpoint separado calcula en vivo con caché Redis de 30
 segundos.
 
-**Definición (resumen)** SELECT l.id, COALESCE(r.calificacion_promedio,0), COALESCE(r.total_resenas,0), COALESCE(c.total_visitas,0), COALESCE(f.total_favoritos,0), NOW() FROM lugar l LEFT JOIN (subquery reseñas publicadas) r LEFT JOIN (subquery checkins) c LEFT JOIN (subquery favoritos) f WHERE l.deleted_at IS NULL; CREATE UNIQUE INDEX idx_estadistica_lugar_pk ON estadistica_lugar(lugar_id);  
----
-
+## **Definición (resumen)** SELECT l.id, COALESCE(r.calificacion_promedio,0), COALESCE(r.total_resenas,0), COALESCE(c.total_visitas,0), COALESCE(f.total_favoritos,0), NOW() FROM lugar l LEFT JOIN (subquery reseñas publicadas) r LEFT JOIN (subquery checkins) c LEFT JOIN (subquery favoritos) f WHERE l.deleted_at IS NULL; CREATE UNIQUE INDEX idx_estadistica_lugar_pk ON estadistica_lugar(lugar_id);
 
 **6.4 Índices críticos (cumple RNF-30)**
 
-| **Tabla**         | **Índice**                               | **Tipo**       | **Propósito**                            |
-|-------------------|------------------------------------------|----------------|------------------------------------------|
-| Lugar             | idx_lugar_categoria                      | BTREE          | Filtro por categoría (RF-04)             |
-| Lugar             | idx_lugar_distrito                       | BTREE          | Filtro por distrito/provincia            |
-| Lugar             | idx_lugar_ubicacion                      | GIST           | Búsqueda por distancia (RF-07, RF-09c)   |
-| Lugar             | idx_lugar_estado_partial                 | BTREE          | WHERE deleted_at IS NULL                 |
-| HorarioLugar      | idx_horario_lugar_dia                    | BTREE          | Cálculo «abierto ahora» (RF-09b)         |
-| Distrito          | idx_distrito_provincia                   | BTREE          | Listar distritos de una provincia        |
-| EstadisticaLugar  | idx_estadistica_lugar_pk                 | UNIQUE         | Obligatorio para REFRESH CONCURRENTLY    |
-| EstadisticaLugar  | idx_estadistica_calificacion / \_visitas | BTREE          | Rankings (RF-06)                         |
-| LugarTraduccion   | idx_lugartrad_fulltext                   | GIN            | Full-text search (RF-02)                 |
-| Resena            | idx_resena_lugar / idx_resena_unique     | BTREE/UNIQUE   | Listado y una reseña por usuario+lugar   |
-| Foto              | idx_foto_pendientes                      | BTREE parcial  | WHERE estado='PENDIENTE' (RF-49)         |
-| ReporteContenido  | idx_reporte_foto/\_resena_unique         | UNIQUE parcial | Un reporte por usuario por contenido     |
-| Reporte           | idx_reporte_ubicacion / \_estado         | GIST/BTREE     | Mapa de incidentes y moderación          |
-| Evento            | idx_evento_fecha                         | BTREE          | Calendario y «durante mi visita»         |
-| CheckIn           | idx_checkin_usuario_lugar                | BTREE          | Pasaporte y progreso de rutas (RF-39b)   |
-| InsigniaUsuario   | PK compuesta                             | UNIQUE         | Una insignia por usuario                 |
-| Visita\*Diario    | idx\_\*\_unique                          | UNIQUE         | Un registro por dimensión+fecha (RF-52b) |
-| RefreshToken      | idx_refresh_expira                       | BTREE          | Limpieza programada                      |
-| RegistroActividad | idx_actividad_created                    | BTREE          | Listado cronológico admin                |
+| **Tabla**         | **Índice**                               | **Tipo**         | **Propósito**                                                                                                                                                       |
+| ----------------- | ---------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lugar             | idx_lugar_categoria                      | BTREE            | Filtro por categoría (RF-04)                                                                                                                                        |
+| Lugar             | idx_lugar_distrito                       | BTREE            | Filtro por distrito/provincia                                                                                                                                       |
+| Lugar             | idx_lugar_ubicacion                      | GIST             | Búsqueda por distancia general                                                                                                                                      |
+| Lugar             | idx_lugar_ubicacion_geog                 | GIST (funcional) | Cercanía real en metros: índice sobre la expresión ubicacion::geography, que usan RF-07 y RF-09c (sin él, esas consultas caían en Seq Scan pese al índice anterior) |
+| Lugar             | idx_lugar_estado_partial                 | BTREE            | WHERE deleted_at IS NULL                                                                                                                                            |
+| HorarioLugar      | idx_horario_lugar_dia                    | BTREE            | Cálculo «abierto ahora» (RF-09b)                                                                                                                                    |
+| Distrito          | idx_distrito_provincia                   | BTREE            | Listar distritos de una provincia                                                                                                                                   |
+| EstadisticaLugar  | idx_estadistica_lugar_pk                 | UNIQUE           | Obligatorio para REFRESH CONCURRENTLY                                                                                                                               |
+| EstadisticaLugar  | idx_estadistica_calificacion / \_visitas | BTREE            | Rankings (RF-06)                                                                                                                                                    |
+| LugarTraduccion   | idx_lugartrad_fulltext                   | GIN              | Full-text search (RF-02)                                                                                                                                            |
+| Resena            | idx_resena_lugar / idx_resena_unique     | BTREE/UNIQUE     | Listado y una reseña por usuario+lugar                                                                                                                              |
+| Foto              | idx_foto_pendientes                      | BTREE parcial    | WHERE estado='PENDIENTE' (RF-49)                                                                                                                                    |
+| ReporteContenido  | idx_reporte_foto/\_resena_unique         | UNIQUE parcial   | Un reporte por usuario por contenido                                                                                                                                |
+| Reporte           | idx_reporte_ubicacion / \_estado         | GIST/BTREE       | Mapa de incidentes y moderación                                                                                                                                     |
+| Evento            | idx_evento_fecha                         | BTREE            | Calendario y «durante mi visita»                                                                                                                                    |
+| CheckIn           | idx_checkin_usuario_lugar                | BTREE            | Pasaporte y progreso de rutas (RF-39b)                                                                                                                              |
+| InsigniaUsuario   | PK compuesta                             | UNIQUE           | Una insignia por usuario                                                                                                                                            |
+| Visita\*Diario    | idx\_\*\_unique                          | UNIQUE           | Un registro por dimensión+fecha (RF-52b)                                                                                                                            |
+| RefreshToken      | idx_refresh_expira                       | BTREE            | Limpieza programada                                                                                                                                                 |
+| RegistroActividad | idx_actividad_created                    | BTREE            | Listado cronológico admin                                                                                                                                           |
 
 **6.5 Constraints CHECK y UNIQUE aplicados**
 
@@ -917,14 +917,14 @@ automáticamente) se mantiene como práctica, no como fase datada.
 
 **7.1 Topología de ambientes**
 
-| **Componente** | **Local (desarrollo)**           | **Producción (cloud)**            |
-|----------------|----------------------------------|-----------------------------------|
-| PostgreSQL     | Docker (5432)                    | Supabase (gestionado)             |
-| Redis          | Docker (6379)                    | Upstash (serverless)              |
-| Backend        | IDE (mvnw spring-boot:run)       | Railway (auto-deploy git push)    |
-| Frontend       | npm run dev (3000)               | Vercel (auto-deploy git push)     |
-| Cloudinary     | Mismo CDN                        | Mismo CDN (free tier)             |
-| Configuración  | application-dev.yml + .env.local | Variables en panel Railway/Vercel |
+| **Componente** | **Local (desarrollo)**            | **Producción (cloud)**            |
+| -------------- | --------------------------------- | --------------------------------- |
+| PostgreSQL     | Docker (5432)                     | Supabase (gestionado)             |
+| Redis          | Docker (6379)                     | Upstash (serverless)              |
+| Backend        | IDE (mvnw spring-boot:run)        | Railway (auto-deploy git push)    |
+| Frontend       | npm run dev (3000)                | Vercel (auto-deploy git push)     |
+| Cloudinary     | Mismo CDN                         | Mismo CDN (free tier)             |
+| Configuración  | application-dev.yml + .env (raíz) | Variables en panel Railway/Vercel |
 
 **7.2 Docker local + Supabase en producción**
 
@@ -1010,9 +1010,9 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 0 — Cimientos del proyecto**
 
-**Requiere:** *nada*
+**Requiere:** _nada_
 
-- Monorepo con apps/web (Next.js 15 + TS) y apps/api (Spring Boot 3 +
+- Monorepo con apps/web (Next.js 16 + TS) y apps/api (Spring Boot 4 +
   Java 21).
 
 - Docker Compose local (PostgreSQL 16 + PostGIS + Redis). Cuentas en los
@@ -1025,7 +1025,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 1 — Modelo de datos y migraciones**
 
-**Requiere:** *Bloque 0*
+**Requiere:** _Bloque 0_
 
 - 35 entidades JPA (incluye HorarioLugar, Insignia, InsigniaTraduccion,
   InsigniaUsuario) + vista materializada EstadisticaLugar con refresh
@@ -1046,7 +1046,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 2 — Autenticación y seguridad**
 
-**Requiere:** *Bloque 1*
+**Requiere:** _Bloque 1_
 
 - Endpoints /api/v1/auth: register, login, refresh, me, logout. Spring
   Security + @PreAuthorize.
@@ -1062,7 +1062,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 3 — i18n base + CRUD de lugares (backend)**
 
-**Requiere:** *Bloque 2*
+**Requiere:** _Bloque 2_
 
 - next-intl con rutas \[locale\]/ y detección es/en/fr/de con fallback.
   Switcher con persistencia (RF-63).
@@ -1079,7 +1079,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 4 — Listado, detalle y búsqueda (frontend)**
 
-**Requiere:** *Bloque 3*
+**Requiere:** _Bloque 3_
 
 - /lugares con paginación, skeletons, ordenamiento (RF-01, RF-96).
   LugarCard con badge abierto/cerrado (RF-09b) y «a X min caminando»
@@ -1094,9 +1094,18 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 - Páginas servidas con ISR + revalidación bajo demanda. TanStack Query
   con caché 5 min.
 
+- Backend ampliado dentro de este bloque (los endpoints que estos RF
+  necesitaban y que el Bloque 3 no expuso): consulta `explorar` con
+  búsqueda full-text (to_tsvector español), filtros combinables, tres
+  órdenes y estadísticas de ranking en el resumen; endpoint GET
+  /categorias para los chips. El badge abierto/cerrado se calcula en el
+  navegador con zona horaria fija America/Lima, para que conviva con el
+  caché ISR (una página cacheada no puede llevar un estado que dependa de
+  la hora). El tiempo a pie usa 4 km/h ajustado por la altitud de Huamanga.
+
 **Bloque 5 — Mapa, clima, recomendaciones y proximidad**
 
-**Requiere:** *Bloque 4*
+**Requiere:** _Bloque 4_
 
 - MapLibre + tiles MapTiler con vista 3D inclinada (RF-17): edificios
   extruidos con fill-extrusion nativo, toggle 2D/3D animado. Sin
@@ -1115,7 +1124,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 6 — Reseñas, calificaciones y fotos**
 
-**Requiere:** *Bloque 4*
+**Requiere:** _Bloque 4_
 
 - CRUD de reseñas con UNIQUE (usuario_id, lugar_id) y CHECK 1-5 (RF-37).
 
@@ -1131,7 +1140,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 7 — Favoritos, check-in, pasaporte y reportes de contenido**
 
-**Requiere:** *Bloque 6*
+**Requiere:** _Bloque 6_
 
 - Favoritos con animación (RF-35, RF-95) y /perfil/favoritos. Check-in
   GPS a \< 100 m (RF-39). (Sin caché offline: los favoritos se leen del
@@ -1147,7 +1156,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 8 — Preservación ciudadana (diferenciador)**
 
-**Requiere:** *Bloque 5*
+**Requiere:** _Bloque 5_
 
 - Seed de 7 tipos de incidente con traducciones (RF-70). Endpoint
   /api/v1/reportes con hasta 5 fotos.
@@ -1164,7 +1173,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 9 — Agenda cultural**
 
-**Requiere:** *Bloque 5*
+**Requiere:** _Bloque 5_
 
 - CRUD de eventos con clonado anual (RF-86). Calendario mensual (RF-79),
   ficha con clima (RF-80, RF-88).
@@ -1176,7 +1185,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 10 — Panel de administración completo**
 
-**Requiere:** *Bloques 6, 7, 8, 9*
+**Requiere:** _Bloques 6, 7, 8, 9_
 
 - Dashboard Chart.js (RF-52): totales, gráficos de visitas, categorías,
   registros.
@@ -1189,7 +1198,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 11 — Directorio de negocios, slider geolocalizado y compartir**
 
-**Requiere:** *Bloques 5, 7*
+**Requiere:** _Bloques 5, 7_
 
 - Registro de negocio (RF-104), aprobación admin, listado público
   (RF-105), panel propio (RF-107), WhatsApp con mensaje predefinido
@@ -1203,7 +1212,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 12 — Identidad visual final y cierre de alcance**
 
-**Requiere:** *todos los anteriores*
+**Requiere:** _todos los anteriores_
 
 - Dark mode completo (RF-94), 0 hex hardcodeados, tipografía dual
   (RF-91), microinteracciones (RF-95), skeletons con CLS \< 0.1 (RF-96).
@@ -1214,7 +1223,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 13 — Pulido: performance, SEO, accesibilidad y testing**
 
-**Requiere:** *Bloque 12*
+**Requiere:** _Bloque 12_
 
 - Lighthouse ≥ 90 en 5 páginas críticas. WebP + lazy loading + srcset
   (RNF-03). sitemap.xml dinámico, robots.txt, JSON-LD
@@ -1230,7 +1239,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
 
 **Bloque 14 — Documentación, datos reales y sustentación**
 
-**Requiere:** *Bloque 13*
+**Requiere:** _Bloque 13_
 
 - README profesional; /docs con arquitectura, decisiones, modelo, API
   reference.
@@ -1242,9 +1251,7 @@ bloque hasta que sus prerrequisitos estén terminados y demostrables.
   paper IEEE; guion de defensa (sección 10); ensayos cronometrados;
   backup y entornos congelados.
 
-**Regla de oro sin sprints** No se avanza a un bloque cuyo prerrequisito no esté terminado y demostrable. Cada bloque cerrado debe dejar algo mostrable (una pantalla, un endpoint en Swagger, una migración que corre). Si un bloque se atrasa, se recorta primero un elemento COULD (4.2), se documenta la decisión, y se continúa. No hay «sprints internos» sin valor visible.  
----
-
+## **Regla de oro sin sprints** No se avanza a un bloque cuyo prerrequisito no esté terminado y demostrable. Cada bloque cerrado debe dejar algo mostrable (una pantalla, un endpoint en Swagger, una migración que corre). Si un bloque se atrasa, se recorta primero un elemento COULD (4.2), se documenta la decisión, y se continúa. No hay «sprints internos» sin valor visible.
 
 **9. Convenciones y reglas de oro**
 
@@ -1466,51 +1473,53 @@ que el Estado hoy no tiene.
 
 5.  git clone del repositorio.
 
-6.  Crear .env.local en apps/web y apps/api desde .env.example.
+6.  Crear un único .env en la raíz del proyecto desde .env.example (ambas apps leen de él).
 
 7.  docker compose up -d.
 
 8.  pnpm install.
 
-9.  pnpm db:migrate.
+9.  pnpm db:seed. (Las migraciones Flyway corren solas al arrancar el backend; `pnpm db:migrate` es opcional.)
 
-10. pnpm db:seed.
+10. pnpm dev.
 
-11. pnpm dev.
-
-12. http://localhost:3000 (frontend) y
+11. http://localhost:3000 (frontend) y
     http://localhost:8080/api/v1/swagger-ui (API).
 
 **11.2 Variables de entorno**
 
-**Backend (apps/api/.env.local)**
+Un único archivo `.env` en la raíz del proyecto (privado, en `.gitignore`,
+nunca subido a Git — RNF-17) del que leen ambas apps; una plantilla pública
+`.env.example` en la raíz documenta las variables sin valores reales. En
+producción, las variables del entorno (paneles de Vercel/Railway) tienen
+prioridad sobre el archivo.
 
-SPRING_PROFILES_ACTIVE=dev;
+**Backend:** SPRING_PROFILES_ACTIVE=dev;
 DATABASE_URL=jdbc:postgresql://localhost:5432/huamanga; DATABASE_USER;
 DATABASE_PASSWORD; REDIS_URL=redis://localhost:6379; JWT_SECRET (openssl
-rand -base64 32); JWT_EXPIRATION=86400000;
-JWT_REFRESH_EXPIRATION=604800000; COOKIE_SECURE=true; CLOUDINARY_URL;
-OPENWEATHER_API_KEY; MAIL_HOST/PORT/USERNAME/PASSWORD;
+rand -base64 32); JWT_ACCESS_EXPIRATION=900000 (15 min);
+JWT_REFRESH_EXPIRATION=604800000 (7 d); COOKIE_SECURE; COOKIE_SAMESITE
+(Lax en dev, None en despliegue cross-dominio); ADMIN_PASSWORD_INICIAL
+(contraseña del admin del seed, solo perfil dev — nunca hardcodeada en Git);
+CLOUDINARY_URL; OPENWEATHER_API_KEY; MAIL_HOST/PORT/USERNAME/PASSWORD;
 CORS_ALLOWED_ORIGINS; REVALIDATE_WEBHOOK_URL y REVALIDATE_SECRET
 (revalidación ISR, 5.5).
 
-**Frontend (apps/web/.env.local)**
-
-NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1;
+**Frontend:** NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1;
 NEXT_PUBLIC_MAPTILER_KEY; NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 NEXT_PUBLIC_APP_NAME=Turismo Huamanga; NEXT_PUBLIC_DEFAULT_LOCALE=es;
 REVALIDATE_SECRET (validación del webhook entrante).
 
 **11.3 Comandos clave**
 
-| **Comando**                              | **Función**                                        |
-|------------------------------------------|----------------------------------------------------|
-| docker compose up -d / down              | Levanta o detiene PostgreSQL + Redis locales       |
-| pnpm dev                                 | Frontend (3000) y backend (8080) en paralelo       |
-| pnpm --filter web dev / --filter api dev | Solo frontend / solo backend (invoca ./mvnw)       |
-| pnpm db:migrate / db:seed / db:studio    | Migraciones Flyway / datos de prueba / cliente SQL |
-| pnpm test / test:coverage / lint / build | Tests, cobertura, linter, build de producción      |
-| git push origin main                     | Despliegue automático a producción                 |
+| **Comando**                              | **Función**                                                                                             |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| docker compose up -d / down              | Levanta o detiene PostgreSQL + Redis locales                                                            |
+| pnpm dev                                 | Frontend (3000) y backend (8080) en paralelo                                                            |
+| pnpm --filter web dev / --filter api dev | Solo frontend / solo backend (invoca ./mvnw)                                                            |
+| pnpm db:seed / db:studio                 | Datos de prueba / cliente SQL (las migraciones Flyway corren solas al arrancar; db:migrate es opcional) |
+| pnpm test / test:coverage / lint / build | Tests, cobertura, linter, build de producción                                                           |
+| git push origin main                     | Despliegue automático a producción                                                                      |
 
 **11.4 Documentos de referencia**
 
@@ -1518,12 +1527,12 @@ ERS del proyecto (visión completa de RF y RNF). Diagramas de
 arquitectura y ERD. Estructura del proyecto. Este plan de desarrollo
 (versión 9.0).
 
-**12. Registro de cambios de la versión 9.1**
+**12. Registro de cambios**
 
 **12.1 Cambios de plataforma y estructura (respecto a la v8.0 con PWA)**
 
 | **\#** | **Cambio**                                                                                                                                                               |
-|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1      | De PWA a aplicación web tradicional: se elimina next-pwa, service worker, manifiesto de instalación y modo offline. Se conserva el diseño responsivo mobile-first (CSS). |
 | 2      | Se retira el RNF de modo offline (antiguo RNF-08, dependiente del Service Worker). RNF-08 solo aparece ahora como «retirado».                                            |
 | 3      | Se eliminan los 15 sprints y las fases datadas. Se reemplazan por un orden lógico de construcción por dependencias (sección 8).                                          |
@@ -1538,14 +1547,12 @@ todo). La revisión 9.1 recontó cada elemento uno por uno y unificó los
 números en todo el documento:
 
 | **Elemento**              | **Cifra previa (incorrecta)** | **Cifra corregida y verificada**                                                      |
-|---------------------------|-------------------------------|---------------------------------------------------------------------------------------|
+| ------------------------- | ----------------------------- | ------------------------------------------------------------------------------------- |
 | Requisitos Funcionales    | 74 / 75 (inconsistente)       | 76 RF (68 base + 8 de experiencia turística), verificado contra las tablas por módulo |
 | Entidades de datos        | 31                            | 35 entidades (24 de dominio + 8 de traducción i18n + 3 pivote N:M), sin duplicados    |
 | Requisitos No Funcionales | 31 (incluía el offline)       | 30 RNF vigentes (RNF-08 retirado, solo figura en este changelog)                      |
 
-**Recomendación de coherencia documental** Estas cifras finales (76 RF · 35 entidades · 30 RNF) deben ser idénticas en el ERS, en el diagrama entidad-relación (ERD) y en las diapositivas de sustentación. La incoherencia numérica entre documentos es de lo primero que detecta un jurado; unificarla es la corrección más barata y de mayor impacto.  
----
-
+## **Recomendación de coherencia documental** Estas cifras finales (76 RF · 35 entidades · 30 RNF) deben ser idénticas en el ERS, en el diagrama entidad-relación (ERD) y en las diapositivas de sustentación. La incoherencia numérica entre documentos es de lo primero que detecta un jurado; unificarla es la corrección más barata y de mayor impacto.
 
 **12.3 Refinamientos de esta versión**
 
@@ -1583,8 +1590,83 @@ números en todo el documento:
 - Patrón JWT (access en memoria + refresh en cookie httpOnly), ShedLock,
   Resilience4j, UUID v7 en backend, gestión de contenido admin + ISR.
 
-*Versión 9.1 — 76 RF · 35 entidades · 30 RNF · web tradicional ·
-patrimonio como núcleo · sin sprints*
+**12.5 Refinamientos de implementación (versión 9.2)**
 
-*Documento guía del proyecto de fin de carrera. Sujeto a revisiones
-conforme avanza la construcción.*
+Esta versión incorpora los ajustes que emergieron al construir el sistema
+de verdad (bloques 0 a 4). No son cambios de diseño improvisados: son
+refinamientos que solo se revelan al implementar, y cada uno se detectó,
+razonó y verificó durante la construcción (registrados en PROGRESO.md). El
+plan v9.1 fue la guía; la implementación reveló estos ajustes. El texto de
+las secciones afectadas ya fue actualizado para reflejar lo realmente
+construido; aquí se listan para trazabilidad.
+
+_Plataforma y versiones:_
+
+- Stack actualizado a Spring Boot 4.x y Next.js 16 (sección 2), decisión
+  tomada al inicio por la orientación del proyecto a producto real
+  mantenible, aprovechando que migrar con el proyecto casi vacío es barato.
+- Un único archivo .env en la raíz en lugar de .env.local por app (anexo
+  11.2); ambas apps leen de él mediante capacidades nativas (Docker
+  Compose, spring.config.import, process.loadEnvFile), sin librerías extra.
+- Las migraciones Flyway corren solas al arrancar el backend; pnpm
+  db:migrate queda como opcional (anexo 11.1 y 11.3).
+
+_Arquitectura:_
+
+- Cinco paquetes por feature añadidos: geografia, favorito, checkin,
+  moderacion y analitica (sección 5.2), para preservar la cohesión del
+  dominio (p. ej. ReporteContenido en moderacion, no en reporte).
+- La guarda de rutas del frontend es proxy.ts + useSesionRequerida en
+  lugar de middleware.ts (sección 5.6); es protección de UX, mientras que
+  la seguridad real vive en los @PreAuthorize del backend. Nota: en
+  despliegue cross-dominio (Vercel + Railway) la protección efectiva la dan
+  useSesionRequerida y el backend, no el proxy.
+- El badge «abierto/cerrado ahora» se calcula en el navegador con zona
+  fija America/Lima, para convivir con el caché ISR (sección 5.5).
+
+_Seguridad:_
+
+- Access token acotado a 15 minutos en vez de 24 h (RF-32, sección 5.3),
+  porque un JWT no se puede revocar: minimiza la ventana de un token
+  filtrado, con renovación silenciosa transparente al usuario.
+- Cookie del refresh configurable por entorno: SameSite=Lax en desarrollo,
+  SameSite=None + cabecera anti-CSRF X-Refresh-Request en despliegue
+  cross-dominio (sección 5.3).
+- Detección de reutilización de refresh tokens (sección 5.3): un token ya
+  consumido presentado de nuevo revoca todas las sesiones del usuario.
+- Contraseña del admin del seed por variable de entorno
+  (ADMIN_PASSWORD_INICIAL), nunca un hash en el historial de Git (anexo).
+- Rate limiting fail-open si Redis cae (RNF-14): prioriza la
+  disponibilidad sobre esta capa de defensa secundaria.
+
+_Modelo de datos:_
+
+- Aclaración: 36 clases @Entity pero 35 tablas físicas (EstadisticaLugar
+  mapea la vista materializada como entidad de solo lectura); soft delete
+  aplicado a las 6 entidades con auditoría completa (sección 6.2).
+- Índice funcional idx_lugar_ubicacion_geog añadido (sección 6.4): sin él,
+  las búsquedas por cercanía en metros (RF-07, RF-09c) caían en Seq Scan
+  pese al índice GIST general. Detectado mediante pruebas de carga con
+  volumen sintético.
+
+_Funcionalidad:_
+
+- Persistencia de idioma en cookie en vez de localStorage (RF-63), porque
+  localStorage no existe en el servidor y la app usa SSR con rutas por
+  idioma.
+- El Bloque 4 incluyó ampliación de backend (búsqueda full-text, rankings,
+  filtros combinados, endpoint de categorías) que el reparto original
+  dejaba entre bloques (sección 8).
+- Velocidad a pie de 4 km/h ajustada por la altitud de Huamanga (2 760
+  msnm) para el cálculo de tiempo de caminata (RF-09c).
+
+_Ajustes de librerías:_ MapStruct 1.6.3 estable (no beta), hibernate-spatial
+7.4.1 alineado con Boot 4, Jackson 3, spring-boot-starter-webmvc,
+generación de UUID v7 en backend, y ajuste de scroll de Next.js 16
+(data-scroll-behavior="smooth") para conservar la sensación de app nativa.
+
+_Versión 9.2 — 76 RF · 35 entidades · 30 RNF · web tradicional ·
+patrimonio como núcleo · sin sprints_
+
+_Documento guía del proyecto de fin de carrera. Sujeto a revisiones
+conforme avanza la construcción._

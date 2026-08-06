@@ -5,8 +5,8 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 4 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 5 — Mapa, clima, recomendaciones y proximidad.
+- **Bloque en curso:** ninguno (Bloque 5 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 6 — Reseñas, calificaciones y fotos.
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
@@ -19,7 +19,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 | 2 — Autenticación y seguridad | ✅ Completado | JWT HS256 de 15 min emitido con las clases nativas de Spring Security 7, refresh token de 7 días en cookie httpOnly hasheado con SHA-256, rotación con **detección de reutilización** que revoca todas las sesiones ante un robo (migración V15), BCrypt cost 12, `@PreAuthorize` por rol, errores 401/403 en ProblemDetail, rate limiting en Redis con lectura validada de X-Forwarded-For, y frontend con access token solo en memoria (Zustand sin persist), refresh silencioso y `proxy.ts` protegiendo /perfil y /admin. **37 tests de seguridad**, 87 en total | — |
 | 3 — i18n + CRUD lugares (backend) | ✅ Completado | CRUD completo de `/api/v1/lugares` (solo ADMIN escribe) con guardado transaccional de lugar + traducciones + grilla horaria, DTOs con MapStruct, tres validadores propios (bounds de Ayacucho, español obligatorio, horarios sin solapes), `abiertoAhora` calculado en servidor, mensajes de error traducidos por `Accept-Language`, webhook de revalidación ISR disparado **después del commit**, y next-intl con rutas `/es` y `/en`, detección de idioma, selector con persistencia en cookie y textos y mensajes de Zod traducidos. **111 tests** | — |
 | 4 — Listado/detalle/búsqueda (frontend) | ✅ Completado | Listado `/lugares` con búsqueda por texto completo (debounce 300 ms), filtros por categoría, filtros combinados, tres órdenes y paginación, **todo reflejado en la URL**; tarjetas con insignia abierto/cerrado calculada en el navegador y distancia a pie tras un gesto explícito; ficha `/lugares/[slug]` renderizada en el servidor con galería Embla (swipe + pinch-zoom), bloque «Antes de ir» y grilla horaria; ISR (listado 5 min, fichas 1 h) con prefetch a TanStack Query e hidratación sin parpadeo; en el backend, endpoint único `explorar` con `to_tsvector` en español, `/categorias`, y estadísticas en el resumen; seed ampliado a 15 lugares. **125 tests** + 23 comprobaciones en navegador real | — |
-| 5 — Mapa, clima, recomendaciones, proximidad | Pendiente | — | — |
+| 5 — Mapa, clima, recomendaciones, proximidad | ✅ Completado | Mapa MapLibre + MapTiler con vista 3D inclinada y edificios extruidos, clusters en GPU, límites de Ayacucho, GPS, toggles por categoría, 3 rutas temáticas como polilíneas y deep links a Google Maps/Waze/Apple Maps; clima de OpenWeatherMap con **caché de dos niveles** (fresco 30 min + último bueno 24 h) y circuit breaker programático, pronóstico agregado por días y consejos por altitud; `RecomendacionService` que cruza apertura, clima, hora y categoría devolviendo **el motivo de cada sugerencia**; planificador por fecha; `useProximidad` con histéresis 50/80 m y supresión de 2 h. **155 tests** + 22 comprobaciones en navegador real | — |
 | 6 — Reseñas, calificaciones, fotos | Pendiente | — | — |
 | 7 — Favoritos, check-in, pasaporte, reportes | Pendiente | — | — |
 | 8 — Preservación ciudadana | Pendiente | — | — |
@@ -198,6 +198,143 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 5 — Mapa, clima, recomendaciones y proximidad
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 155 tests, 0 fallos** (30 nuevos), confirmado en **dos pasadas seguidas** tras corregir un test intermitente |
+| Clima degradado | Con el proveedor caído sirve el último clima conocido **marcado como obsoleto y con su hora**; sin nada cacheado responde «no disponible» sin lanzar; tres visitas seguidas cuestan **una sola** llamada externa |
+| Reglas de recomendación | Deterministas con reloj y clima fijos: un lugar cerrado queda **descartado**, con lluvia el museo supera al mirador, con sol ocurre lo contrario, y un clima obsoleto **no puntúa** |
+| GeoJSON del mapa | `FeatureCollection` válido, coordenadas en orden `[longitud, latitud]`, sin borradores, con color y categoría por chincheta |
+| Rutas | Paradas en **orden de recorrido** (se insertan desordenadas a propósito), con coordenadas, excluyendo lugares no publicados |
+| `pnpm lint` / `type-check` / `build` | Sin errores; `/es/mapa` y `/en/mapa` pre-generadas con ISR de 5 min |
+| **Navegador real** | **22/22 comprobaciones**, dos pasadas seguidas: el mapa carga el estilo de MapTiler y dibuja (evento `load`, con tiles `.pbf` reales), la clave de MapTiler viaja en la URL **y la de OpenWeatherMap no sale al navegador**, 15 lugares, toggle 2D/3D, 8 categorías, 3 rutas con sus paradas, clima con temperatura y consejos traducidos, planificador con 6 sugerencias motivadas, proximidad que **exige gesto** y avisa al llegar a la catedral, versión inglesa completa y **consola limpia** |
+
+### Cuatro fallos reales que la verificación destapó
+
+**1. El mapa no dibujaba nada, y el `<canvas>` lo disimulaba.** MapLibre GL 6.1.0 dejó de
+empaquetar su *web worker* dentro del bundle y lo carga como módulo ESM aparte; Turbopack
+no resuelve esa URL y el navegador terminaba pidiendo **la propia página**, recibía HTML y
+abortaba con «non-JavaScript MIME type». Sin worker no hay descarga ni decodificación de
+tiles: el lienzo existía, tenía tamaño correcto y WebGL funcionaba, pero el mapa estaba
+muerto. Se fijó **maplibre-gl 5.24.0**, que incorpora el worker como blob y funciona con
+cualquier empaquetador; es la línea que sigue recibiendo versiones. *(Corrección a anotar:
+el stack dice «MapLibre GL JS» sin versión; conviene fijar la 5.x hasta que Turbopack
+resuelva el worker de la 6.)*
+
+**2. La capa de edificios 3D apuntaba a una fuente inexistente.** Se declaró
+`source="openmaptiles"`, pero el estilo *streets-v2* de MapTiler nombra su fuente
+`maptiler_planet`. Además **ya trae una capa `Building 3D`** de tipo `fill-extrusion` con
+las alturas reales. Se eliminó la capa propia y el toggle ahora cambia la visibilidad de la
+del estilo, con `try/catch` por si algún día se cambia de estilo. El zoom inicial pasó de
+14 a 15 porque esa capa tiene `minzoom: 15`; con 14 la vista se inclinaba sin edificios y
+el modo 3D parecía roto. **Los edificios extruidos de Huamanga sí existen en los datos de
+MapTiler**, así que el RF-17 se cumple entero.
+
+**3. El aviso de proximidad no volvía a aparecer nunca.** La marca de «ya avisado» se
+escribía al **mostrar** el aviso. Si el componente se volvía a montar —StrictMode lo hace
+en desarrollo, y en producción basta con entrar en una ficha y volver— el estado en memoria
+se perdía pero la marca sobrevivía, y el banner ya no reaparecía aunque se siguiera delante
+del monumento: quedaba un «te avisaremos al llegar» eterno estando justo en el sitio. Ahora
+la marca se escribe **al descartar el aviso o al alejarse**, nunca al mostrarlo.
+
+**4. Un test de seguridad del Bloque 2 pasaba por suerte.** `tokenManipuladoDevuelve401`
+alteraba el **último** carácter de la firma. La firma HMAC-256 son 32 bytes que en Base64URL
+ocupan 43 caracteres: 43 × 6 = 258 bits para 256 significativos, de modo que el último
+carácter solo aporta 4 bits útiles y los dos finales se descartan al decodificar. Cambiar
+`A` por `B` ahí produce **exactamente los mismos bytes**, la firma sigue siendo válida y el
+endpoint responde 200. Fallaba una de cada tres ejecuciones según cómo terminara la firma
+generada. Ahora se altera el primer carácter, que sí aporta sus 6 bits. Cinco ejecuciones
+seguidas en verde.
+
+### Decisiones de diseño
+
+- **Caché de dos niveles para el clima, y no `@Cacheable`.** Una caché con expiración
+  protege de llamar de más al proveedor, pero **no protege de que el proveedor se caiga**:
+  a los 30 minutos la entrada desaparece y, si en ese momento OpenWeatherMap no responde,
+  no queda nada que servir. Por eso el mismo dato se guarda en `:fresco` (30 min, evita
+  llamadas) y en `:ultimo-bueno` (24 h, sobrevive a la caída). La anotación sabe guardar y
+  expirar, pero no sabe «si falla, dame lo último que tuvieras».
+- **El circuit breaker no es quien devuelve el respaldo** —de eso se encarga la caché—,
+  sino quien **deja de insistir**. Sin él, con el proveedor caído cada visitante esperaría
+  sus 3 segundos de timeout antes de recibir el dato cacheado.
+- **Resilience4j en su versión núcleo, no el starter de Spring Boot.** No existe módulo
+  para Spring Boot 4 y el de la línea 3 arrastra problemas conocidos aquí. El starter solo
+  aporta el azúcar de las anotaciones; el cortacircuitos vive en
+  `resilience4j-circuitbreaker`, que es Java puro y no puede romperse al cambiar de versión
+  del framework.
+- **Un clima obsoleto informa pero no decide.** Sirve para decir «hace 2 h llovía», pero no
+  puntúa en las recomendaciones: mandar a alguien a un museo por una lluvia que quizá
+  escampó hace rato es decidir con datos caducados.
+- **Las recomendaciones muestran su motivo.** Es lo que separa una sugerencia útil de una
+  caja negra: quien lee «está abierto y a cubierto de la lluvia» entiende la lógica y puede
+  discrepar. Los motivos viajan como **claves i18n**, nunca como frases armadas en el
+  servidor, que quedarían fijadas en el idioma de la primera petición que llenara la caché.
+- **Fuera de horario se explica en vez de desaparecer.** De noche no hay nada abierto y el
+  motor devuelve cero sugerencias, que es correcto; pero ocultar la sección dejaba un hueco
+  inexplicable justo cuando más gente planea el día siguiente.
+- **Los puntos van en una fuente GeoJSON, no como marcadores de React.** Es lo que permite
+  cumplir el RNF-04: 200 elementos del DOM sincronizados con la cámara hunden los
+  fotogramas, mientras que dentro de la fuente los dibuja la GPU.
+- **El mapa se carga con `ssr: false`** y la página sigue siendo Server Component. Debajo se
+  renderiza **la misma información en HTML**: un mapa WebGL es invisible para los buscadores
+  y para un lector de pantalla.
+- **Histéresis en la proximidad**: se entra a 50 m y no se sale hasta los 80. Con un único
+  umbral, el ruido normal del GPS haría aparecer y desaparecer el aviso sin parar en el
+  borde.
+
+### La clave de MapTiler: por qué es pública y por qué NO se hace proxy
+
+La clave de MapTiler **viaja al navegador con cada petición de tile**; no hay forma de
+ocultarla en un mapa de cliente. Su protección no es el secreto sino el **ámbito**: en el
+panel de MapTiler se restringe por *Allowed HTTP origins* para que solo funcione desde
+nuestro dominio. La verificación lo confirma: la clave aparece en las URLs de
+`api.maptiler.com`.
+
+Se evaluó reenviar los tiles a través del backend para que la clave no saliera del
+servidor. **Se descartó**, y conviene dejar escrito por qué:
+
+- **No protege realmente.** Cualquiera puede golpear el proxy y consumir la misma cuota;
+  solo se pierde la atribución de quién lo hizo.
+- **Rompe el RNF-04.** Cada sesión de mapa son cientos de tiles; pasarlos por Railway añade
+  latencia, consume ancho de banda y anula el CDN de MapTiler.
+- **No está contemplado en el plan gratuito.** Redistribuir tiles desde servidor propio
+  excede lo que permiten sus términos: es un riesgo de cuenta, no solo técnico.
+
+Tendría sentido únicamente con un plan que lo permita explícitamente, y en ese caso la
+variable pasaría a llamarse `MAPTILER_KEY` (sin `NEXT_PUBLIC_`). La de OpenWeatherMap es el
+caso contrario y así está implementada: **nunca sale del backend**, el navegador solo habla
+con nuestro API. La verificación comprueba que ninguna petición del navegador lleva `appid=`.
+
+### Correcciones a los documentos de tesis (las hace el usuario)
+
+- **RF-26, pronóstico de 7 días.** El plan gratuito de OpenWeatherMap no entrega pronóstico
+  diario: da **5 días en pasos de 3 horas**, que es lo que se agrega por día. El diario de 8
+  días exige One Call, de pago por llamada. Procede corregir el RF a «5 días» o dar de alta
+  One Call; el cambio sería una sola clase (`ClienteOpenWeather`).
+- **Endpoints nuevos no previstos en el plan:** `GET /lugares/mapa` (GeoJSON), `GET /rutas`
+  y `GET /rutas/{slug}`, `GET /clima`, `GET /clima/pronostico`, `GET /recomendaciones` y
+  `GET /recomendaciones/planificador`.
+- **CLAUDE.md, serializador de Redis.** Pide `GenericJackson2JsonRedisSerializer`, que es el
+  de Jackson 2. Spring Data Redis 4.1 incluye ambos, pero el proyecto va en **Jackson 3**
+  (`tools.jackson`) y la clase correcta es `GenericJacksonJsonRedisSerializer`, sin el «2».
+  Queda así implementado. *(Resuelve la nota abierta desde el Bloque 0.)*
+- **Versión de MapLibre**: fijar 5.x en el stack mientras la 6.x no cargue su worker bajo
+  Turbopack.
+
+### Límites conocidos de este bloque
+
+- **El planificador no tiene interfaz propia todavía.** El endpoint funciona y está probado
+  (6 sugerencias motivadas para mañana), pero la pantalla de planificación por fecha encaja
+  mejor junto a la agenda cultural del Bloque 9.
+- **La verificación en navegador corre con WebGL por software** (SwiftShader), que es mucho
+  más lento que una GPU real. El mapa carga y dibuja, pero MapLibre nunca llega al evento
+  `idle`; por eso la comprobación usa `load`. En un equipo con GPU esto no ocurre.
 
 ---
 

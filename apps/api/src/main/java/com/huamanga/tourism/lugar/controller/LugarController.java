@@ -2,6 +2,7 @@ package com.huamanga.tourism.lugar.controller;
 
 import com.huamanga.tourism.common.domain.Idioma;
 import com.huamanga.tourism.lugar.domain.OrdenLugares;
+import com.huamanga.tourism.lugar.dto.GeoJsonResponse;
 import com.huamanga.tourism.lugar.dto.LugarDetalleResponse;
 import com.huamanga.tourism.lugar.dto.LugarRequest;
 import com.huamanga.tourism.lugar.dto.LugarResumenResponse;
@@ -85,6 +86,18 @@ public class LugarController {
 
         var criterios = new LugarService.CriteriosBusqueda(q, categoriaId, calificacionMinima, orden);
         return lugarService.explorar(criterios, resolverIdioma(idioma), pagina);
+    }
+
+    @GetMapping("/mapa")
+    @Operation(summary = "Lugares publicados en GeoJSON",
+            description = """
+                    FeatureCollection listo para cargarse como fuente de
+                    MapLibre con clustering activado (RF-17, RF-18). Devuelve
+                    solo lo que necesita la chincheta; la ficha completa se pide
+                    al abrirla.
+                    """)
+    public GeoJsonResponse mapa(@RequestParam(required = false) Idioma idioma) {
+        return lugarService.paraMapa(resolverIdioma(idioma));
     }
 
     @GetMapping("/{slug}")
