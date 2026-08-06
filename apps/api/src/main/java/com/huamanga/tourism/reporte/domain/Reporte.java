@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -34,6 +35,9 @@ import java.util.Set;
  *
  * <p>{@code usuario} es nulo en los reportes anonimos, y ese es el caso
  * esperado: denunciar no deberia exigir identificarse.</p>
+ *
+ * <p><strong>El anonimato lo garantiza la propia entidad</strong>, no el
+ * service que la guarde: vease {@link #borrarRastroSiEsAnonimo()}.</p>
  */
 @Entity
 @Table(name = "reporte")
@@ -76,4 +80,40 @@ public class Reporte extends EntidadAuditable {
 
     @OneToMany(mappedBy = "reporte", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<FotoReporte> fotos = new LinkedHashSet<>();
+
+    /**
+     * Borra todo rastro de identidad cuando el reporte es anonimo (RF-72).
+     *
+     * <p><strong>Por que existe este metodo.</strong> Esta entidad hereda de
+     * {@code EntidadAuditable}, que lleva {@code @CreatedBy} sobre
+     * {@code created_by}, y el {@code AuditorAware} del proyecto rellena esa
+     * columna con el usuario del SecurityContext. El resultado era una fuga
+     * silenciosa: alguien <em>con sesion iniciada</em> que marcaba «anonimo»
+     * obtenia un reporte con {@code usuario_id = NULL} y {@code es_anonimo =
+     * true}... y su identificador escrito en {@code created_by}. El caso no es
+     * raro, es el mas probable: quien usa la aplicacion, tiene cuenta y quiere
+     * denunciar algo delicado sin que su nombre quede pegado.</p>
+     *
+     * <p><strong>Por que en la entidad y no en el service.</strong> Los
+     * callbacks declarados en la clase se ejecutan <em>despues</em> de los
+     * {@code EntityListener}, asi que este metodo anula justo lo que la
+     * auditoria acaba de escribir. Y sobre todo: la garantia deja de depender
+     * de que alguien se acuerde. Cualquier codigo que guarde un reporte
+     * anonimo —hoy o dentro de tres bloques— la cumple sin saberlo.</p>
+     *
+     * <p>Solo en {@code @PrePersist}, no en {@code @PreUpdate}: al moderar,
+     * {@code updated_by} identifica al <em>administrador</em> que tomo la
+     * decision, no al denunciante, y esa trazabilidad si interesa conservarla.</p>
+     */
+    @PrePersist
+    void borrarRastroSiEsAnonimo() {
+        if (esAnonimo) {
+            borrarAuditoria();
+            // Tambien se anulan aqui y no solo en el service: si manana alguien
+            // construye un Reporte desde otro sitio y olvida limpiarlos, la
+            // entidad lo corrige igualmente.
+            usuario = null;
+            nombreReportante = null;
+        }
+    }
 }

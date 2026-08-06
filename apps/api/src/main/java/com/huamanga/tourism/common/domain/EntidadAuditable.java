@@ -50,6 +50,24 @@ public abstract class EntidadAuditable extends EntidadBase {
         return deletedAt;
     }
 
+    /**
+     * Borra la huella de auditoria de esta fila.
+     *
+     * <p>Existe por una sola razon, y conviene que siga siendo asi: los
+     * <strong>reportes ciudadanos anonimos</strong> (RF-72). La auditoria
+     * rellena {@code created_by} desde el SecurityContext, de modo que alguien
+     * con sesion iniciada que pide anonimato acabaria identificado en esa
+     * columna. Vease {@code Reporte.borrarRastroSiEsAnonimo()}.</p>
+     *
+     * <p>Es {@code protected} a proposito: solo una subclase puede renunciar a
+     * su propia trazabilidad, y debe hacerlo de forma explicita. Ningun service
+     * puede borrar la auditoria de una entidad desde fuera.</p>
+     */
+    protected void borrarAuditoria() {
+        this.createdBy = null;
+        this.updatedBy = null;
+    }
+
     /** Marca la fila como eliminada sin borrarla. */
     public void eliminar(Instant momento) {
         this.deletedAt = momento;

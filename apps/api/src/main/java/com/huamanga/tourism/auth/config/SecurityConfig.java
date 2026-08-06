@@ -71,7 +71,12 @@ public class SecurityConfig {
             // Ojo: estos patrones solo abren el GET, porque la lista
             // RUTAS_PUBLICAS_GET se aplica unicamente a ese verbo.
             "/lugares/*/resenas",
-            "/lugares/*/fotos"
+            "/lugares/*/fotos",
+            // Bloque 8. El mapa de incidentes y el catalogo de tipos son
+            // publicos: el objetivo del modulo es que cualquiera vea el estado
+            // del patrimonio de su ciudad sin tener que registrarse.
+            "/reportes/tipos",
+            "/reportes/mapa"
     };
 
     private final PropiedadesSeguridad propiedades;
@@ -109,6 +114,13 @@ public class SecurityConfig {
                         // mas falta hace, con el token ya caducado.
                         .requestMatchers(HttpMethod.POST,
                                 "/auth/register", "/auth/login", "/auth/refresh", "/auth/logout").permitAll()
+                        // Denunciar un dano al patrimonio NO exige cuenta
+                        // (RF-72). Es lo que hace real el anonimato: obligar a
+                        // registrarse y limitarse a ocultar el nombre dejaria
+                        // al sistema sabiendo igualmente quien denuncio. El
+                        // abuso lo frena AntiSpamAnonimo, que cuenta por origen
+                        // sin llegar a guardar la IP.
+                        .requestMatchers(HttpMethod.POST, "/reportes").permitAll()
                         // Preflight de CORS: el navegador lo envia sin
                         // credenciales, no tiene sentido pedirle autenticacion.
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

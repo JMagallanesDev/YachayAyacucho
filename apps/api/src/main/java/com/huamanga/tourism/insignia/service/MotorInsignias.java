@@ -7,6 +7,8 @@ import com.huamanga.tourism.insignia.domain.Insignia;
 import com.huamanga.tourism.insignia.domain.InsigniaUsuario;
 import com.huamanga.tourism.insignia.repository.InsigniaRepository;
 import com.huamanga.tourism.insignia.repository.InsigniaUsuarioRepository;
+import com.huamanga.tourism.reporte.domain.EstadoReporte;
+import com.huamanga.tourism.reporte.repository.ReporteRepository;
 import com.huamanga.tourism.resena.domain.EstadoResena;
 import com.huamanga.tourism.resena.repository.ResenaRepository;
 import com.huamanga.tourism.ruta.repository.RutaTematicaRepository;
@@ -54,6 +56,7 @@ public class MotorInsignias {
     private final ResenaRepository resenaRepository;
     private final FotoRepository fotoRepository;
     private final RutaTematicaRepository rutaRepository;
+    private final ReporteRepository reporteRepository;
     private final UsuarioRepository usuarioRepository;
     private final Clock clock;
 
@@ -65,6 +68,7 @@ public class MotorInsignias {
                           ResenaRepository resenaRepository,
                           FotoRepository fotoRepository,
                           RutaTematicaRepository rutaRepository,
+                          ReporteRepository reporteRepository,
                           UsuarioRepository usuarioRepository,
                           Clock clock) {
         this.insigniaRepository = insigniaRepository;
@@ -73,6 +77,7 @@ public class MotorInsignias {
         this.resenaRepository = resenaRepository;
         this.fotoRepository = fotoRepository;
         this.rutaRepository = rutaRepository;
+        this.reporteRepository = reporteRepository;
         this.usuarioRepository = usuarioRepository;
         this.clock = clock;
     }
@@ -140,13 +145,17 @@ public class MotorInsignias {
             case "FOTOS_APROBADAS" ->
                     fotoRepository.countByUsuarioIdAndEstado(usuarioId, EstadoFoto.APROBADA) >= cantidad;
 
-            case "REPORTES_APROBADOS" -> {
-                // Se refiere a los reportes ciudadanos de preservacion (tabla
-                // `reporte`), que llegan en el Bloque 8, y NO a los reportes de
-                // contenido de este bloque: son cosas distintas con nombres
-                // parecidos. Hasta entonces esta insignia no es obtenible.
-                yield false;
-            }
+            case "REPORTES_APROBADOS" ->
+                // Reportes ciudadanos de preservacion (tabla `reporte`), no los
+                // reportes de contenido del Bloque 6: son cosas distintas con
+                // nombres parecidos.
+                //
+                // Solo cuentan los NO anonimos, y no por una limitacion
+                // tecnica: un reporte anonimo no tiene a quien atribuirse. No
+                // se puede ser anonimo y recibir credito a la vez. El
+                // formulario lo advierte antes de enviar.
+                    reporteRepository.countByUsuarioIdAndEstadoIn(usuarioId,
+                            List.of(EstadoReporte.APROBADO, EstadoReporte.RESUELTO)) >= cantidad;
 
             default -> {
                 log.debug("Insignia {} con tipo desconocido '{}'; se ignora",

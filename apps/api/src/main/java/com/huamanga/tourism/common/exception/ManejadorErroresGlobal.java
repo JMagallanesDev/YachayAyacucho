@@ -10,6 +10,8 @@ import com.huamanga.tourism.foto.service.ClienteCloudinary;
 import com.huamanga.tourism.foto.service.FotoService;
 import com.huamanga.tourism.foto.service.ValidadorImagen;
 import com.huamanga.tourism.lugar.service.LugarService;
+import com.huamanga.tourism.reporte.service.AntiSpamAnonimo;
+import com.huamanga.tourism.reporte.service.ReporteService;
 import com.huamanga.tourism.resena.service.ResenaService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jspecify.annotations.Nullable;
@@ -192,6 +194,32 @@ public class ManejadorErroresGlobal extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ReporteContenidoService.AutorreporteException.class)
     public ProblemDetail manejarAutorreporte(HttpServletRequest peticion) {
         return construir(HttpStatus.UNPROCESSABLE_CONTENT, "autorreporte", peticion);
+    }
+
+    // ---------------------------------------------------------------
+    //  Bloque 8: reportes ciudadanos
+    // ---------------------------------------------------------------
+
+    @ExceptionHandler(ReporteService.FueraDeAyacuchoException.class)
+    public ProblemDetail manejarFueraDeAyacucho(HttpServletRequest peticion) {
+        return construir(HttpStatus.BAD_REQUEST, "fuera-de-ayacucho", peticion);
+    }
+
+    @ExceptionHandler(ReporteService.DemasiadasFotosException.class)
+    public ProblemDetail manejarDemasiadasFotosReporte(HttpServletRequest peticion) {
+        return construir(HttpStatus.BAD_REQUEST, "limite-fotos", peticion);
+    }
+
+    /**
+     * Cupo diario de reportes agotado.
+     *
+     * <p>El mensaje no menciona la IP ni ningun identificador, porque no hay
+     * ninguno que mencionar: el contador vive en Redis bajo una huella HMAC de
+     * la que no se puede recuperar el origen.</p>
+     */
+    @ExceptionHandler(AntiSpamAnonimo.DemasiadosReportesException.class)
+    public ProblemDetail manejarDemasiadosReportes(HttpServletRequest peticion) {
+        return construir(HttpStatus.TOO_MANY_REQUESTS, "limite-reportes", peticion);
     }
 
     @ExceptionHandler(AntiSpam.DemasiadasPeticionesException.class)

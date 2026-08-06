@@ -306,6 +306,64 @@
     "misVisitas": "Lugares visitados",
     "sinVisitas": "Aun no has registrado ninguna visita. Ve a un lugar patrimonial y pulsa «Estuve aqui»."
   },
+  "reportar": {
+    "titulo": "Reportar un dano al patrimonio",
+    "descripcion": "Si ves algo que esta danando el patrimonio de Huamanga, cuentanoslo. Te lleva menos de un minuto.",
+    "promesaAnonimato": "Puedes reportar sin dar tu nombre. Si eliges el modo anonimo, no guardamos tu identidad ni tu direccion IP: ni siquiera si has iniciado sesion.",
+    "queViste": "¿Que viste?",
+    "cuentaQuePasa": "Cuentanos que pasa",
+    "descripcionPlaceholder": "Describe brevemente el dano y donde esta.",
+    "donde": "¿Donde esta?",
+    "buscandoUbicacion": "Buscando tu ubicacion...",
+    "ubicacionDetectada": "Ubicacion detectada. Ajustala si no es exacta.",
+    "ajustaElPin": "No pudimos detectar tu ubicacion; ajusta las coordenadas a mano.",
+    "latitud": "Latitud",
+    "longitud": "Longitud",
+    "referencia": "Referencia (opcional)",
+    "referenciaPlaceholder": "Ej.: muro lateral del templo, frente al mercado",
+    "fotos": "Fotos (opcional)",
+    "fotosAyuda": "Hasta 5 fotos. Les quitamos los datos ocultos de ubicacion y camara antes de guardarlas.",
+    "fotosElegidas": "{total, plural, =1 {1 foto elegida} other {# fotos elegidas}}",
+    "identidad": "Identidad",
+    "reportarAnonimo": "Reportar de forma anonima",
+    "explicacionAnonimo": "No se guarda tu nombre, tu cuenta ni tu direccion IP.",
+    "avisoInsignia": "Al reportar de forma anonima, este reporte no contara para tu insignia de Guardian del patrimonio: no hay a quien atribuirlo.",
+    "tuNombre": "Tu nombre (opcional)",
+    "enviarReporte": "Enviar reporte",
+    "enviando": "Enviando...",
+    "gracias": "Gracias por cuidar el patrimonio",
+    "enRevision": "Tu reporte esta en revision. Aparecera en el mapa publico cuando lo verifiquemos.",
+    "verMapa": "Ver el mapa de incidentes",
+    "errorGenerico": "No se pudo enviar el reporte"
+  },
+  "incidentes": {
+    "titulo": "Mapa de incidentes",
+    "descripcion": "Danos al patrimonio reportados por la ciudadania y verificados por el equipo.",
+    "reportarIncidente": "Reportar un incidente",
+    "listado": "{total, plural, =0 {Sin incidentes} =1 {1 incidente} other {# incidentes}}",
+    "sinIncidentes": "No hay incidentes verificados en esta zona. Es una buena noticia.",
+    "sinClave": "El mapa no esta configurado: falta la clave de MapTiler.",
+    "estado": {
+      "RECIBIDO": "Recibido",
+      "EN_REVISION": "En revision",
+      "APROBADO": "Verificado",
+      "DESCARTADO": "Descartado",
+      "RESUELTO": "Resuelto"
+    }
+  },
+  "moderacionReportes": {
+    "titulo": "{total, plural, =0 {Reportes ciudadanos} =1 {1 reporte ciudadano} other {# reportes ciudadanos}}",
+    "sinReportes": "No hay reportes que revisar.",
+    "anonimo": "Anonimo",
+    "notasInternas": "Notas internas (no se publican)",
+    "estado": {
+      "RECIBIDO": "Recibido",
+      "EN_REVISION": "En revision",
+      "APROBADO": "Aprobar",
+      "DESCARTADO": "Descartar",
+      "RESUELTO": "Resuelto"
+    }
+  },
   "validacion": {
     "correoObligatorio": "Escribe tu correo",
     "correoInvalido": "Ese correo no parece valido",

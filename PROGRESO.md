@@ -5,8 +5,8 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 7 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 8 — Preservación ciudadana (el diferenciador).
+- **Bloque en curso:** ninguno (Bloque 8 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 9 — Agenda cultural.
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
@@ -22,7 +22,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 | 5 — Mapa, clima, recomendaciones, proximidad | ✅ Completado | Mapa MapLibre + MapTiler con vista 3D inclinada y edificios extruidos, clusters en GPU, límites de Ayacucho, GPS, toggles por categoría, 3 rutas temáticas como polilíneas y deep links a Google Maps/Waze/Apple Maps; clima de OpenWeatherMap con **caché de dos niveles** (fresco 30 min + último bueno 24 h) y circuit breaker programático, pronóstico agregado por días y consejos por altitud; `RecomendacionService` que cruza apertura, clima, hora y categoría devolviendo **el motivo de cada sugerencia**; planificador por fecha; `useProximidad` con histéresis 50/80 m y supresión de 2 h. **155 tests** + 22 comprobaciones en navegador real | — |
 | 6 — Reseñas, calificaciones, fotos | ✅ Completado | CRUD de reseñas con una sola por persona y lugar, edición y baja lógica **reutilizable**; promedio leído solo de la vista materializada, con **carril rápido de 30 s** para que no tarde 5 min en moverse; subida de fotos a Cloudinary con petición firmada desde el backend, **tres barreras de validación** (tamaño, números mágicos y decodificación real) y transformaciones de entrega `f_auto,q_auto`; galería pública solo con aprobadas; bandejas de moderación de fotos y reseñas en `/admin`, con borrado real del binario **e invalidación del CDN** al rechazar; anti-spam por cuenta en Redis; seed con 6 usuarios y 31 reseñas que hace que los rankings del Bloque 4 por fin ordenen. **185 tests** + 17 comprobaciones en navegador real | — |
 | 7 — Favoritos, check-in, pasaporte, reportes | ✅ Completado | Favoritos guardados en el servidor con corazón optimista (RF-35, RF-95) y `/perfil/favoritos`; check-in por GPS validado en el backend con PostGIS sobre `geography`, **cuatro barreras** (radio 150 m, precisión mínima, enfriamiento de 24 h y detección de salto imposible) y el punto enviado guardado para auditoría; motor de insignias que **interpreta el criterio JSONB** y concede **en la misma transacción** que la visita; pasaporte con sellos, las 8 insignias —obtenidas y por obtener— y progreso por ruta **calculado al vuelo**, más diploma compartible; reportes de contenido con XOR de las dos FK y paso a `EN_REVISION` al tercero; seed de 29 check-ins que llena el ranking «más visitados». **210 tests** + 14 comprobaciones en navegador real | — |
-| 8 — Preservación ciudadana | Pendiente | — | — |
+| 8 — Preservación ciudadana | ✅ Completado | Denuncia de daños al patrimonio con **anonimato real por diseño**: un `@PrePersist` en la entidad borra `usuario_id`, `nombre_reportante` y la auditoría (`created_by`/`updated_by`) antes de que la fila toque el disco, de modo que la garantía no depende de que nadie olvide un `if`; anti-spam **sin identidad**, con HMAC-SHA256 de la IP bajo una sal aleatoria que vive solo en memoria y rota cada día, guardado únicamente en Redis con TTL de 24 h; las fotos se **recodifican para borrar el EXIF** (y con él el GPS y el modelo del móvil) antes de subirlas; formulario de un solo paso con los 7 tipos como botones, GPS con pin ajustable y anónimo por defecto; validación de coordenadas dentro de Ayacucho; mapa público que solo muestra lo **aprobado o resuelto**; bandeja de moderación con los 5 estados y notas internas que el API nunca devuelve en público; y activación de la insignia `GUARDIAN`, que solo cuenta reportes **identificados**. **225 tests** + 21 comprobaciones en navegador real | — |
 | 9 — Agenda cultural | Pendiente | — | — |
 | 10 — Panel de administración | Pendiente | — | — |
 | 11 — Directorio, slider geolocalizado, compartir | Pendiente | — | — |
@@ -198,6 +198,169 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 8 — Preservación ciudadana
+
+### La demostración de anonimato (la prueba para la defensa)
+
+El guion de navegador real hace esto, en este orden, sin intervención manual:
+
+1. **Registra a una vecina** (`vecina-<marca>@yachay-ayacucho.pe`) y **abre sesión con ella
+   en el navegador**. Este es el caso que importa: no una visitante anónima que el sistema
+   no conoce, sino **una persona plenamente identificada que pide que no se la nombre**.
+2. Rellena el formulario de `/reportar` con el anonimato activado —que viene activado por
+   defecto— y lo envía.
+3. **Vuelca la fila entera de la tabla `reporte`**, columna por columna, sin elegir cuáles.
+
+Esta es la salida literal de la última ejecución:
+
+```
+  ─── LA FILA COMPLETA EN LA BASE DE DATOS ───
+  quien denuncio: vecina-1786047003267@yachay-ayacucho.pe
+  su identificador en la tabla usuario: 019fd8b2-7b90-7a48-ae61-66d5f597c1a5
+
+  -[ RECORD 1 ]---------+------------------------------------------------------------------------
+  id                    | 019fd8b2-830f-7f02-8a70-82b1dc55c25c
+  tipo_incidente_id     | 019fbb0d-f171-744e-ba33-b25576b8ac5b
+  usuario_id            |
+  nombre_reportante     |
+  descripcion           | PRUEBA-1786047001487 Pintadas con aerosol en el muro lateral del templo
+  ubicacion             | 0101000020E610000075931804568E52C0C520B07268512AC0
+  direccion_referencial | Muro lateral, junto a la puerta
+  estado                | RECIBIDO
+  notas_admin           |
+  es_anonimo            | t
+  created_by            |
+  updated_by            |
+  created_at            | 2026-08-06 15:10:05.455938-05
+  updated_at            | 2026-08-06 15:10:05.455938-05
+  deleted_at            |
+```
+
+**Esas quince columnas son todas las que tiene la tabla.** No hay ninguna oculta: la lista
+sale de `SELECT *`, no de una selección mía. Y sobre esa fila el guion comprueba tres cosas
+más, por si algún día alguien añade una columna sin darse cuenta:
+
+- El identificador de la vecina —`019fd8b2-7b90-7a48-ae61-66d5f597c1a5`— **no aparece en
+  ningún punto de la fila**. La búsqueda se hace sobre `reporte::text`, es decir, sobre la
+  fila entera serializada, no sobre las columnas que yo decida mirar.
+- **No existe ninguna columna** cuyo nombre empiece por `ip`, acabe en `_ip` o contenga
+  `hash`. Se consulta `information_schema.columns`, así que es una afirmación sobre el
+  esquema, no sobre esta fila.
+- La única clave del anti-spam en Redis es `reporte:anon:L1kMqsD6lW1IBnn35-eDqQ`, y
+  **ninguna clave contiene una IP**.
+
+#### Dos advertencias honestas sobre esta demostración
+
+**Primera: `updated_by` sí se rellena después de moderar.** Si en la defensa alguien abre la
+fila una vez aprobada, verá un UUID ahí. Es el del **administrador que revisó la denuncia**,
+no el de quien la puso, y el guion lo comprueba explícitamente
+(`created_by / updated_by = NULL / 019fbb0e-…`, que es el id del admin). Esa trazabilidad
+debe existir: sin ella nadie respondería de por qué se publicó o se descartó una denuncia.
+Por eso el borrado se hace **solo en `@PrePersist` y no en `@PreUpdate`**. Y por eso la
+demostración usa **dos personas distintas**: si la vecina y el moderador fueran la misma
+cuenta —como ocurría en mi primera versión de la prueba—, ese UUID se podría leer como el
+del denunciante y la demostración perdería toda su fuerza.
+
+**Segunda: esto prueba lo que guarda la aplicación, no lo que ve la red.** El proveedor de
+internet de la vecina y cualquiera que controle la red por la que pasa la petición siguen
+sabiendo que su equipo habló con este servidor. Contra eso una aplicación web no puede
+hacer nada, y prometer lo contrario sería falso. Lo que se garantiza es concreto y
+verificable: **el sistema no conserva ningún dato que permita atribuir la denuncia**, ni
+ahora ni ante una orden judicial futura, porque el dato sencillamente no está.
+
+### La tensión del bloque: anti-spam sin identidad
+
+Es el problema de fondo. Limitar el abuso pide reconocer a quien repite; el anonimato pide
+no reconocer a nadie. La solución tiene tres piezas:
+
+| Pieza | Qué consigue |
+|---|---|
+| **HMAC-SHA256 de la IP con una sal aleatoria de 32 bytes** | Un SHA-256 pelado de una IP **no sirve**: solo hay ~4.300 millones de IPv4, y recorrerlas todas para encontrar la que produce un hash dado es cuestión de minutos. Con una sal secreta, esa fuerza bruta es imposible |
+| **La sal vive solo en memoria y rota cada día** | No está en el `.env`, ni en la base, ni en ningún archivo. Un reinicio del servidor la destruye, y con ella cualquier posibilidad de recomputar la huella. Es una garantía **estructural**, no una promesa |
+| **Solo en Redis, con TTL de 24 h** | La clave se autodestruye. Nada llega nunca a PostgreSQL |
+
+Se permiten **5 reportes anónimos cada 24 horas** por huella, y **si Redis no responde el
+límite se abre**, no se cierra: una caída de la caché no puede dejar sin voz a quien quiere
+denunciar un daño al patrimonio.
+
+### La fuga que encontré y arreglé
+
+`Reporte` heredaba de `EntidadAuditable`, y el listener de auditoría rellena `created_by`
+desde el `SecurityContext`. Es decir: **una usuaria con la sesión abierta que marcaba
+«anónimo» quedaba igualmente identificada en `created_by`**, en una columna que nadie mira
+y que ningún test miraba. El anonimato habría sido falso sin que se notara.
+
+El arreglo no es «acordarse de ponerlo a null en el servicio». Es un callback en la propia
+entidad:
+
+```java
+@PrePersist
+void borrarRastroSiEsAnonimo() {
+    if (esAnonimo) {
+        borrarAuditoria();       // created_by y updated_by
+        usuario = null;
+        nombreReportante = null;
+    }
+}
+```
+
+Los callbacks declarados en la clase corren **después** de los `EntityListener`, así que
+este método anula justo lo que la auditoría acaba de escribir. La diferencia importa: con
+esto, **ninguna ruta futura puede saltarse la garantía**, ni un servicio nuevo, ni un import
+masivo, ni un test. `borrarAuditoria()` es `protected` a propósito: solo una subclase puede
+renunciar a su propia trazabilidad, y ha de hacerlo de forma explícita.
+
+### La fuga que no está en la base de datos: el EXIF
+
+Una foto de un móvil lleva dentro las **coordenadas exactas**, la marca y el modelo del
+aparato y, a menudo, el número de serie. Publicar la foto de una denuncia anónima tal cual
+llega es publicar todo eso. Antes de subir nada a Cloudinary, `ValidadorImagen.sinMetadatos`
+**decodifica la imagen y la vuelve a codificar** desde los píxeles: lo que se sube son los
+píxeles y nada más. Si el original era un JPEG con transparencia, se compone sobre blanco
+para no ennegrecer el resultado.
+
+### El precio del anonimato, dicho antes y no después
+
+`GUARDIAN` solo cuenta reportes **identificados**: no hay forma de premiar a alguien sin
+saber quién es, y almacenar una identidad «solo para la insignia» sería exactamente la fuga
+que este bloque evita. Lo que sí se hace es **avisar antes de enviar**, no después: si hay
+sesión abierta y el anonimato está marcado, el formulario dice que ese reporte no contará
+para la insignia. Quien elige el anonimato lo elige sabiendo lo que cuesta.
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 225 tests, 0 fallos**, de los que 17 son `AnonimatoReportesTest` |
+| Anonimato en tests | Con sesión iniciada el reporte sigue sin identidad; el UUID del usuario **no aparece en `reporte::text`**; la tabla no tiene columnas de IP ni de hash; `GUARDIAN` cuenta los identificados e ignora los anónimos; el mapa público solo devuelve aprobados y resueltos |
+| Coordenadas | Fuera de los límites de Ayacucho → 422 |
+| `pnpm lint` / `type-check` / `build` | Sin errores; incluye `/es/reportar`, `/en/reportar`, `/es/mapa-incidentes` y `/en/mapa-incidentes` |
+| **Navegador real** | **21/21 comprobaciones**. Sesión iniciada → reporte anónimo → **volcado de la fila** → no aparece en el mapa sin revisar → moderación con notas internas → aprobado → visible en el mapa público sin las notas → `GUARDIAN` con un reporte identificado. **Consola limpia** |
+
+### Dos fallos reales que la verificación destapó
+
+**1. Discordancia de hidratación en `/reportar`.** El estado inicial del GPS se calculaba
+leyendo `navigator`, que en el servidor no existe: el HTML del servidor decía «ajusta las
+coordenadas a mano» y el navegador pintaba «buscando tu ubicación». React tiraba el árbol y
+lo regeneraba en el cliente. Se arregla arrancando siempre en `buscando` —un valor que el
+servidor sí puede renderizar— y dejando que el efecto lo corrija. **La consola del navegador
+lo delató; ni el `build` ni el `lint` lo habrían visto.**
+
+**2. La tercera ejecución seguida fallaba por el rate limit.** No era un fallo del bloque,
+pero enmascaraba los que sí lo serían: el guion limpia ahora `rate:*` y `reporte:anon:*` en
+Redis y borra los reportes de ejecuciones anteriores antes de empezar.
+
+### Una medición que conviene no leer de más
+
+El guion mide **0 s** entre el primer clic y el envío, y eso **no demuestra el RF-69**.
+Escribe a velocidad de máquina. Lo que sí demuestra es que **la aplicación no impone ninguna
+espera**: un solo paso, sin recargas, sin un GPS que bloquee el envío y sin campos
+obligatorios más allá de tipo, descripción y ubicación. Cuánto tarda una persona real hay
+que medirlo con personas reales, y ese dato debería salir de las pruebas de usabilidad, no
+de aquí.
 
 ---
 

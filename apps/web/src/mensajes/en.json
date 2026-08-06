@@ -306,6 +306,64 @@
     "misVisitas": "Places visited",
     "sinVisitas": "You have not registered any visit yet. Go to a heritage place and tap “I was here”."
   },
+  "reportar": {
+    "titulo": "Report damage to heritage",
+    "descripcion": "If you see something damaging Huamanga's heritage, tell us. It takes less than a minute.",
+    "promesaAnonimato": "You can report without giving your name. If you choose anonymous mode we store neither your identity nor your IP address — not even if you are signed in.",
+    "queViste": "What did you see?",
+    "cuentaQuePasa": "Tell us what is happening",
+    "descripcionPlaceholder": "Briefly describe the damage and where it is.",
+    "donde": "Where is it?",
+    "buscandoUbicacion": "Finding your location...",
+    "ubicacionDetectada": "Location detected. Adjust it if it is not exact.",
+    "ajustaElPin": "We could not detect your location; adjust the coordinates manually.",
+    "latitud": "Latitude",
+    "longitud": "Longitude",
+    "referencia": "Reference (optional)",
+    "referenciaPlaceholder": "E.g. side wall of the temple, opposite the market",
+    "fotos": "Photos (optional)",
+    "fotosAyuda": "Up to 5 photos. We strip hidden location and camera data before storing them.",
+    "fotosElegidas": "{total, plural, =1 {1 photo selected} other {# photos selected}}",
+    "identidad": "Identity",
+    "reportarAnonimo": "Report anonymously",
+    "explicacionAnonimo": "We store neither your name, your account nor your IP address.",
+    "avisoInsignia": "Reporting anonymously means this report will not count towards your Heritage Guardian badge: there is nobody to attribute it to.",
+    "tuNombre": "Your name (optional)",
+    "enviarReporte": "Send report",
+    "enviando": "Sending...",
+    "gracias": "Thank you for looking after the heritage",
+    "enRevision": "Your report is under review. It will appear on the public map once we verify it.",
+    "verMapa": "See the incident map",
+    "errorGenerico": "Could not send the report"
+  },
+  "incidentes": {
+    "titulo": "Incident map",
+    "descripcion": "Damage to heritage reported by citizens and verified by the team.",
+    "reportarIncidente": "Report an incident",
+    "listado": "{total, plural, =0 {No incidents} =1 {1 incident} other {# incidents}}",
+    "sinIncidentes": "No verified incidents in this area. That is good news.",
+    "sinClave": "The map is not configured: the MapTiler key is missing.",
+    "estado": {
+      "RECIBIDO": "Received",
+      "EN_REVISION": "Under review",
+      "APROBADO": "Verified",
+      "DESCARTADO": "Dismissed",
+      "RESUELTO": "Resolved"
+    }
+  },
+  "moderacionReportes": {
+    "titulo": "{total, plural, =0 {Citizen reports} =1 {1 citizen report} other {# citizen reports}}",
+    "sinReportes": "No reports to review.",
+    "anonimo": "Anonymous",
+    "notasInternas": "Internal notes (never published)",
+    "estado": {
+      "RECIBIDO": "Received",
+      "EN_REVISION": "Under review",
+      "APROBADO": "Approve",
+      "DESCARTADO": "Dismiss",
+      "RESUELTO": "Resolved"
+    }
+  },
   "validacion": {
     "correoObligatorio": "Enter your email",
     "correoInvalido": "That email does not look valid",

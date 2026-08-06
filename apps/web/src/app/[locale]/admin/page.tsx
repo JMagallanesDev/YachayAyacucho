@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { Moderacion } from "./Moderacion";
+import { ModeracionReportes } from "./ModeracionReportes";
 import { ResumenAdmin } from "./ResumenAdmin";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
@@ -30,6 +31,7 @@ export default async function PaginaAdmin({
       <h1 className="text-fluid-2xl font-bold text-text">{t("titulo")}</h1>
       <ResumenAdmin />
       <Moderacion />
+      <ModeracionReportes />
     </main>
   );
 }

@@ -6,6 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -111,6 +112,60 @@ public class ValidadorImagen {
         }
 
         return formato;
+    }
+
+    /**
+     * Devuelve la imagen re-codificada, sin ningun metadato.
+     *
+     * <p><strong>Para que sirve.</strong> Una foto tomada con un movil lleva
+     * dentro un bloque EXIF con la <em>posicion GPS exacta</em>, el modelo del
+     * telefono, su numero de serie y, en algunos fabricantes, el nombre del
+     * propietario. En una denuncia anonima (RF-72) eso es una fuga mucho mas
+     * grave que la IP, y ademas invisible: la foto se ve igual.</p>
+     *
+     * <p>Decodificar y volver a escribir descarta esos bloques, porque los
+     * escritores de {@code ImageIO} solo emiten los datos de pixel salvo que se
+     * les pida explicitamente copiar los metadatos. Es una garantia nuestra, no
+     * una confianza en lo que haga el proveedor de imagenes.</p>
+     *
+     * <p>El precio es una recompresion —se pierde algo de calidad— y algo de
+     * CPU. En una foto de denuncia, el anonimato pesa mas que la nitidez.</p>
+     *
+     * <p>Se escribe siempre en PNG cuando el original no era JPEG, para no
+     * recomprimir con perdida algo que no lo era.</p>
+     */
+    public byte[] sinMetadatos(byte[] contenido, Formato formato) {
+        try {
+            BufferedImage imagen = ImageIO.read(new ByteArrayInputStream(contenido));
+            if (imagen == null) {
+                throw new ImagenInvalidaException("imagen-corrupta");
+            }
+
+            // JPEG no admite canal alfa: si la imagen lo trae, se compone sobre
+            // blanco. Sin esto, ImageIO escribe un JPEG con los colores
+            // invertidos o falla directamente.
+            BufferedImage salida = imagen;
+            String tipoSalida = formato == Formato.JPEG ? "jpg" : "png";
+
+            if (formato == Formato.JPEG && imagen.getColorModel().hasAlpha()) {
+                salida = new BufferedImage(
+                        imagen.getWidth(), imagen.getHeight(), BufferedImage.TYPE_INT_RGB);
+                var g = salida.createGraphics();
+                g.drawImage(imagen, 0, 0, java.awt.Color.WHITE, null);
+                g.dispose();
+            }
+
+            ByteArrayOutputStream destino = new ByteArrayOutputStream();
+            if (!ImageIO.write(salida, tipoSalida, destino)) {
+                throw new ImagenInvalidaException("imagen-corrupta");
+            }
+            return destino.toByteArray();
+
+        } catch (ImagenInvalidaException e) {
+            throw e;
+        } catch (IOException | RuntimeException e) {
+            throw new ImagenInvalidaException("imagen-corrupta");
+        }
     }
 
     private Formato detectarPorFirma(byte[] contenido) {
