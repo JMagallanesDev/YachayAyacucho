@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
@@ -47,6 +48,11 @@ public record EventoRequest(
 
         @Size(max = 500, message = "{evento.portada.larga}")
         String cloudinaryUrlPortada,
+
+        @Schema(description = "Identificador de YouTube (11 caracteres), NO la URL completa",
+                example = "dQw4w9WgXcQ")
+        @Pattern(regexp = "^$|^[A-Za-z0-9_-]{11}$", message = "{evento.video.formato}")
+        String youtubeVideoId,
 
         @Schema(description = "Marcar las festividades que se repiten cada anio: habilita el clonado")
         boolean recurrenteAnual,

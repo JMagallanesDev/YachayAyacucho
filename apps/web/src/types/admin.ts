@@ -26,6 +26,7 @@ export interface Pendientes {
   fotos: number;
   resenas: number;
   reportes: number;
+  negocios: number;
 }
 
 export interface Dashboard {

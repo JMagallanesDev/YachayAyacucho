@@ -49,6 +49,7 @@ public interface EventoMapper {
                 evento.getFechaFin(),
                 evento.duracionEnDias(),
                 evento.getCloudinaryUrlPortada(),
+                evento.getYoutubeVideoId(),
                 evento.getLugar() != null ? nombreDeLugar(evento, idioma) : null,
                 evento.getLugar() != null ? evento.getLugar().getSlug() : null,
                 evento.getDistrito().getNombre(),

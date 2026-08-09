@@ -49,6 +49,8 @@ export interface Evento {
   fechaFin: FechaISO;
   duracionDias: number;
   cloudinaryUrlPortada: string | null;
+  /** Identificador de YouTube, nunca una URL: el embed lo compone el cliente (RF-12). */
+  youtubeVideoId: string | null;
   lugarNombre: string | null;
   lugarSlug: string | null;
   distritoNombre: string;

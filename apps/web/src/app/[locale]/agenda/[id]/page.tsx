@@ -1,10 +1,12 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
+import { Compartir } from "@/components/Compartir";
 import { RegistrarVisita } from "@/components/RegistrarVisita";
 import { ClimaDelEvento } from "@/components/agenda/ClimaDelEvento";
 import { CuentaRegresiva } from "@/components/agenda/CuentaRegresiva";
 import { colorDeTipo } from "@/components/agenda/TarjetaEvento";
+import { VideoFestividad } from "@/components/agenda/VideoFestividad";
 import { Link } from "@/i18n/navegacion";
 import { eventoPorId } from "@/lib/eventos";
 import { diasHasta, formatearRango } from "@/lib/fechas";
@@ -109,6 +111,10 @@ export default async function PaginaEvento({
         />
       )}
 
+      {evento.youtubeVideoId && (
+        <VideoFestividad videoId={evento.youtubeVideoId} titulo={evento.nombre} />
+      )}
+
       <ClimaDelEvento clima={clima} />
 
       {evento.descripcion && (
@@ -148,6 +154,8 @@ export default async function PaginaEvento({
           </div>
         )}
       </dl>
+
+      <Compartir titulo={evento.nombre} />
 
       {evento.recurrenteAnual && (
         <p className="text-fluid-sm text-text-muted" data-testid="aviso-recurrente">

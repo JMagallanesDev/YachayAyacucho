@@ -60,6 +60,17 @@ public class Evento extends EntidadAuditable {
     @Column(name = "cloudinary_url_portada", length = 500)
     private String cloudinaryUrlPortada;
 
+    /**
+     * Identificador de YouTube del video de la festividad (RF-12, migracion V17).
+     *
+     * <p>Se guarda el identificador y <strong>no la URL</strong>: asi el embed
+     * lo compone la aplicacion y nadie puede colar una direccion arbitraria
+     * dentro de un iframe del sitio. El CHECK de la tabla exige los 11
+     * caracteres del formato real de YouTube.</p>
+     */
+    @Column(name = "youtube_video_id", length = 20)
+    private String youtubeVideoId;
+
     @Column(name = "recurrente_anual", nullable = false)
     private boolean recurrenteAnual = false;
 

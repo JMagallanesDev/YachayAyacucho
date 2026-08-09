@@ -45,6 +45,9 @@ public record EventoResumenResponse(
 
         String cloudinaryUrlPortada,
 
+        @Schema(description = "Identificador del video de YouTube, si lo hay (RF-12)")
+        String youtubeVideoId,
+
         @Schema(description = "Nombre del lugar patrimonial, si el evento ocurre en uno")
         String lugarNombre,
 

@@ -427,7 +427,8 @@
       "ARTESANAL": "Crafts",
       "MUSICAL": "Music",
       "OTRO": "Other"
-    }
+    },
+    "reproducirVideo": "Play the video for {titulo}"
   },
   "agendaAdmin": {
     "titulo": "Cultural calendar ({total})",
@@ -497,7 +498,8 @@
     "bandeja": {
       "fotos": "Photos",
       "resenas": "Reviews",
-      "reportes": "Citizen reports"
+      "reportes": "Citizen reports",
+      "negocios": "Businesses"
     },
     "usuarios": "Users ({total})",
     "rol": "Role",
@@ -513,5 +515,97 @@
     "actividad": "Activity log",
     "actividadAyuda": "Who did what and from where. The IP is stored here: this is internal auditing of administrators.",
     "sinActividad": "No actions recorded yet."
+  },
+  "negocios": {
+    "titulo": "Business directory",
+    "descripcion": "Restaurants, lodgings and artisans in Huamanga, each one reviewed.",
+    "registrarMiNegocio": "Register my business",
+    "registrarDescripcion": "Fill in your business details. An administrator will review it before publishing.",
+    "todas": "All",
+    "totalNegocios": "{total, plural, =0 {No businesses yet} one {One business} other {# businesses}}",
+    "sinNegocios": "There are no businesses in this category yet.",
+    "volverAlDirectorio": "Back to the directory",
+    "direccion": "Address",
+    "horario": "Opening hours",
+    "telefono": "Phone",
+    "whatsapp": "WhatsApp",
+    "escribirPorWhatsapp": "Message on WhatsApp",
+    "comoLlegar": "Directions",
+    "llamar": "Call",
+    "mensajeWhatsapp": "Hello, I am writing from Yachay Ayacucho about {negocio}.",
+    "nombreDelNegocio": "Business name",
+    "categoria": "Category",
+    "distrito": "District",
+    "elegir": "Choose an option",
+    "horarioEjemplo": "Monday to Saturday, 9:00 to 18:00",
+    "avisoAprobacion": "Your business will stay PENDING until an administrator reviews it. It will not appear in the directory until then.",
+    "solicitarAlta": "Submit",
+    "enviando": "Sending...",
+    "gracias": "Request received",
+    "quedaPendiente": "An administrator will review it. We will let you know in your panel.",
+    "verMiNegocio": "See my business",
+    "errorGenerico": "The business could not be registered."
+  },
+  "miNegocio": {
+    "titulo": "My business",
+    "descripcion": "Status of your request and how many people are seeing you.",
+    "volverAlPerfil": "Back to profile",
+    "cargando": "Loading...",
+    "sinNegocios": "You have not registered any business yet.",
+    "registrarUno": "Register one",
+    "enRevision": "An administrator is reviewing it. It is not in the directory yet.",
+    "motivoDelRechazo": "Reason for rejection: {motivo}",
+    "visitas": "Views",
+    "whatsapp": "WhatsApp",
+    "comoLlegar": "Directions",
+    "sinMetricasAun": "No views recorded yet.",
+    "metricasDeDias": "Data for the last {dias} days. These are totals: who visited you is never stored.",
+    "verFichaPublica": "See public page",
+    "estado": {
+      "PENDIENTE": "Pending review",
+      "APROBADO": "Published",
+      "RECHAZADO": "Rejected",
+      "SUSPENDIDO": "Suspended"
+    }
+  },
+  "moderacionNegocios": {
+    "sinNegocios": "No businesses registered.",
+    "motivo": "Reason (the owner will see it)",
+    "motivoAyuda": "Explain what is missing or why it is rejected",
+    "estado": {
+      "PENDIENTE": "Pending",
+      "APROBADO": "Published",
+      "RECHAZADO": "Rejected",
+      "SUSPENDIDO": "Suspended"
+    },
+    "accion": {
+      "APROBADO": "Approve",
+      "RECHAZADO": "Reject",
+      "SUSPENDIDO": "Suspend"
+    }
+  },
+  "patrimonio": {
+    "tituloHistoriaVisual": "Then and now",
+    "descripcionHistoriaVisual": "Drag the divider to compare the old photograph with today.",
+    "hoy": "Today",
+    "etiquetaDivisor": "Comparison divider",
+    "valorDivisor": "Showing {porcentaje}% of the old photo",
+    "fotoActual": "{titulo}, today",
+    "activarParateAqui": "Stand here",
+    "buscandoTuPosicion": "Finding your position...",
+    "estasEnElPunto": "You are on the exact spot",
+    "estasEnElPuntoAyuda": "«{titulo}» was taken from here. Compare what you see with the old photo.",
+    "verComparacion": "See comparison",
+    "ahoraNo": "Not now",
+    "cerrar": "Close"
+  },
+  "compartir": {
+    "compartir": "Share",
+    "enlace": "Link",
+    "copiar": "Copy",
+    "copiado": "Copied",
+    "compartirNativo": "Share...",
+    "codigoQrDe": "QR code for {titulo}",
+    "escaneaParaAbrir": "Scan to open on another phone"
   }
 }

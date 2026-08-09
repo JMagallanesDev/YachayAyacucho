@@ -140,6 +140,7 @@ public class AdminEventoService {
         // Se copia la URL, no el binario: es el mismo cartel de la misma fiesta,
         // y duplicar el archivo en Cloudinary gastaria cuota para nada.
         clon.setCloudinaryUrlPortada(original.getCloudinaryUrlPortada());
+        clon.setYoutubeVideoId(original.getYoutubeVideoId());
         clon.setRecurrenteAnual(true);
         clon.setEstado(EstadoEvento.BORRADOR);
 
@@ -204,6 +205,11 @@ public class AdminEventoService {
         evento.setFechaInicio(peticion.fechaInicio());
         evento.setFechaFin(peticion.fechaFin());
         evento.setCloudinaryUrlPortada(peticion.cloudinaryUrlPortada());
+        // Cadena vacia y null significan lo mismo aqui: sin video. Guardar ""
+        // reventaria el CHECK del formato de YouTube.
+        evento.setYoutubeVideoId(
+                peticion.youtubeVideoId() == null || peticion.youtubeVideoId().isBlank()
+                        ? null : peticion.youtubeVideoId());
         evento.setRecurrenteAnual(peticion.recurrenteAnual());
         evento.setEstado(peticion.estado());
 

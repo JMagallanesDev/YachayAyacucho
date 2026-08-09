@@ -14,6 +14,7 @@ import com.huamanga.tourism.foto.service.ClienteCloudinary;
 import com.huamanga.tourism.foto.service.FotoService;
 import com.huamanga.tourism.foto.service.ValidadorImagen;
 import com.huamanga.tourism.lugar.service.LugarService;
+import com.huamanga.tourism.negocio.service.GuardaDePropiedad;
 import com.huamanga.tourism.reporte.service.AntiSpamAnonimo;
 import com.huamanga.tourism.reporte.service.ReporteService;
 import com.huamanga.tourism.resena.service.ResenaService;
@@ -286,6 +287,22 @@ public class ManejadorErroresGlobal extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AdminRutaService.ParadaRepetidaException.class)
     public ProblemDetail manejarParadaRepetida(HttpServletRequest peticion) {
         return construir(HttpStatus.BAD_REQUEST, "parada-repetida", peticion);
+    }
+
+    // ---------------------------------------------------------------
+    //  Bloque 11: directorio de negocios
+    // ---------------------------------------------------------------
+
+    /**
+     * Intento de tocar el negocio de otra persona (RF-107).
+     *
+     * <p>403 y no 404: los identificadores del directorio son publicos, asi que
+     * ocultar la existencia del recurso no protegeria nada y a cambio daria un
+     * mensaje enganoso a un dueno legitimo que se equivoco de pestana.</p>
+     */
+    @ExceptionHandler(GuardaDePropiedad.NegocioAjenoException.class)
+    public ProblemDetail manejarNegocioAjeno(HttpServletRequest peticion) {
+        return construir(HttpStatus.FORBIDDEN, "negocio-ajeno", peticion);
     }
 
     /**

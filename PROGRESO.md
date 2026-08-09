@@ -5,8 +5,8 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 10 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 11 — Directorio de negocios, slider geolocalizado y compartir.
+- **Bloque en curso:** ninguno (Bloque 11 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 12 — Identidad visual final y cierre de alcance.
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
@@ -25,7 +25,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 | 8 — Preservación ciudadana | ✅ Completado | Denuncia de daños al patrimonio con **anonimato real por diseño**: un `@PrePersist` en la entidad borra `usuario_id`, `nombre_reportante` y la auditoría (`created_by`/`updated_by`) antes de que la fila toque el disco, de modo que la garantía no depende de que nadie olvide un `if`; anti-spam **sin identidad**, con HMAC-SHA256 de la IP bajo una sal aleatoria que vive solo en memoria y rota cada día, guardado únicamente en Redis con TTL de 24 h; las fotos se **recodifican para borrar el EXIF** (y con él el GPS y el modelo del móvil) antes de subirlas; formulario de un solo paso con los 7 tipos como botones, GPS con pin ajustable y anónimo por defecto; validación de coordenadas dentro de Ayacucho; mapa público que solo muestra lo **aprobado o resuelto**; bandeja de moderación con los 5 estados y notas internas que el API nunca devuelve en público; y activación de la insignia `GUARDIAN`, que solo cuenta reportes **identificados**. **225 tests** + 21 comprobaciones en navegador real | — |
 | 9 — Agenda cultural | ✅ Completado | Calendario mensual con la rejilla construida sobre `Date.UTC` y **el mes y el filtro en la URL**, de modo que los botones de mes son enlaces y la vista se comparte; ficha de evento con clima; **clonado anual que copia la plantilla pero nunca la fecha vieja** —la Semana Santa es móvil— y nace en BORRADOR, con `evento_origen_id` (migración V16) para no crear gemelos; los eventos de varios días aparecen en todos sus días por una consulta de solape; «próximos eventos» en la portada con cuenta regresiva; «Durante mi visita» con las fechas en cookie leída por el servidor; y clima con **cuatro estados explícitos**, ninguno de ellos un error: pronóstico, temporada cuando aún falta mucho, no disponible y pasado. Todo el manejo de fechas pasa por `lib/fechas.ts`, que fija UTC al formatear. **270 tests** + 23 comprobaciones en navegador real, incluida **la misma fecha vista desde tres husos separados por 25 horas** | — |
 | 10 — Panel de administración | ✅ Completado | Panel **cerrado por defecto**: `/admin/**` exige rol ADMIN en `SecurityConfig` como primera regla, además de los `@PreAuthorize` de cada clase, y **un test enumera los 22 endpoints desde el mapa de handlers de Spring y ataca cada uno** con un usuario normal (403) y sin credenciales (401); dashboard con cuatro gráficos Chart.js cargados por import dinámico, cada uno con su tabla plegada; analítica de tráfico **sin un solo identificador personal** —huella HMAC de sal rotatoria compartida con el Bloque 8, unicidad por HyperLogLog en Redis, ventana anti-recarga de 30 min y `UPSERT` atómico—; gestión de usuarios con las dos barreras (nadie se cambia su propio rol, nunca cero administradores activos) y un DTO que **no tiene campo de contraseña**; CRUD de rutas con paradas numeradas por su posición; bitácora RF-56 con llamadas explícitas y la IP del administrador; y las tres bandejas de moderación unificadas en pestañas con contador, cerrando el cabo del Bloque 7: **la foto en `EN_REVISION` por fin entra en la cola**. **362 tests** + 20 comprobaciones en navegador real | — |
-| 11 — Directorio, slider geolocalizado, compartir | Pendiente | — | — |
+| 11 — Directorio, slider geolocalizado, compartir | ✅ Completado | Directorio de negocios con **flujo de aprobación real**: se registra PENDIENTE y el estado no viaja en la petición, así que no hay forma de autopublicarse; el admin aprueba desde una cuarta pestaña de las bandejas unificadas y **entonces** se concede el rol NEGOCIO. La autorización del panel propio es **por propiedad, no por rol**: una única `GuardaDePropiedad` por la que pasa todo, y un dueño verificado que fuerza el identificador de otro recibe 403. Editar lo que el público ve devuelve el negocio a revisión. WhatsApp con mensaje predefinido (RF-110) y número normalizado al guardar; visitas y clics contados con la huella HMAC efímera y ventana de 30 min, que **llena la analítica de negocios que quedó vacía en el Bloque 10**. Slider antes/después sobre un `input range` real —teclado y lector de pantalla incluidos— que **no se pinta si falta la foto actual**, con el modo «Párate aquí» reutilizando `useProximidad` del Bloque 5. Compartir con URL, copiar, share nativo y **QR generado en el navegador**, sin enviar la dirección a ningún tercero. Vídeo de festividades con **fachada**: el iframe no existe hasta pulsar play (migración V17 guarda el identificador, no la URL). **386 tests** + 28 comprobaciones en navegador real | — |
 | 12 — Identidad visual y cierre de alcance | Pendiente | — | — |
 | 13 — Pulido: performance, SEO, accesibilidad, testing | Pendiente | — | — |
 | 14 — Documentación, datos reales, sustentación | Pendiente | — | — |
@@ -198,6 +198,153 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 11 — Directorio de negocios, slider geolocalizado y compartir
+
+### El rol NEGOCIO: la prueba de este bloque
+
+`NEGOCIO` es el **primer rol intermedio** del sistema, y los roles intermedios tienen un
+fallo característico: se comprueba que el usuario *tenga el rol* y se olvida comprobar que
+el *recurso sea suyo*. El resultado es que cualquier dueño puede editar el negocio de otro
+cambiando un identificador en la URL. Es control de acceso roto a nivel de objeto, y es de
+las vulnerabilidades más comunes que existen.
+
+Por eso **el rol no autoriza nada aquí**. Lo único que autoriza es ser el gestor de esa fila
+concreta, y lo comprueba una sola clase —`GuardaDePropiedad`— por la que pasa todo lo que
+toca un negocio. Un `@PreAuthorize("hasRole('NEGOCIO')")` habría sido insuficiente por sí
+solo.
+
+**La demostración**, con un atacante que tiene credenciales legítimas y el rol correcto:
+
+```
+atacante:      otro-…@yachay-ayacucho.pe  (rol NEGOCIO)
+negocio ajeno: 019fe846-dbc3-7fea-8974-9689cb3af4de  (de otra persona)
+
+GET  /negocios/mios/{ajeno}    → 403
+PUT  /negocios/mios/{ajeno}    → 403
+```
+
+Y en la misma ejecución se comprueba lo contrario, que es lo que da sentido a la prueba: **su
+propio negocio sí lo abre (200)**. La barrera es la propiedad, no el rol.
+
+**Sobre el 403 frente al 404.** En el resto del sistema —un lugar en borrador, un evento sin
+publicar— se responde 404 a quien no tiene permiso, para no confirmar que el recurso existe.
+Aquí se responde 403 y es lo correcto: el directorio es público y sus identificadores están
+a la vista en cada ficha, así que ocultar la existencia de algo que ya se publica no
+protegería nada, y a cambio daría un mensaje engañoso a un dueño legítimo que se equivocó de
+pestaña.
+
+### El flujo de aprobación
+
+| Paso | Qué garantiza |
+|---|---|
+| El negocio nace `PENDIENTE` | **El `NegocioRequest` no tiene campo `estado`.** Aunque el cliente lo envíe, Jackson lo descarta: no hay forma de autopublicarse. Hay un test que lo intenta |
+| El estado va escrito **dentro** de la consulta pública | No llega por parámetro, así que el directorio no puede devolver un pendiente ni manipulando la petición |
+| El rol `NEGOCIO` se concede **al aprobar** | Pedir el alta no puede otorgar el permiso; la aprobación sí |
+| Editar lo público devuelve a revisión | Sin esto se aprueba una cosa y se publica otra. Cambiar el teléfono **no** la dispara: obligar a revisión por un dato de contacto conseguiría que nadie lo actualizara nunca |
+
+El motivo del rechazo **no necesitó una columna nueva**: el administrador ya deja escrito el
+porqué en la bitácora del Bloque 10, con la entidad y su identificador, así que el panel del
+dueño lo lee de ahí.
+
+### La analítica de negocios, que en el Bloque 10 quedó vacía
+
+La pieza ya existía —`registrarNegocio` con ventana de 30 minutos y `UPSERT` atómico—, pero
+la tabla referencia `negocio` y no había ninguno. Ahora se cablea: abrir la ficha cuenta
+`VISITA`, y los botones cuentan `WHATSAPP` y `COMO_LLEGAR`.
+
+La privacidad es la misma de siempre y la verificación la comprueba enumerando las columnas
+reales de la tabla:
+
+```
+id, negocio_id, fecha, total_visitas, clics_whatsapp, clics_como_llegar, created_at, updated_at
+```
+
+Ni `usuario_id`, ni IP, ni user-agent. Y tres cargas seguidas de la ficha siguen contando
+**una** visita. El dueño ve solo agregados: cuánta gente, nunca quién.
+
+Los clics se envían con `keepalive`. Sin eso la petición se cancelaría al saltar la pestaña
+hacia WhatsApp, y el clic que más le importa al negocio sería justo el que no se contara.
+
+### El slider antes/después
+
+La decisión que más importa parece de implementación: **el control es un `<input type="range">`
+de verdad**, estilado como el tirador del divisor. Un `div` con eventos de puntero se ve
+igual, pero deja fuera a quien navega con teclado y no dice nada a un lector de pantalla; con
+un range nativo se obtienen gratis el foco, las flechas, el arrastre táctil y el anuncio del
+valor. El recorte se hace con `clip-path` y no con `width`, porque animar el ancho deforma la
+imagen al estrecharla.
+
+**Degradación elegante, tal como pediste:** si falta la foto actual no se pinta ningún
+slider —se muestra la histórica sola con su año y su crédito—, y si el lugar no tiene ninguna
+foto antigua la sección entera no existe. Las dos ramas están verificadas en navegador.
+
+**«Párate aquí» reutiliza `useProximidad` tal cual**, alimentándolo con los puntos de captura
+en vez de con lugares. De ahí hereda la histéresis 50/80 m, la supresión de 2 h y el arranque
+solo tras un gesto explícito. Y el encuadre honesto es el mismo del check-in del Bloque 7:
+**el GPS de un navegador se falsea en dos clics**; aquí da igual, porque esto no desbloquea
+nada — es una invitación a mirar, no una credencial.
+
+### Compartir y vídeo
+
+- **El QR se genera en el navegador.** Los generadores por URL que devuelven una imagen son
+  cómodos, pero significan mandarle a un tercero cada dirección que alguien comparte y desde
+  dónde. La verificación comprueba que el `src` es un `data:` URI y no una petición externa.
+- La librería `qrcode` se carga con **import dinámico**, solo al abrir el panel: no pesa en
+  ninguna ficha para la inmensa mayoría que nunca pulsa compartir.
+- `navigator.share` es mejora progresiva: el botón solo se pinta donde la API existe.
+- **El vídeo usa fachada.** Un embed normal de YouTube descarga ~1 MB y planta cookies de
+  seguimiento a *todo* el que abra la página, haya querido ver el vídeo o no. Aquí se pinta la
+  miniatura y el iframe se inserta con el primer clic, que es también el momento en que la
+  persona consiente. Dominio `youtube-nocookie.com`. Verificado: **0 iframes antes de pulsar**.
+- La migración **V17** guarda el **identificador**, no la URL, con un CHECK del formato de
+  YouTube. Así el embed lo compone la aplicación y nadie puede colar una dirección arbitraria
+  dentro de un iframe del sitio.
+
+### Cuatro fallos reales que la verificación destapó
+
+**1. El contador de visitas rompía la ficha entera.** Leer el negocio es una lectura y
+contarla es una escritura, pero ocurrían en la misma transacción marcada `readOnly`:
+PostgreSQL rechazaba el INSERT y la ficha devolvía un error. Se quita el `readOnly`, con la
+razón anotada en el código.
+
+**2. Mi test dejaba negocios en la base compartida y tumbaba a 44 tests ajenos.** Los
+contenedores de Testcontainers son singletons de toda la suite, y `negocio` tiene una FK a
+`usuario`: un negocio olvidado hacía fallar el `DELETE FROM usuario` de cualquier otro test
+con un error de integridad que no tenía nada que ver con lo que ese test probaba. Ahora hay
+un `@AfterEach` que recoge. **Es la segunda vez que cometo este error** —la primera fue una
+insignia ficticia en el Bloque 7—, así que queda anotado como patrón a vigilar.
+
+**3. El comodín `/negocios/**` abría también el GET de `/negocios/mios`.** La propiedad
+seguía protegida en el servicio, pero un anónimo recibía 403 en vez de 401 y, sobre todo, la
+protección quedaba en una sola capa. Se añade una regla explícita **antes** del patrón
+público.
+
+**4. Dos fallos míos en el propio guion de verificación.** Leía el contador de la pestaña
+antes de que cargara —el mismo error de esperar al contenedor y no al contenido que ya cometí
+en el Bloque 10— y buscaba «Semana Santa de Ayacucho» sin darse cuenta de que **el clonado
+del Bloque 9 creó dos**, uno de ellos borrador sin ficha pública.
+
+### Pendiente de tu verificación
+
+> Los **tres negocios del seed no son reales** y llevan «DATO DE DEMOSTRACIÓN» en su
+> descripción, con números de WhatsApp de la franja reservada para documentación. Las **fotos
+> del slider son de la galería pública de Cloudinary**, no de Huamanga: hay que sustituirlas
+> por fotografías reales con su crédito de archivo, y el vídeo por uno real de la festividad.
+> Todo está marcado en `seed_negocios.sql`.
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 386 tests, 0 fallos** (18 nuevos) |
+| Propiedad | Editar y leer el negocio de otro → 403 con rol NEGOCIO; el suyo → 200; `/mios` solo devuelve los propios; sin sesión → 401 |
+| Aprobación | Nace PENDIENTE; no aparece en el listado ni en su ficha (404); enviar `estado` en el alta no sirve de nada; al aprobar aparece y se concede el rol; editar lo público devuelve a revisión; el teléfono no; el motivo del rechazo llega a su dueño; aprobar exige ADMIN |
+| Analítica | Tres cargas = una visita; el clic de WhatsApp suma en su columna; la tabla no tiene columnas identificadoras; el WhatsApp se normaliza al guardar |
+| `pnpm lint` / `type-check` / `build` | Sin errores; `/negocios`, `/negocios/[id]`, `/negocios/registrar` y `/perfil/mi-negocio` en es y en |
+| **Navegador real** | **28/28 comprobaciones.** Directorio sin pendientes, registro desde el formulario, **la prueba de intrusión con sus 403**, aprobación desde el panel con su entrada en la bitácora, WhatsApp con mensaje predefinido, visita contada y no inflada al recargar, panel del dueño, slider con su divisor moviéndose, la rama sin foto histórica, QR local y fachada de vídeo con 0 iframes antes de pulsar. **Consola limpia** |
 
 ---
 

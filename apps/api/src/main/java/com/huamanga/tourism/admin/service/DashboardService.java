@@ -135,7 +135,10 @@ public class DashboardService {
         return new DashboardResponse.Pendientes(
                 contar("SELECT COUNT(*) FROM foto WHERE estado IN ('PENDIENTE', 'EN_REVISION')"),
                 contar("SELECT COUNT(*) FROM resena WHERE estado = 'EN_REVISION'"),
-                contar("SELECT COUNT(*) FROM reporte WHERE estado IN ('RECIBIDO', 'EN_REVISION') AND deleted_at IS NULL"));
+                contar("SELECT COUNT(*) FROM reporte WHERE estado IN ('RECIBIDO', 'EN_REVISION') AND deleted_at IS NULL"),
+                // Bloque 11: los negocios a la espera de revision entran en el
+                // mismo resumen, para que el panel siga necesitando una llamada.
+                contar("SELECT COUNT(*) FROM negocio WHERE estado = 'PENDIENTE' AND deleted_at IS NULL"));
     }
 
     private List<DashboardResponse.PuntoDiario> serieDiaria(String sql, LocalDate desde, LocalDate hasta) {

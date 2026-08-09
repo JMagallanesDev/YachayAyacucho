@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { Compartir } from "@/components/Compartir";
 import { RegistrarVisita } from "@/components/RegistrarVisita";
+import { HistoriaVisual } from "@/components/patrimonio/HistoriaVisual";
 import { AntesDeIr } from "@/components/lugares/AntesDeIr";
 import { BadgeApertura } from "@/components/lugares/BadgeApertura";
 import { GaleriaInmersiva } from "@/components/lugares/GaleriaInmersiva";
@@ -13,6 +15,7 @@ import { BotonFavorito } from "@/components/participacion/BotonFavorito";
 import { PanelResenas } from "@/components/resenas/PanelResenas";
 import { SubirFoto } from "@/components/resenas/SubirFoto";
 import { obtenerLugar, slugsPublicados } from "@/lib/lugares";
+import { historiaVisual } from "@/lib/negocios";
 import { listarFotos, listarResenas } from "@/lib/resenas";
 
 /**
@@ -77,7 +80,13 @@ export default async function PaginaLugar({
   const t = await getTranslations("lugares");
 
   // En paralelo: ninguna depende de otra.
-  const [resenas, fotos] = await Promise.all([listarResenas(slug), listarFotos(slug)]);
+  const [resenas, fotos, imagenesHistoricas] = await Promise.all([
+    listarResenas(slug),
+    listarFotos(slug),
+    // Casi ningun lugar tiene foto antigua localizable: la lista suele venir
+    // vacia y entonces la seccion no se pinta. Degradacion elegante, sin error.
+    historiaVisual(slug),
+  ]);
 
   // El promedio se calcula sobre las resenas visibles y se muestra junto al
   // numero de opiniones. Es la misma cifra que la vista materializada sirve al
@@ -181,11 +190,15 @@ export default async function PaginaLugar({
         </section>
       )}
 
+      <HistoriaVisual imagenes={imagenesHistoricas} />
+
       <BotonCheckIn slug={slug} />
 
       <SubirFoto slug={slug} />
 
       <PanelResenas slug={slug} resenasIniciales={resenas.content} />
+
+      <Compartir titulo={lugar.nombre} />
 
       {lugar.telefono && (
         <p className="text-fluid-sm text-text-muted">

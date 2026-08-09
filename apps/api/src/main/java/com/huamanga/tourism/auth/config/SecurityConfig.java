@@ -85,7 +85,14 @@ public class SecurityConfig {
             "/eventos/**",
             // Catalogo geografico: alimenta los desplegables de los formularios
             // de alta. Son los 119 distritos de la region, informacion publica.
-            "/distritos"
+            "/distritos",
+            // Bloque 11. El directorio de negocios aprobados y las fotos
+            // historicas son contenido publico de la ciudad. Ojo: este patron
+            // abre solo el GET; registrar y editar un negocio caen en
+            // anyRequest().authenticated() y ademas comprueban la PROPIEDAD en
+            // el servicio, que es lo que de verdad protege el negocio de otro.
+            "/negocios",
+            "/negocios/**"
     };
 
     private final PropiedadesSeguridad propiedades;
@@ -132,6 +139,14 @@ public class SecurityConfig {
                         // usuario normal, de modo que la garantia no depende de
                         // que nadie se olvide.
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+
+                        // El panel del dueno de un negocio, ANTES del patron
+                        // publico de /negocios/**. Sin esta linea, el comodin de
+                        // abajo abriria tambien el GET de /negocios/mios: la
+                        // propiedad seguiria protegida en el servicio, pero un
+                        // anonimo recibiria 403 en vez de 401 y, sobre todo,
+                        // estariamos confiando esa proteccion a una sola capa.
+                        .requestMatchers("/negocios/mios", "/negocios/mios/**").authenticated()
 
                         .requestMatchers(HttpMethod.GET, RUTAS_PUBLICAS_GET).permitAll()
                         // /logout es publico a proposito: se autentica con la

@@ -427,7 +427,8 @@
       "ARTESANAL": "Artesanal",
       "MUSICAL": "Musical",
       "OTRO": "Otro"
-    }
+    },
+    "reproducirVideo": "Reproducir el video de {titulo}"
   },
   "agendaAdmin": {
     "titulo": "Agenda cultural ({total})",
@@ -497,7 +498,8 @@
     "bandeja": {
       "fotos": "Fotos",
       "resenas": "Reseñas",
-      "reportes": "Reportes ciudadanos"
+      "reportes": "Reportes ciudadanos",
+      "negocios": "Negocios"
     },
     "usuarios": "Usuarios ({total})",
     "rol": "Rol",
@@ -513,5 +515,97 @@
     "actividad": "Registro de actividad",
     "actividadAyuda": "Quién hizo qué y desde dónde. Aquí sí se guarda la IP: es auditoría interna de quien administra.",
     "sinActividad": "Todavía no hay acciones registradas."
+  },
+  "negocios": {
+    "titulo": "Directorio de negocios",
+    "descripcion": "Restaurantes, hospedajes y artesanos de Huamanga, revisados uno a uno.",
+    "registrarMiNegocio": "Registrar mi negocio",
+    "registrarDescripcion": "Rellena los datos de tu negocio. Un administrador lo revisara antes de publicarlo.",
+    "todas": "Todas",
+    "totalNegocios": "{total, plural, =0 {Ningun negocio todavia} one {Un negocio} other {# negocios}}",
+    "sinNegocios": "Todavia no hay negocios en esta categoria.",
+    "volverAlDirectorio": "Volver al directorio",
+    "direccion": "Direccion",
+    "horario": "Horario",
+    "telefono": "Telefono",
+    "whatsapp": "WhatsApp",
+    "escribirPorWhatsapp": "Escribir por WhatsApp",
+    "comoLlegar": "Como llegar",
+    "llamar": "Llamar",
+    "mensajeWhatsapp": "Hola, les escribo desde Yachay Ayacucho por {negocio}.",
+    "nombreDelNegocio": "Nombre del negocio",
+    "categoria": "Categoria",
+    "distrito": "Distrito",
+    "elegir": "Elige una opcion",
+    "horarioEjemplo": "Lunes a sabado, 9:00 a 18:00",
+    "avisoAprobacion": "Tu negocio quedara PENDIENTE hasta que un administrador lo revise. No aparecera en el directorio hasta entonces.",
+    "solicitarAlta": "Solicitar alta",
+    "enviando": "Enviando...",
+    "gracias": "Solicitud recibida",
+    "quedaPendiente": "Un administrador la revisara. Te avisaremos en tu panel.",
+    "verMiNegocio": "Ver mi negocio",
+    "errorGenerico": "No se pudo registrar el negocio."
+  },
+  "miNegocio": {
+    "titulo": "Mi negocio",
+    "descripcion": "Estado de tu solicitud y cuanta gente te esta viendo.",
+    "volverAlPerfil": "Volver al perfil",
+    "cargando": "Cargando...",
+    "sinNegocios": "Todavia no has registrado ningun negocio.",
+    "registrarUno": "Registrar uno",
+    "enRevision": "Un administrador lo esta revisando. Aun no aparece en el directorio.",
+    "motivoDelRechazo": "Motivo del rechazo: {motivo}",
+    "visitas": "Visitas",
+    "whatsapp": "WhatsApp",
+    "comoLlegar": "Como llegar",
+    "sinMetricasAun": "Todavia no hay visitas registradas.",
+    "metricasDeDias": "Datos de los ultimos {dias} dias. Son totales: nunca se guarda quien te visito.",
+    "verFichaPublica": "Ver ficha publica",
+    "estado": {
+      "PENDIENTE": "Pendiente de revision",
+      "APROBADO": "Publicado",
+      "RECHAZADO": "Rechazado",
+      "SUSPENDIDO": "Suspendido"
+    }
+  },
+  "moderacionNegocios": {
+    "sinNegocios": "No hay negocios registrados.",
+    "motivo": "Motivo (lo vera su dueno)",
+    "motivoAyuda": "Explica que falta o por que se rechaza",
+    "estado": {
+      "PENDIENTE": "Pendiente",
+      "APROBADO": "Publicado",
+      "RECHAZADO": "Rechazado",
+      "SUSPENDIDO": "Suspendido"
+    },
+    "accion": {
+      "APROBADO": "Aprobar",
+      "RECHAZADO": "Rechazar",
+      "SUSPENDIDO": "Suspender"
+    }
+  },
+  "patrimonio": {
+    "tituloHistoriaVisual": "Antes y ahora",
+    "descripcionHistoriaVisual": "Arrastra el divisor para comparar la fotografia antigua con la actual.",
+    "hoy": "Hoy",
+    "etiquetaDivisor": "Divisor de la comparacion",
+    "valorDivisor": "Mostrando {porcentaje}% de la foto antigua",
+    "fotoActual": "{titulo}, en la actualidad",
+    "activarParateAqui": "Parate aqui",
+    "buscandoTuPosicion": "Buscando tu posicion...",
+    "estasEnElPunto": "Estas en el punto exacto",
+    "estasEnElPuntoAyuda": "Desde aqui se tomo «{titulo}». Compara lo que ves con la foto antigua.",
+    "verComparacion": "Ver comparacion",
+    "ahoraNo": "Ahora no",
+    "cerrar": "Cerrar"
+  },
+  "compartir": {
+    "compartir": "Compartir",
+    "enlace": "Enlace",
+    "copiar": "Copiar",
+    "copiado": "Copiado",
+    "compartirNativo": "Compartir...",
+    "codigoQrDe": "Codigo QR de {titulo}",
+    "escaneaParaAbrir": "Escanea para abrir en otro telefono"
   }
 }

@@ -57,10 +57,10 @@ public record DashboardResponse(
     }
 
     @Schema(description = "Cola de moderacion por tipo de contenido")
-    public record Pendientes(long fotos, long resenas, long reportes) {
+    public record Pendientes(long fotos, long resenas, long reportes, long negocios) {
 
         public long total() {
-            return fotos + resenas + reportes;
+            return fotos + resenas + reportes + negocios;
         }
     }
 }

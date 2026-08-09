@@ -9,9 +9,10 @@ import { metricas } from "@/lib/admin";
 import type { Pendientes } from "@/types/admin";
 
 import { Moderacion } from "./Moderacion";
+import { ModeracionNegocios } from "./ModeracionNegocios";
 import { ModeracionReportes } from "./ModeracionReportes";
 
-type Pestana = "fotos" | "resenas" | "reportes";
+type Pestana = "fotos" | "resenas" | "reportes" | "negocios";
 
 /**
  * Las tres bandejas de moderacion, en un solo sitio (Bloque 10).
@@ -58,6 +59,9 @@ export function BandejasUnificadas() {
     { clave: "fotos", cuenta: pendientes?.fotos ?? 0 },
     { clave: "resenas", cuenta: pendientes?.resenas ?? 0 },
     { clave: "reportes", cuenta: pendientes?.reportes ?? 0 },
+    // Los negocios pendientes llegan en el mismo resumen del panel desde el
+    // Bloque 11: una sola llamada sigue bastando para los cuatro contadores.
+    { clave: "negocios", cuenta: pendientes?.negocios ?? 0 },
   ];
 
   const total = pestanas.reduce((suma, pestana) => suma + pestana.cuenta, 0);
@@ -108,7 +112,13 @@ export function BandejasUnificadas() {
       <div role="tabpanel" data-testid={`panel-${activa}`}>
         {/* `Moderacion` trae las dos primeras bandejas desde el Bloque 6; se
             le dice cual mostrar en vez de duplicar su logica aqui. */}
-        {activa === "reportes" ? <ModeracionReportes /> : <Moderacion solo={activa} />}
+        {activa === "reportes" ? (
+          <ModeracionReportes />
+        ) : activa === "negocios" ? (
+          <ModeracionNegocios />
+        ) : (
+          <Moderacion solo={activa} />
+        )}
       </div>
     </section>
   );
