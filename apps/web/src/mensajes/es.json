@@ -248,7 +248,8 @@
     "restaurar": "Restaurar",
     "oculta": "Oculta",
     "editada": "Editada tras publicarse",
-    "sinPermisos": "Tu cuenta no tiene permisos de moderacion."
+    "sinPermisos": "Tu cuenta no tiene permisos de moderacion.",
+    "denunciada": "Denunciada por varias personas"
   },
   "participacion": {
     "guardarFavorito": "Guardar en favoritos",
@@ -465,5 +466,52 @@
     "avisoClonado": "El clon copia el contenido pero NO la fecha: nace como borrador para que revises las fechas del anio nuevo antes de publicarlo.",
     "etiquetaTipo": "Tipo",
     "etiquetaEstado": "Estado"
+  },
+  "panel": {
+    "metricas": "Métricas",
+    "cargando": "Cargando…",
+    "errorCarga": "No se pudieron cargar los datos.",
+    "sinPermisos": "Esta sección es solo para administradores. Tu cuenta no tiene ese permiso.",
+    "sinDatos": "Todavía no hay datos.",
+    "verTabla": "Ver los datos en tabla",
+    "fecha": "Fecha",
+    "valor": "Valor",
+    "visitasPorDia": "Visitas por día",
+    "visitasPorDiaAyuda": "Últimos 30 días. Recargar una página no suma otra visita.",
+    "registrosPorDia": "Registros por día",
+    "registrosPorDiaAyuda": "Cuentas nuevas de los últimos 30 días.",
+    "lugaresPorCategoria": "Lugares por categoría",
+    "visitasPorSeccion": "Visitas por sección",
+    "total": {
+      "usuarios": "Usuarios",
+      "lugares": "Lugares",
+      "eventos": "Eventos",
+      "resenas": "Reseñas",
+      "fotos": "Fotos",
+      "reportes": "Reportes",
+      "checkIns": "Check-ins",
+      "visitas": "Visitas"
+    },
+    "moderacion": "Moderación",
+    "pendientesTotal": "{total, plural, =0 {Nada pendiente} one {Una cosa pendiente} other {# cosas pendientes}}",
+    "bandeja": {
+      "fotos": "Fotos",
+      "resenas": "Reseñas",
+      "reportes": "Reportes ciudadanos"
+    },
+    "usuarios": "Usuarios ({total})",
+    "rol": "Rol",
+    "rolNombre": {
+      "VISITANTE": "Visitante",
+      "USUARIO": "Usuario",
+      "NEGOCIO": "Negocio",
+      "ADMIN": "Administrador"
+    },
+    "tuCuenta": "Es tu cuenta: tu rol solo lo puede cambiar otro administrador",
+    "suspender": "Suspender",
+    "reactivar": "Reactivar",
+    "actividad": "Registro de actividad",
+    "actividadAyuda": "Quién hizo qué y desde dónde. Aquí sí se guarda la IP: es auditoría interna de quien administra.",
+    "sinActividad": "Todavía no hay acciones registradas."
   }
 }

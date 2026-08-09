@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,13 +49,26 @@ public interface FotoRepository extends JpaRepository<Foto, UUID> {
     List<Foto> findByUsuarioIdAndLugarIdConAutor(@Param("usuarioId") UUID usuarioId,
                                                  @Param("lugarId") UUID lugarId);
 
-    /** Bandeja de moderacion con lugar y autor, para no disparar N+1 (RF-49). */
+    /**
+     * Bandeja de moderacion con lugar y autor, para no disparar N+1 (RF-49).
+     *
+     * <p>Recibe una <strong>lista</strong> de estados desde el Bloque 10. Antes
+     * aceptaba uno solo y la bandeja pedia {@code PENDIENTE}, de modo que una
+     * foto que llegaba a {@code EN_REVISION} por acumular tres denuncias
+     * desaparecia de la galeria publica y <strong>no entraba en ninguna cola</strong>:
+     * quedaba invisible para todos, incluido quien tenia que juzgarla. Era el
+     * cabo suelto anotado en el Bloque 7.</p>
+     *
+     * <p>Se ordena por estado antes que por fecha para que las denunciadas
+     * encabecen la cola: una foto que tres personas señalaron corre mas prisa
+     * que una recien subida.</p>
+     */
     @Query("""
             SELECT f FROM Foto f
             JOIN FETCH f.usuario
             JOIN FETCH f.lugar
-            WHERE f.estado = :estado
-            ORDER BY f.createdAt ASC
+            WHERE f.estado IN :estados
+            ORDER BY f.estado DESC, f.createdAt ASC
             """)
-    List<Foto> pendientesConDetalle(@Param("estado") EstadoFoto estado, Pageable pageable);
+    List<Foto> pendientesConDetalle(@Param("estados") Collection<EstadoFoto> estados, Pageable pageable);
 }

@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
+import { RegistrarVisita } from "@/components/RegistrarVisita";
 import { ClimaDelEvento } from "@/components/agenda/ClimaDelEvento";
 import { CuentaRegresiva } from "@/components/agenda/CuentaRegresiva";
 import { colorDeTipo } from "@/components/agenda/TarjetaEvento";
@@ -56,6 +57,7 @@ export default async function PaginaEvento({
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-2xl flex-col gap-6 px-5 py-10">
+      <RegistrarVisita tipo="EVENTO" />
       <Link
         href="/agenda"
         className="press w-fit text-fluid-sm font-medium text-text-muted underline-offset-4 hover:underline"

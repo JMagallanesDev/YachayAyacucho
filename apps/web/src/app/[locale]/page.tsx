@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { RegistrarVisita } from "@/components/RegistrarVisita";
 import { ProximosEventos } from "@/components/agenda/ProximosEventos";
 import { obtenerSalud } from "@/lib/api";
 import { env } from "@/lib/env";
@@ -43,6 +44,7 @@ export default async function PaginaInicio({
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-2xl flex-col gap-8 px-5 py-12">
+      <RegistrarVisita tipo="HOME" />
       <header className="flex flex-col gap-3">
         <span className="text-fluid-sm font-medium uppercase tracking-widest text-accent">
           {t("etiqueta")}

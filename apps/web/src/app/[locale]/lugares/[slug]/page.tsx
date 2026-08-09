@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { RegistrarVisita } from "@/components/RegistrarVisita";
 import { AntesDeIr } from "@/components/lugares/AntesDeIr";
 import { BadgeApertura } from "@/components/lugares/BadgeApertura";
 import { GaleriaInmersiva } from "@/components/lugares/GaleriaInmersiva";
@@ -88,6 +89,7 @@ export default async function PaginaLugar({
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-8 px-5 py-8">
+      <RegistrarVisita tipo="LUGAR" />
       <nav>
         <Link href="/lugares" className="text-fluid-sm text-text-muted underline-offset-4 hover:underline">
           {t("volverAlListado")}

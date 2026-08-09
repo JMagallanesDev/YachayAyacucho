@@ -16,7 +16,7 @@ import type { FotoModeracion, ResenaModeracion } from "@/types/resena";
  * quien no es administrador solo por cortesia, nunca como medida de
  * seguridad.</p>
  */
-export function Moderacion() {
+export function Moderacion({ solo }: { solo?: "fotos" | "resenas" } = {}) {
   const t = useTranslations("moderacion");
   const { comprobando } = useSesionRequerida();
 
@@ -89,10 +89,15 @@ export function Moderacion() {
     );
   }
 
+  // `solo` lo pasa la bandeja unificada del Bloque 10 para mostrar una pestana
+  // cada vez. Sin el, se pintan las dos, que es como se usaba hasta ahora.
+  const muestraFotos = solo === undefined || solo === "fotos";
+  const muestraResenas = solo === undefined || solo === "resenas";
+
   return (
     <div className="flex flex-col gap-8" data-testid="moderacion">
       {/* ---- Fotos pendientes (RF-49) --------------------------------- */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3" hidden={!muestraFotos}>
         <h2 className="text-fluid-xl font-semibold text-text">
           {t("fotosPendientes", { total: fotos.length })}
         </h2>
@@ -107,8 +112,22 @@ export function Moderacion() {
               <li
                 key={foto.id}
                 data-testid="foto-pendiente"
+                data-estado={foto.estado}
                 className="flex flex-col gap-2 rounded-card border border-border-base bg-surface p-3"
               >
+                {/* Una foto EN_REVISION llego aqui porque tres personas la
+                    denunciaron (RF-45), no porque acabe de subirse. Merece
+                    mirarse antes y con otro criterio, asi que se marca. Antes
+                    del Bloque 10 ni siquiera entraba en esta cola. */}
+                {foto.estado === "EN_REVISION" && (
+                  <span
+                    data-testid="foto-denunciada"
+                    className="w-fit rounded-full bg-danger-subtle px-2.5 py-1 text-fluid-sm font-medium text-text"
+                  >
+                    {t("denunciada")}
+                  </span>
+                )}
+
                 {/* Sin transformar: quien modera necesita ver la imagen tal
                     cual se subio, no una version recortada. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -147,7 +166,7 @@ export function Moderacion() {
       </section>
 
       {/* ---- Reseñas (RF-50) ------------------------------------------ */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3" hidden={!muestraResenas}>
         <h2 className="text-fluid-xl font-semibold text-text">{t("resenas")}</h2>
 
         {resenas.length === 0 ? (

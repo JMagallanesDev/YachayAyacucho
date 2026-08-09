@@ -51,6 +51,9 @@ class PlanEjecucionIndicesTest extends BasePostgis {
         jdbc.execute("DELETE FROM lugar_traduccion");
         jdbc.execute("DELETE FROM evento");
         jdbc.execute("DELETE FROM lugar");
+        // La bitacora de administracion (RF-56, Bloque 10) referencia al
+        // usuario, asi que hay que vaciarla antes de borrar cuentas.
+        jdbc.execute("DELETE FROM registro_actividad");
         jdbc.execute("DELETE FROM usuario");
 
         // 5.000 lugares repartidos por las 8 categorias y los 119 distritos,

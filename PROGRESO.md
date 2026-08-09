@@ -5,8 +5,8 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 9 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 10 — Panel de administración completo.
+- **Bloque en curso:** ninguno (Bloque 10 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 11 — Directorio de negocios, slider geolocalizado y compartir.
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
@@ -24,7 +24,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 | 7 — Favoritos, check-in, pasaporte, reportes | ✅ Completado | Favoritos guardados en el servidor con corazón optimista (RF-35, RF-95) y `/perfil/favoritos`; check-in por GPS validado en el backend con PostGIS sobre `geography`, **cuatro barreras** (radio 150 m, precisión mínima, enfriamiento de 24 h y detección de salto imposible) y el punto enviado guardado para auditoría; motor de insignias que **interpreta el criterio JSONB** y concede **en la misma transacción** que la visita; pasaporte con sellos, las 8 insignias —obtenidas y por obtener— y progreso por ruta **calculado al vuelo**, más diploma compartible; reportes de contenido con XOR de las dos FK y paso a `EN_REVISION` al tercero; seed de 29 check-ins que llena el ranking «más visitados». **210 tests** + 14 comprobaciones en navegador real | — |
 | 8 — Preservación ciudadana | ✅ Completado | Denuncia de daños al patrimonio con **anonimato real por diseño**: un `@PrePersist` en la entidad borra `usuario_id`, `nombre_reportante` y la auditoría (`created_by`/`updated_by`) antes de que la fila toque el disco, de modo que la garantía no depende de que nadie olvide un `if`; anti-spam **sin identidad**, con HMAC-SHA256 de la IP bajo una sal aleatoria que vive solo en memoria y rota cada día, guardado únicamente en Redis con TTL de 24 h; las fotos se **recodifican para borrar el EXIF** (y con él el GPS y el modelo del móvil) antes de subirlas; formulario de un solo paso con los 7 tipos como botones, GPS con pin ajustable y anónimo por defecto; validación de coordenadas dentro de Ayacucho; mapa público que solo muestra lo **aprobado o resuelto**; bandeja de moderación con los 5 estados y notas internas que el API nunca devuelve en público; y activación de la insignia `GUARDIAN`, que solo cuenta reportes **identificados**. **225 tests** + 21 comprobaciones en navegador real | — |
 | 9 — Agenda cultural | ✅ Completado | Calendario mensual con la rejilla construida sobre `Date.UTC` y **el mes y el filtro en la URL**, de modo que los botones de mes son enlaces y la vista se comparte; ficha de evento con clima; **clonado anual que copia la plantilla pero nunca la fecha vieja** —la Semana Santa es móvil— y nace en BORRADOR, con `evento_origen_id` (migración V16) para no crear gemelos; los eventos de varios días aparecen en todos sus días por una consulta de solape; «próximos eventos» en la portada con cuenta regresiva; «Durante mi visita» con las fechas en cookie leída por el servidor; y clima con **cuatro estados explícitos**, ninguno de ellos un error: pronóstico, temporada cuando aún falta mucho, no disponible y pasado. Todo el manejo de fechas pasa por `lib/fechas.ts`, que fija UTC al formatear. **270 tests** + 23 comprobaciones en navegador real, incluida **la misma fecha vista desde tres husos separados por 25 horas** | — |
-| 10 — Panel de administración | Pendiente | — | — |
+| 10 — Panel de administración | ✅ Completado | Panel **cerrado por defecto**: `/admin/**` exige rol ADMIN en `SecurityConfig` como primera regla, además de los `@PreAuthorize` de cada clase, y **un test enumera los 22 endpoints desde el mapa de handlers de Spring y ataca cada uno** con un usuario normal (403) y sin credenciales (401); dashboard con cuatro gráficos Chart.js cargados por import dinámico, cada uno con su tabla plegada; analítica de tráfico **sin un solo identificador personal** —huella HMAC de sal rotatoria compartida con el Bloque 8, unicidad por HyperLogLog en Redis, ventana anti-recarga de 30 min y `UPSERT` atómico—; gestión de usuarios con las dos barreras (nadie se cambia su propio rol, nunca cero administradores activos) y un DTO que **no tiene campo de contraseña**; CRUD de rutas con paradas numeradas por su posición; bitácora RF-56 con llamadas explícitas y la IP del administrador; y las tres bandejas de moderación unificadas en pestañas con contador, cerrando el cabo del Bloque 7: **la foto en `EN_REVISION` por fin entra en la cola**. **362 tests** + 20 comprobaciones en navegador real | — |
 | 11 — Directorio, slider geolocalizado, compartir | Pendiente | — | — |
 | 12 — Identidad visual y cierre de alcance | Pendiente | — | — |
 | 13 — Pulido: performance, SEO, accesibilidad, testing | Pendiente | — | — |
@@ -198,6 +198,166 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 10 — Panel de administración
+
+### El blindaje del panel (la prueba para la defensa)
+
+La protección tiene tres capas, y **la tercera es la única que no envejece**:
+
+| Capa | Qué aporta |
+|---|---|
+| `.requestMatchers("/admin/**").hasRole("ADMIN")`, como **primera** regla de `SecurityConfig` | Las reglas se evalúan en orden, así que ningún patrón público posterior puede abrir por accidente una ruta del panel. Un controlador nuevo que olvide la anotación queda cubierto igual |
+| `@PreAuthorize("hasRole('ADMIN')")` en cada clase | La restricción viaja con el código; si mañana alguien reorganiza las rutas, sigue ahí |
+| **Un test que enumera los endpoints por sí solo** | La garantía deja de depender de que nadie se olvide |
+
+Ese tercer test es el que importa. No comprueba una lista escrita a mano —esa lista
+envejece el mismo día que se añade un endpoint—, sino que **le pide a Spring su
+`RequestMappingHandlerMapping`**, el mismo mapa con el que despacha las peticiones, se
+queda con los handlers que cuelgan de `/admin` y los somete a tres pruebas: sin
+credenciales debe dar **401**, con un usuario normal **403**, y su código debe declarar
+`hasRole('ADMIN')`. El día que alguien añada `/admin/loquesea` sin protegerlo, el test lo
+descubre solo.
+
+**En navegador real la lista tampoco está escrita a mano**: sale del OpenAPI que publica
+el propio servidor. Salida literal de la última ejecución:
+
+```
+─── PRUEBA DE INTRUSION: UN USUARIO NORMAL CONTRA CADA PUERTA ───
+cuenta usada: intruso-…@yachay-ayacucho.pe (rol USUARIO)
+
+403  PUT /admin/rutas/{id}          403  GET /admin/eventos
+403  DELETE /admin/rutas/{id}       403  POST /admin/eventos
+403  PUT /admin/eventos/{id}        403  POST /admin/eventos/{id}/clonar
+403  DELETE /admin/eventos/{id}     403  PATCH /admin/usuarios/{usuarioId}
+403  GET /admin/rutas               403  GET /admin/usuarios
+403  POST /admin/rutas              403  GET /admin/resumen
+403  POST /admin/reportes/{id}/estado          403  GET /admin/reportes
+403  POST /admin/moderacion/resenas/{id}/restaurar  403  GET /admin/moderacion/resenas
+403  POST /admin/moderacion/resenas/{id}/ocultar    403  GET /admin/moderacion/fotos
+403  POST /admin/moderacion/fotos/{id}/rechazar     403  GET /admin/dashboard
+403  POST /admin/moderacion/fotos/{id}/aprobar      403  GET /admin/actividad
+─────────────────────────────────────────────────────────────────
+22/22 rechazadas · y 22/22 devuelven 401 sin credenciales
+```
+
+Y forzando `/es/admin` en el navegador, el intruso ve un aviso y **ningún dato**: ni
+métricas, ni bandejas, ni usuarios, ni bitácora. El `proxy.ts` solo comprueba que exista
+una cookie —es lo único que puede saber sin llamar al API—; quien deniega de verdad es el
+backend.
+
+### Analítica que cuenta sin saber a quién
+
+La migración V10 ya dejaba escrito el principio: **los eventos crudos no se persisten**.
+Solo existen dos enteros por sección y día. Sobre eso:
+
+- **Las visitas únicas salen de un HyperLogLog de Redis.** Es la pieza que hace posible
+  contar personas distintas sin saber quiénes son: un HLL no almacena los elementos que
+  se le añaden, sino un boceto probabilístico de unos 12 KB del que **no se puede extraer
+  ni enumerar a nadie** —solo preguntar cuántos hubo, con ~0,8 % de error—. La privacidad
+  deja de ser una promesa operativa y pasa a ser una propiedad de la estructura de datos.
+- **La huella es HMAC con sal rotatoria en memoria**, la misma técnica del Bloque 8. Se
+  **extrajo a `HuellaAnonima`** para que no hubiera dos implementaciones del mismo
+  mecanismo criptográfico en paquetes distintos, que es la forma segura de que una de las
+  dos se degrade con el tiempo sin que nadie lo note.
+- **El throttling son 30 minutos por huella y sección.** Verificado en navegador: cuatro
+  cargas de la portada suman **una** visita.
+- **`INSERT … ON CONFLICT DO UPDATE`**, un solo enunciado atómico sobre el `UNIQUE` que ya
+  traía la tabla. Sin `SELECT` previo: con varias instancias, leer-y-después-escribir
+  perdería visitas cada vez que dos peticiones coincidieran.
+
+Un test comprueba contra `information_schema` que las dos tablas no tienen ninguna columna
+de IP, usuario o sesión, y otro que **no existe ninguna tabla de eventos crudos**.
+
+**La distinción con el audit log, que conviene tener clara en la defensa:** ahí la IP
+**sí** se guarda. No es contradicción. Un reporte ciudadano es una denuncia cuya
+protección es el objetivo; el `registro_actividad` es un administrador **identificado**
+ejerciendo privilegios sobre contenido ajeno, y la fila ya lleva su `usuario_id`, así que
+la IP no añade identificabilidad —eso ya estaba— sino trazabilidad de desde dónde se
+ejerció ese poder.
+
+### Las dos barreras de la gestión de usuarios
+
+Un panel es un sitio donde un clic distraído puede dejar el sistema inservible:
+
+1. **Nadie se cambia el rol a sí mismo.** Quitarse ADMIN es irreversible desde dentro: en
+   cuanto vuelve la respuesta, el panel deja de responderte. Devuelve **422** — no es que
+   falte permiso, es que la operación en sí es inaceptable.
+2. **Nunca se llega a cero administradores activos.** Devuelve **409**. Cuenta
+   administradores **activos**, no solo con rol ADMIN: *suspender* al último lo deja fuera
+   igual que degradarlo, y contar solo por rol dejaría pasar justo esa vía. Hay un test
+   dedicado a ese camino.
+
+Sobre la contraseña: **el DTO no tiene ese campo**. No es que se oculte, es que el dato no
+entra, así que no puede escaparse en una respuesta, en un log ni en la consola del
+navegador. El test busca el prefijo de BCrypt en el JSON entero del listado.
+
+### El cabo del Bloque 7, cerrado
+
+Una foto que acumulaba tres denuncias pasaba a `EN_REVISION`, desaparecía de la galería
+pública y **no entraba en ninguna cola**: quedaba invisible también para quien tenía que
+juzgarla. La bandeja ahora lista los dos estados, ordena primero las denunciadas —corren
+más prisa que una recién subida— y las marca en la interfaz. La verificación **fabrica una
+foto en ese estado** para que la comprobación no sea vacua (0 = 0) y confirma que aparece
+y que va señalada.
+
+### Sobre los gráficos
+
+Se cargó la skill de visualización y su validador antes de escribir una línea. Dos
+decisiones salieron de ahí:
+
+- **Un solo color por gráfico.** Cada uno pinta una única serie, así que no hay identidades
+  que distinguir. En el reparto por categoría fue además **una decisión forzada por los
+  datos**: el catálogo repite colores —tres categorías comparten el mismo verde—, de modo
+  que colorear por categoría sugeriría una agrupación que no existe. El nombre lleva la
+  identidad; la longitud lleva el dato.
+- **El color se validó, no se eligió a ojo.** `quinua-600` sobre fondo claro y
+  `quinua-500` sobre oscuro pasan las comprobaciones de banda de luminosidad, cromatismo y
+  contraste. La primera combinación que probé falló: dos de los tokens de marca caen por
+  debajo del suelo de cromatismo y se leerían como gris.
+- Barras horizontales y no tartas para los repartos; **cada gráfico ofrece sus datos en
+  tabla**, porque un lienzo es invisible para un lector de pantalla; y Chart.js entra por
+  **import dinámico**, así que sus ~200 KB no los paga nadie fuera de `/admin`.
+
+### Dos fallos reales que la verificación destapó
+
+**1. Rompí quince tests que ya funcionaban.** Al conectar la bitácora a la moderación, la
+FK `registro_actividad → usuario` empezó a bloquear el `DELETE FROM usuario` del
+`@BeforeEach` de media suite. La FK está haciendo lo correcto —un log de auditoría debe
+impedir que se borre al autor de una acción— así que la corrección fue en los tests, no en
+el esquema: vaciar la bitácora antes de borrar cuentas.
+
+**2. Dos consultas mías estaban mal, y las descubrió el mismo tipo de error.** `resena` no
+tiene columna `deleted_at` —su baja lógica es el estado `ELIMINADA`— y mi `COUNT` reventaba
+el dashboard entero. Y en la verificación de navegador, buscar columnas «con ip» por
+subcadena marcaba `t-ip-o_pagina` como sospechosa: **exactamente la misma trampa del
+Bloque 8**, que ya había documentado y volví a pisar. Ahora compara palabras completas.
+
+### Una nota honesta sobre el alcance
+
+- **La analítica por negocio (`VisitaNegocioDiario`) está construida pero sin datos.** Su
+  FK apunta a `negocio`, y el directorio llega en el Bloque 11. El endpoint y el `UPSERT`
+  funcionan; simplemente no hay negocios que visitar todavía.
+- **El audit log se hizo con llamadas explícitas, no con `@EntityListeners`.** El encargo
+  decía que estaban «ya preparados», pero no existían: lo que hay es `JpaAuditoriaConfig`,
+  que rellena `created_by`/`updated_by`. Y para RF-56 las llamadas explícitas son mejores:
+  una bitácora quiere decir *«la admin Rosa rechazó la foto X»*, y esa intención no está en
+  el diff de la fila —un listener solo ve que `estado` cambió—.
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 362 tests, 0 fallos** (92 nuevos) |
+| Blindaje | 22 endpoints enumerados por Spring × 3 pruebas cada uno: 401 sin token, 403 con usuario normal, y `hasRole('ADMIN')` declarado en el código |
+| Usuarios | Autocambio de rol → 422; degradar al último admin → 409; **suspenderlo también** → 409; el listado no contiene `$2a$` ni la palabra `password` |
+| Analítica | Una visita cuenta; cinco recargas cuentan una; dos visitantes cuentan dos; secciones independientes; sin columnas identificadoras; sin tabla de eventos crudos; la huella de Redis no contiene la IP |
+| Dashboard | Los ocho totales; series de 30 días **sin huecos**; los registros del día en su punto |
+| Rutas | Paradas numeradas 1-2-3 por posición; reordenar reordena; parada repetida → 400; una sola parada → 400; el alta queda auditada |
+| `pnpm lint` / `type-check` / `build` | Sin errores |
+| **Navegador real** | **20/20 comprobaciones.** Las 22 puertas rechazadas una por una, el intruso sin ver ningún dato al forzar la URL, cuatro cargas → una visita, los cuatro gráficos dibujados con sus cuatro tablas, las tres bandejas con contador, la foto denunciada en la cola, las dos barreras forzadas desde el API, y la bitácora con la IP del administrador. **Consola limpia** |
 
 ---
 

@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { RegistrarVisita } from "@/components/RegistrarVisita";
 import { TarjetaClima } from "@/components/clima/TarjetaClima";
 import { BannerProximidad } from "@/components/mapa/BannerProximidad";
 import { MapaCargable } from "@/components/mapa/MapaCargable";
@@ -49,6 +50,7 @@ export default async function PaginaMapa({
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-6xl flex-col gap-8 px-5 py-10">
+      <RegistrarVisita tipo="MAPA" />
       <header className="flex flex-col gap-2">
         <h1 className="text-fluid-3xl font-bold text-text">{t("titulo")}</h1>
         <p className="text-fluid-base text-text-muted">{t("descripcion")}</p>

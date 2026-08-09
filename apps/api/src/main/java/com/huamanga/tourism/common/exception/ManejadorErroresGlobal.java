@@ -4,7 +4,9 @@ import com.huamanga.tourism.auth.exception.CredencialesInvalidasException;
 import com.huamanga.tourism.auth.exception.EmailYaRegistradoException;
 import com.huamanga.tourism.auth.exception.RefreshTokenInvalidoException;
 import com.huamanga.tourism.checkin.service.ValidadorProximidad;
+import com.huamanga.tourism.admin.service.GestionUsuariosService;
 import com.huamanga.tourism.common.seguridad.AntiSpam;
+import com.huamanga.tourism.ruta.service.AdminRutaService;
 import com.huamanga.tourism.evento.service.AdminEventoService;
 import com.huamanga.tourism.evento.service.EventoService;
 import com.huamanga.tourism.moderacion.service.ReporteContenidoService;
@@ -254,6 +256,36 @@ public class ManejadorErroresGlobal extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AdminEventoService.FechaDeClonIncoherenteException.class)
     public ProblemDetail manejarFechaDeClon(HttpServletRequest peticion) {
         return construir(HttpStatus.BAD_REQUEST, "clon-fecha-incoherente", peticion);
+    }
+
+    // ---------------------------------------------------------------
+    //  Bloque 10: panel de administracion
+    // ---------------------------------------------------------------
+
+    /**
+     * Intento de cambiarse el rol a uno mismo.
+     *
+     * <p>422 y no 403: no es que falte permiso —lo tiene— sino que la operacion
+     * en si misma es inaceptable, porque es irreversible desde dentro.</p>
+     */
+    @ExceptionHandler(GestionUsuariosService.NoPuedesCambiarteElRolException.class)
+    public ProblemDetail manejarAutocambioDeRol(HttpServletRequest peticion) {
+        return construir(HttpStatus.UNPROCESSABLE_CONTENT, "autocambio-de-rol", peticion);
+    }
+
+    @ExceptionHandler(GestionUsuariosService.UltimoAdministradorException.class)
+    public ProblemDetail manejarUltimoAdministrador(HttpServletRequest peticion) {
+        return construir(HttpStatus.CONFLICT, "ultimo-administrador", peticion);
+    }
+
+    @ExceptionHandler(AdminRutaService.SlugDeRutaDuplicadoException.class)
+    public ProblemDetail manejarSlugDeRutaDuplicado(HttpServletRequest peticion) {
+        return construir(HttpStatus.CONFLICT, "slug-ruta-duplicado", peticion);
+    }
+
+    @ExceptionHandler(AdminRutaService.ParadaRepetidaException.class)
+    public ProblemDetail manejarParadaRepetida(HttpServletRequest peticion) {
+        return construir(HttpStatus.BAD_REQUEST, "parada-repetida", peticion);
     }
 
     /**

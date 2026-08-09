@@ -43,6 +43,17 @@ public class RutaService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("ruta", slug));
     }
 
+    /**
+     * La misma conversion, abierta al panel de administracion (Bloque 10).
+     *
+     * <p>{@code AdminRutaService} necesita devolver la ruta que acaba de guardar
+     * con la forma exacta que ve el publico. Duplicar la conversion alli habria
+     * dejado dos versiones que se separan con el tiempo.</p>
+     */
+    public RutaResponse aRespuestaPublica(RutaTematica ruta, Idioma idioma) {
+        return aRespuesta(ruta, idioma);
+    }
+
     private RutaResponse aRespuesta(RutaTematica ruta, Idioma idioma) {
         var traduccion = ruta.getTraducciones().stream()
                 .filter(t -> t.getId().getIdioma() == idioma)

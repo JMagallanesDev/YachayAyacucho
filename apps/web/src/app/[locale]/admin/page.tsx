@@ -1,9 +1,10 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { BandejasUnificadas } from "./BandejasUnificadas";
 import { GestionEventos } from "./GestionEventos";
-import { Moderacion } from "./Moderacion";
-import { ModeracionReportes } from "./ModeracionReportes";
-import { ResumenAdmin } from "./ResumenAdmin";
+import { GestionUsuarios } from "./GestionUsuarios";
+import { PanelMetricas } from "./PanelMetricas";
+import { RegistroActividad } from "./RegistroActividad";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -12,11 +13,17 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 /**
- * Panel de administracion. El dashboard completo llega en el Bloque 10.
+ * Panel de administracion completo (Bloque 10).
  *
- * El `proxy.ts` impide entrar sin cookie de sesion, pero eso solo evita
- * mostrar el cascaron: quien llegue aqui sin rol ADMIN vera el titulo y un
- * mensaje de acceso denegado, porque el backend responde 403 a la llamada.
+ * <p><strong>Que esta pagina se pinte no autoriza nada.</strong> El
+ * {@code proxy.ts} solo comprueba que exista una cookie de sesion, que es lo
+ * unico que puede saber sin llamar al API; y cada seccion de aqui hace su propia
+ * peticion, que el backend responde con 403 a quien no tenga rol ADMIN. Un
+ * usuario normal que fuerce esta URL vera el titulo y un aviso, nunca datos.</p>
+ *
+ * <p>El orden no es casual: primero lo que informa (metricas), despues lo que
+ * exige accion (moderacion), luego la gestion, y al final la bitacora, que se
+ * consulta cuando se busca algo concreto.</p>
  */
 export default async function PaginaAdmin({
   params,
@@ -28,12 +35,14 @@ export default async function PaginaAdmin({
   const t = await getTranslations("admin");
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-4xl flex-col gap-8 px-5 py-12">
+    <main className="mx-auto flex min-h-svh w-full max-w-5xl flex-col gap-10 px-5 py-12">
       <h1 className="text-fluid-2xl font-bold text-text">{t("titulo")}</h1>
-      <ResumenAdmin />
+
+      <PanelMetricas />
+      <BandejasUnificadas />
       <GestionEventos />
-      <Moderacion />
-      <ModeracionReportes />
+      <GestionUsuarios />
+      <RegistroActividad />
     </main>
   );
 }

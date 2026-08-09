@@ -60,6 +60,9 @@ class AgendaCulturalTest extends BasePostgis {
         jdbc.execute("DELETE FROM evento_traduccion");
         jdbc.execute("DELETE FROM evento");
         jdbc.execute("DELETE FROM refresh_token");
+        // La bitacora de administracion (RF-56, Bloque 10) referencia al
+        // usuario, asi que hay que vaciarla antes de borrar cuentas.
+        jdbc.execute("DELETE FROM registro_actividad");
         jdbc.execute("DELETE FROM usuario");
 
         distrito = jdbc.queryForObject(

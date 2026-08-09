@@ -1,5 +1,6 @@
 package com.huamanga.tourism.moderacion.service;
 
+import com.huamanga.tourism.admin.service.RegistroActividadService;
 import com.huamanga.tourism.common.exception.RecursoNoEncontradoException;
 import com.huamanga.tourism.foto.domain.EstadoFoto;
 import com.huamanga.tourism.foto.domain.Foto;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -39,25 +41,41 @@ public class ModeracionService {
     private final ResenaRepository resenaRepository;
     private final ClienteCloudinary cloudinary;
     private final ApplicationEventPublisher eventos;
+    private final RegistroActividadService auditoria;
 
     public ModeracionService(FotoRepository fotoRepository,
                              ResenaRepository resenaRepository,
                              ClienteCloudinary cloudinary,
-                             ApplicationEventPublisher eventos) {
+                             ApplicationEventPublisher eventos,
+                             RegistroActividadService auditoria) {
         this.fotoRepository = fotoRepository;
         this.resenaRepository = resenaRepository;
         this.cloudinary = cloudinary;
         this.eventos = eventos;
+        this.auditoria = auditoria;
     }
 
     // ---------------------------------------------------------------
     //  Fotos (RF-49)
     // ---------------------------------------------------------------
 
+    /**
+     * Cola de fotos por revisar.
+     *
+     * <p>Incluye {@code EN_REVISION} ademas de {@code PENDIENTE} desde el Bloque
+     * 10. Una foto llega al primer estado por acumular tres denuncias (RF-45), y
+     * hasta ahora eso la sacaba de la galeria publica <strong>sin meterla en
+     * ninguna cola</strong>: quedaba en tierra de nadie, invisible tambien para
+     * quien debia juzgarla. El {@code estado} viaja en la respuesta para que el
+     * panel pueda distinguir «recien subida» de «denunciada por tres personas»,
+     * que no merecen la misma atencion.</p>
+     */
     @Transactional(readOnly = true)
     public List<FotoModeracionResponse> fotosPendientes() {
         return fotoRepository
-                .pendientesConDetalle(EstadoFoto.PENDIENTE, PageRequest.of(0, TAMANO_BANDEJA))
+                .pendientesConDetalle(
+                        List.of(EstadoFoto.PENDIENTE, EstadoFoto.EN_REVISION),
+                        PageRequest.of(0, TAMANO_BANDEJA))
                 .stream()
                 .map(foto -> new FotoModeracionResponse(
                         foto.getId(),
@@ -72,9 +90,15 @@ public class ModeracionService {
     @Transactional
     public void aprobarFoto(UUID fotoId) {
         Foto foto = buscarFoto(fotoId);
+        EstadoFoto anterior = foto.getEstado();
+
         foto.setEstado(EstadoFoto.APROBADA);
         foto.setMotivoRechazo(null);
         fotoRepository.save(foto);
+
+        auditoria.registrar("APROBAR_FOTO", "Foto", fotoId, Map.of(
+                "lugar", foto.getLugar().getSlug(),
+                "estadoAnterior", anterior.name()));
 
         // La ficha del lugar esta cacheada con ISR: sin este aviso, la foto
         // recien aprobada no aparecetria hasta que caducara el cache.
@@ -103,9 +127,16 @@ public class ModeracionService {
                     fotoId, foto.getCloudinaryPublicId());
         }
 
+        EstadoFoto anterior = foto.getEstado();
         foto.setEstado(EstadoFoto.RECHAZADA);
         foto.setMotivoRechazo(motivo != null && !motivo.isBlank() ? motivo.trim() : null);
         fotoRepository.save(foto);
+
+        auditoria.registrar("RECHAZAR_FOTO", "Foto", fotoId, Map.of(
+                "lugar", foto.getLugar().getSlug(),
+                "estadoAnterior", anterior.name(),
+                "motivo", foto.getMotivoRechazo() == null ? "" : foto.getMotivoRechazo(),
+                "binarioBorrado", String.valueOf(borrada)));
     }
 
     // ---------------------------------------------------------------
@@ -152,8 +183,15 @@ public class ModeracionService {
         Resena resena = resenaRepository.findById(resenaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("resena", resenaId.toString()));
 
+        EstadoResena anterior = resena.getEstado();
         resena.setEstado(estado);
         resenaRepository.save(resena);
+
+        auditoria.registrar(
+                estado == EstadoResena.OCULTA ? "OCULTAR_RESENA" : "RESTAURAR_RESENA",
+                "Resena", resenaId, Map.of(
+                        "lugar", resena.getLugar().getSlug(),
+                        "estadoAnterior", anterior.name()));
 
         eventos.publishEvent(new ContenidoCalificadoEvent(
                 resena.getLugar().getId(), resena.getLugar().getSlug()));

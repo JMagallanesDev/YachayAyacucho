@@ -248,7 +248,8 @@
     "restaurar": "Restore",
     "oculta": "Hidden",
     "editada": "Edited after publishing",
-    "sinPermisos": "Your account does not have moderation permissions."
+    "sinPermisos": "Your account does not have moderation permissions.",
+    "denunciada": "Reported by several people"
   },
   "participacion": {
     "guardarFavorito": "Save to favourites",
@@ -465,5 +466,52 @@
     "avisoClonado": "The clone copies the content but NOT the date: it starts as a draft so you can check next year dates before publishing.",
     "etiquetaTipo": "Type",
     "etiquetaEstado": "Status"
+  },
+  "panel": {
+    "metricas": "Metrics",
+    "cargando": "Loading…",
+    "errorCarga": "The data could not be loaded.",
+    "sinPermisos": "This section is for administrators only. Your account does not have that permission.",
+    "sinDatos": "No data yet.",
+    "verTabla": "View the data as a table",
+    "fecha": "Date",
+    "valor": "Value",
+    "visitasPorDia": "Visits per day",
+    "visitasPorDiaAyuda": "Last 30 days. Reloading a page does not add another visit.",
+    "registrosPorDia": "Sign-ups per day",
+    "registrosPorDiaAyuda": "New accounts over the last 30 days.",
+    "lugaresPorCategoria": "Places by category",
+    "visitasPorSeccion": "Visits by section",
+    "total": {
+      "usuarios": "Users",
+      "lugares": "Places",
+      "eventos": "Events",
+      "resenas": "Reviews",
+      "fotos": "Photos",
+      "reportes": "Reports",
+      "checkIns": "Check-ins",
+      "visitas": "Visits"
+    },
+    "moderacion": "Moderation",
+    "pendientesTotal": "{total, plural, =0 {Nothing pending} one {One item pending} other {# items pending}}",
+    "bandeja": {
+      "fotos": "Photos",
+      "resenas": "Reviews",
+      "reportes": "Citizen reports"
+    },
+    "usuarios": "Users ({total})",
+    "rol": "Role",
+    "rolNombre": {
+      "VISITANTE": "Visitor",
+      "USUARIO": "User",
+      "NEGOCIO": "Business",
+      "ADMIN": "Administrator"
+    },
+    "tuCuenta": "This is your account: only another administrator can change your role",
+    "suspender": "Suspend",
+    "reactivar": "Reactivate",
+    "actividad": "Activity log",
+    "actividadAyuda": "Who did what and from where. The IP is stored here: this is internal auditing of administrators.",
+    "sinActividad": "No actions recorded yet."
   }
 }

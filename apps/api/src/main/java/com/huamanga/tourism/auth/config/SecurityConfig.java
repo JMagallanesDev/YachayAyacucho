@@ -116,6 +116,23 @@ public class SecurityConfig {
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(rutas -> rutas
+                        // EL PANEL ENTERO, CERRADO POR DEFECTO (RNF-16, Bloque 10).
+                        //
+                        // Va lo PRIMERO a proposito: las reglas se evaluan en
+                        // orden y la primera que casa decide, asi que ningun
+                        // patron publico posterior puede abrir por accidente una
+                        // ruta de /admin.
+                        //
+                        // No sustituye a los @PreAuthorize de los controladores,
+                        // los respalda. Un controlador nuevo bajo /admin que
+                        // olvide la anotacion queda protegido igualmente, y un
+                        // dia que alguien mueva las rutas la anotacion sigue
+                        // viajando con el codigo. Hay ademas un test que enumera
+                        // los handlers registrados y ataca cada uno con un
+                        // usuario normal, de modo que la garantia no depende de
+                        // que nadie se olvide.
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+
                         .requestMatchers(HttpMethod.GET, RUTAS_PUBLICAS_GET).permitAll()
                         // /logout es publico a proposito: se autentica con la
                         // cookie, no con el access token. Exigir un access
@@ -130,6 +147,12 @@ public class SecurityConfig {
                         // abuso lo frena AntiSpamAnonimo, que cuenta por origen
                         // sin llegar a guardar la IP.
                         .requestMatchers(HttpMethod.POST, "/reportes").permitAll()
+                        // Anotar una visita tampoco exige cuenta, y tiene que
+                        // ser asi: casi todo el sitio se navega sin registrarse
+                        // (RF-34) y son esas visitas las que interesan medir. El
+                        // endpoint no acepta ningun identificador de quien
+                        // visita, solo la seccion.
+                        .requestMatchers(HttpMethod.POST, "/analitica/**").permitAll()
                         // Preflight de CORS: el navegador lo envia sin
                         // credenciales, no tiene sentido pedirle autenticacion.
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

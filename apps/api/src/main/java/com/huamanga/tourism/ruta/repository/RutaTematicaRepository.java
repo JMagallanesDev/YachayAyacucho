@@ -43,4 +43,21 @@ public interface RutaTematicaRepository extends JpaRepository<RutaTematica, UUID
             WHERE r.slug = :slug AND r.activa = true
             """)
     Optional<RutaTematica> findBySlugConRecorrido(@Param("slug") String slug);
+
+    boolean existsBySlug(String slug);
+
+    /**
+     * Igual que {@code findActivasConRecorrido} pero <strong>sin filtrar por
+     * activa</strong>: es la bandeja del panel (RF-53), donde una ruta
+     * desactivada tiene que verse para poder reactivarla.
+     */
+    @Query("""
+            SELECT DISTINCT r FROM RutaTematica r
+            LEFT JOIN FETCH r.traducciones
+            LEFT JOIN FETCH r.lugares enlace
+            LEFT JOIN FETCH enlace.lugar lugar
+            LEFT JOIN FETCH lugar.traducciones
+            ORDER BY r.orden
+            """)
+    List<RutaTematica> findTodasConRecorrido();
 }
