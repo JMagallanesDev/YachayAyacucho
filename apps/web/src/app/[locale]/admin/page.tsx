@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { GestionEventos } from "./GestionEventos";
 import { Moderacion } from "./Moderacion";
 import { ModeracionReportes } from "./ModeracionReportes";
 import { ResumenAdmin } from "./ResumenAdmin";
@@ -30,6 +31,7 @@ export default async function PaginaAdmin({
     <main className="mx-auto flex min-h-svh w-full max-w-4xl flex-col gap-8 px-5 py-12">
       <h1 className="text-fluid-2xl font-bold text-text">{t("titulo")}</h1>
       <ResumenAdmin />
+      <GestionEventos />
       <Moderacion />
       <ModeracionReportes />
     </main>

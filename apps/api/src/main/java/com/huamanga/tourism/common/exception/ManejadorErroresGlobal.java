@@ -5,6 +5,8 @@ import com.huamanga.tourism.auth.exception.EmailYaRegistradoException;
 import com.huamanga.tourism.auth.exception.RefreshTokenInvalidoException;
 import com.huamanga.tourism.checkin.service.ValidadorProximidad;
 import com.huamanga.tourism.common.seguridad.AntiSpam;
+import com.huamanga.tourism.evento.service.AdminEventoService;
+import com.huamanga.tourism.evento.service.EventoService;
 import com.huamanga.tourism.moderacion.service.ReporteContenidoService;
 import com.huamanga.tourism.foto.service.ClienteCloudinary;
 import com.huamanga.tourism.foto.service.FotoService;
@@ -225,6 +227,33 @@ public class ManejadorErroresGlobal extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AntiSpam.DemasiadasPeticionesException.class)
     public ProblemDetail manejarSpam(HttpServletRequest peticion) {
         return construir(HttpStatus.TOO_MANY_REQUESTS, "demasiadas-peticiones", peticion);
+    }
+
+    // ---------------------------------------------------------------
+    //  Bloque 9: agenda cultural
+    // ---------------------------------------------------------------
+
+    @ExceptionHandler(EventoService.RangoDeViajeInvalidoException.class)
+    public ProblemDetail manejarRangoDeViaje(EventoService.RangoDeViajeInvalidoException error,
+                                             HttpServletRequest peticion) {
+        ProblemDetail problema = construir(HttpStatus.UNPROCESSABLE_CONTENT, "rango-viaje-invalido", peticion);
+        problema.setProperty("motivo", error.getMessage());
+        return problema;
+    }
+
+    @ExceptionHandler(AdminEventoService.EventoNoRecurrenteException.class)
+    public ProblemDetail manejarEventoNoRecurrente(HttpServletRequest peticion) {
+        return construir(HttpStatus.UNPROCESSABLE_CONTENT, "evento-no-recurrente", peticion);
+    }
+
+    @ExceptionHandler(AdminEventoService.ClonDuplicadoException.class)
+    public ProblemDetail manejarClonDuplicado(HttpServletRequest peticion) {
+        return construir(HttpStatus.CONFLICT, "clon-duplicado", peticion);
+    }
+
+    @ExceptionHandler(AdminEventoService.FechaDeClonIncoherenteException.class)
+    public ProblemDetail manejarFechaDeClon(HttpServletRequest peticion) {
+        return construir(HttpStatus.BAD_REQUEST, "clon-fecha-incoherente", peticion);
     }
 
     /**

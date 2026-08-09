@@ -76,7 +76,16 @@ public class SecurityConfig {
             // publicos: el objetivo del modulo es que cualquiera vea el estado
             // del patrimonio de su ciudad sin tener que registrarse.
             "/reportes/tipos",
-            "/reportes/mapa"
+            "/reportes/mapa",
+            // Bloque 9. La agenda cultural es informacion publica de la ciudad:
+            // el calendario, la ficha de un evento y el cruce con las fechas de
+            // un viaje se consultan sin cuenta. Gestionarla es otra cosa y vive
+            // bajo /admin/eventos con @PreAuthorize.
+            "/eventos",
+            "/eventos/**",
+            // Catalogo geografico: alimenta los desplegables de los formularios
+            // de alta. Son los 119 distritos de la region, informacion publica.
+            "/distritos"
     };
 
     private final PropiedadesSeguridad propiedades;

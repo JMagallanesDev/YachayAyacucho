@@ -5,8 +5,8 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 8 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 9 — Agenda cultural.
+- **Bloque en curso:** ninguno (Bloque 9 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 10 — Panel de administración completo.
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
@@ -23,7 +23,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 | 6 — Reseñas, calificaciones, fotos | ✅ Completado | CRUD de reseñas con una sola por persona y lugar, edición y baja lógica **reutilizable**; promedio leído solo de la vista materializada, con **carril rápido de 30 s** para que no tarde 5 min en moverse; subida de fotos a Cloudinary con petición firmada desde el backend, **tres barreras de validación** (tamaño, números mágicos y decodificación real) y transformaciones de entrega `f_auto,q_auto`; galería pública solo con aprobadas; bandejas de moderación de fotos y reseñas en `/admin`, con borrado real del binario **e invalidación del CDN** al rechazar; anti-spam por cuenta en Redis; seed con 6 usuarios y 31 reseñas que hace que los rankings del Bloque 4 por fin ordenen. **185 tests** + 17 comprobaciones en navegador real | — |
 | 7 — Favoritos, check-in, pasaporte, reportes | ✅ Completado | Favoritos guardados en el servidor con corazón optimista (RF-35, RF-95) y `/perfil/favoritos`; check-in por GPS validado en el backend con PostGIS sobre `geography`, **cuatro barreras** (radio 150 m, precisión mínima, enfriamiento de 24 h y detección de salto imposible) y el punto enviado guardado para auditoría; motor de insignias que **interpreta el criterio JSONB** y concede **en la misma transacción** que la visita; pasaporte con sellos, las 8 insignias —obtenidas y por obtener— y progreso por ruta **calculado al vuelo**, más diploma compartible; reportes de contenido con XOR de las dos FK y paso a `EN_REVISION` al tercero; seed de 29 check-ins que llena el ranking «más visitados». **210 tests** + 14 comprobaciones en navegador real | — |
 | 8 — Preservación ciudadana | ✅ Completado | Denuncia de daños al patrimonio con **anonimato real por diseño**: un `@PrePersist` en la entidad borra `usuario_id`, `nombre_reportante` y la auditoría (`created_by`/`updated_by`) antes de que la fila toque el disco, de modo que la garantía no depende de que nadie olvide un `if`; anti-spam **sin identidad**, con HMAC-SHA256 de la IP bajo una sal aleatoria que vive solo en memoria y rota cada día, guardado únicamente en Redis con TTL de 24 h; las fotos se **recodifican para borrar el EXIF** (y con él el GPS y el modelo del móvil) antes de subirlas; formulario de un solo paso con los 7 tipos como botones, GPS con pin ajustable y anónimo por defecto; validación de coordenadas dentro de Ayacucho; mapa público que solo muestra lo **aprobado o resuelto**; bandeja de moderación con los 5 estados y notas internas que el API nunca devuelve en público; y activación de la insignia `GUARDIAN`, que solo cuenta reportes **identificados**. **225 tests** + 21 comprobaciones en navegador real | — |
-| 9 — Agenda cultural | Pendiente | — | — |
+| 9 — Agenda cultural | ✅ Completado | Calendario mensual con la rejilla construida sobre `Date.UTC` y **el mes y el filtro en la URL**, de modo que los botones de mes son enlaces y la vista se comparte; ficha de evento con clima; **clonado anual que copia la plantilla pero nunca la fecha vieja** —la Semana Santa es móvil— y nace en BORRADOR, con `evento_origen_id` (migración V16) para no crear gemelos; los eventos de varios días aparecen en todos sus días por una consulta de solape; «próximos eventos» en la portada con cuenta regresiva; «Durante mi visita» con las fechas en cookie leída por el servidor; y clima con **cuatro estados explícitos**, ninguno de ellos un error: pronóstico, temporada cuando aún falta mucho, no disponible y pasado. Todo el manejo de fechas pasa por `lib/fechas.ts`, que fija UTC al formatear. **270 tests** + 23 comprobaciones en navegador real, incluida **la misma fecha vista desde tres husos separados por 25 horas** | — |
 | 10 — Panel de administración | Pendiente | — | — |
 | 11 — Directorio, slider geolocalizado, compartir | Pendiente | — | — |
 | 12 — Identidad visual y cierre de alcance | Pendiente | — | — |
@@ -198,6 +198,163 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 9 — Agenda cultural
+
+### Las fechas, que era el encargo delicado
+
+El fallo del Bloque 4 —horarios desplazados cinco horas— tenía una versión peor esperando
+en este bloque. `"2027-03-21"` no es un instante: es un día del calendario. Pero
+`new Date("2027-03-21")` **sí** crea un instante, el de la medianoche en UTC, y al pintarlo
+en la zona del navegador sale el **20** de marzo en cualquier huso al oeste de Greenwich —es
+decir, para todo el público de esta aplicación—. En Tokio se vería bien, así que el fallo
+habría sobrevivido a cualquier revisión hecha desde Europa o Asia.
+
+Tres decisiones lo cierran:
+
+| Decisión | Qué garantiza |
+|---|---|
+| En el backend, `LocalDate` de punta a punta y `DATE` en PostgreSQL | Una fecha sin hora no puede desplazarse. Jackson la serializa como `"2027-03-21"` |
+| En el frontend, **todo pasa por `lib/fechas.ts`**, que construye la fecha con `Date.UTC` y formatea con `timeZone: "UTC"` | El día que llegó del servidor es el día que se pinta. Ningún componente convierte una fecha por su cuenta |
+| `TiempoAyacucho.hoy(clock)` en el backend y `hoyEnAyacucho()` en el frontend | «Hoy» es el día **en Huamanga**, no en UTC ni en la zona de quien mira |
+
+Esa última importa más de lo que parece. La JVM corre en UTC desde el Bloque 4, así que
+`LocalDate.now(clock)` devuelve la fecha **UTC**: a partir de las siete de la tarde en
+Ayacucho ya es mañana. Sin corregirlo, una fiesta que se celebra hoy desaparecería de la
+portada esa misma tarde y la cuenta regresiva restaría un día de más — un fallo que solo se
+manifiesta cinco horas al día y que habría pasado todas las pruebas de la mañana.
+Hay un test que lo fija: a las 21:00 de Huamanga, `TiempoAyacucho.hoy()` devuelve hoy
+mientras `LocalDate.now(clock)` ya devuelve mañana.
+
+**La comprobación en navegador real** carga la misma ficha desde tres husos horarios
+—Kiritimati (UTC+14), Lima (UTC−05) y Midway (UTC−11), separados por 25 horas— y compara:
+
+```
+en la base de datos:   2026-03-27
+Kiritimati  (UTC+14):  27 de marzo – 5 de abril de 2026
+Lima        (UTC-05):  27 de marzo – 5 de abril de 2026
+Midway      (UTC-11):  27 de marzo – 5 de abril de 2026
+```
+
+### El clonado anual, y por qué no copia la fecha
+
+**La Semana Santa de Ayacucho es una festividad móvil.** Va atada a la Pascua y se desplaza
+casi un mes de un año a otro; el Carnaval igual. Un clonado que copiara la fecha vieja
+publicaría un dato falso precisamente en la festividad que más gente consulta y que da
+nombre a media tesis.
+
+Lo que se copia es la **plantilla**: nombre, descripción, organizador, tipo, lugar, distrito
+y portada. Lo que no se copia es la fecha. Y de ahí salen tres reglas:
+
+1. **El clon nace en BORRADOR.** Nadie ve unas fechas que una persona no haya confirmado, y
+   la verificación comprueba que el borrador clonado no aparece en el calendario público.
+2. **Se pueden indicar las fechas reales** en la propia petición de clonado.
+3. **Si no se indican, se *proponen*** desplazando el año. Es correcto para una fiesta de
+   fecha fija —el 9 de diciembre lo es— y solo un punto de partida editable para una móvil.
+
+Dos detalles que son los que de verdad rompen un clonado:
+
+- **La duración se conserva, no se desplaza la fecha final por separado.** Del 27 de febrero
+  al 2 de marzo hay 4 días; clonando a un bisiesto y desplazando ambas fechas saldrían 5. Se
+  calcula `fin = inicio + duración`, y hay un test con ese caso exacto.
+- **Las traducciones se copian como filas nuevas.** Su clave primaria es
+  `(evento_id, idioma)`, así que reutilizar las instancias del original no las copiaría: las
+  **movería**, y la edición anterior se quedaría sin texto. Un test comprueba que tras clonar
+  hay dos juegos de traducciones y que el original conserva el suyo.
+
+La columna `evento_origen_id` (migración **V16**, aprobada por el usuario) existe para que
+clonar dos veces al mismo año devuelva 409 en vez de crear dos borradores gemelos que nadie
+distingue.
+
+### El clima de un evento: cuatro estados, ninguno un error
+
+El pronóstico gratuito de OpenWeatherMap llega a cinco días, y **casi todos los eventos de
+una agenda cultural están más lejos**. Es decir: no tener pronóstico es el caso normal, no un
+fallo. Pintarlo en rojo o dejar un hueco con guiones describiría mal lo que pasa —el
+pronóstico no ha fallado, es que todavía no existe—. Por eso la respuesta lleva un estado
+explícito y no un campo nulo que el frontend tenga que interpretar:
+
+| Estado | Cuándo | Qué se ve |
+|---|---|---|
+| `PRONOSTICO` | El evento cae dentro de los 5 días | Mínima, máxima, probabilidad de lluvia y los consejos del Bloque 5 |
+| `FUERA_DE_ALCANCE` | Falta más | Una línea sobria: «Aún faltan 123 días, así que todavía no hay pronóstico. Suele ser época de lluvias» |
+| `NO_DISPONIBLE` | El proveedor no responde | Se dice, sin fingir un dato |
+| `PASADO` | Ya ocurrió | Nada |
+
+**La temporada es cualitativa a propósito.** En la sierra sur llueve de noviembre a marzo y
+la estación es seca de abril a octubre; eso es cierto y le sirve a quien planifica un viaje.
+Decir «hará 18 grados en diciembre» sería inventar. **Si quieres cifras para la defensa,
+deben salir de SENAMHI y citarse** — no de una estimación escrita por mí.
+
+En «Durante mi visita» los dos estados conviven sin que se note la costura: la verificación
+muestra un viaje de 5 días con estados `PRONOSTICO` los primeros y `FUERA_DE_ALCANCE` los
+últimos.
+
+### Tres fallos reales que la verificación destapó
+
+**1. La cookie del viaje nunca llegaba al servidor.** El nombre de la cookie estaba exportado
+desde `SelectorFechasViaje.tsx`, que lleva `"use client"`. Un Server Component puede importar
+de un módulo de cliente, pero **lo que recibe no es el valor**: son referencias que el
+bundler resuelve en el navegador. La página pedía la cookie con algo que en el servidor no
+era la cadena esperada, así que el selector aparecía siempre con las fechas por defecto por
+mucho que el navegador las guardara bien. La constante vive ahora en `lib/viaje.ts`, un
+módulo neutro. **La regla que deja: lo que comparten servidor y cliente no vive en un archivo
+con directiva.**
+
+**2. `agendaAdmin.tipo` era a la vez etiqueta y mapa.** Pedir con `t("tipo")` una clave que
+en realidad es un objeto (`tipo.RELIGIOSO`, `tipo.CIVICO`…) hacía que next-intl lanzara y el
+componente de gestión de eventos **no se renderizara en absoluto**. Las etiquetas pasaron a
+`etiquetaTipo` y `etiquetaEstado`.
+
+**3. Mi propia verificación se estaba engañando.** Esperaba a que existiera el contenedor
+`<ul>` de la bandeja, que se renderiza vacío desde el primer fotograma, y leía «0 eventos»
+como si fuera un resultado. Eso convertía el fallo anterior en un falso negativo silencioso.
+Ahora espera a que haya **contenido**, no contenedor.
+
+### Decisiones de diseño
+
+- **El mes y el filtro en la URL**, no en el estado de React. Los botones de mes son enlaces:
+  funcionan sin JavaScript, la vista se comparte tal cual y el botón «atrás» hace lo que uno
+  espera. Es la misma decisión que los filtros del Bloque 4.
+- **Cookie y no `localStorage`** para las fechas de viaje. El plan (sección 8) decía
+  `localStorage`; la cookie es mejor porque el servidor puede leerla y la página llega ya
+  renderizada, sin parpadeo ni salto de maquetación. La página es la **única `force-dynamic`**
+  del sitio, y está anotado por qué.
+- **Puntos por día, no barras que crucen la rejilla.** Una fiesta de varios días pinta un
+  punto en cada uno de sus días. Las barras son mucho CSS para poco valor en la pantalla que
+  importa, que es la del móvil.
+- **Rejilla de seis semanas siempre**, aunque sobren filas: un alto fijo evita que la página
+  salte al cambiar de mes.
+- **URLs de evento por UUID.** La tabla no tiene columna `slug` y añadirla sería otro cambio
+  al modelo. Es peor para SEO y queda dicho.
+- Se añadió `GET /distritos` (público, 119 filas) porque el formulario de alta lo necesita.
+- `TiempoAyacucho` unifica la zona horaria, que estaba repetida en `ClimaService` y
+  `LugarService`; ahora hay una sola definición.
+
+### Pendiente de tu verificación
+
+> **Las fechas de las tres festividades reales del seed hay que confirmarlas contra fuentes
+> oficiales antes de la sustentación.** Son: Semana Santa 2026 (27 de marzo – 5 de abril),
+> Carnaval Ayacuchano 2027 (6–9 de febrero) y Aniversario de la Batalla de Ayacucho
+> (9 de diciembre). Las dos primeras son móviles y su programa concreto lo publican cada año
+> el Arzobispado y la Municipalidad. Los otros dos eventos del seed están anclados a
+> `CURRENT_DATE` y **marcados como datos de demostración** en su propia descripción: existen
+> para que las dos ramas del clima se puedan enseñar cualquier día del año.
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 270 tests, 0 fallos** (45 nuevos: 43 del bloque más los del clima) |
+| Fechas | A las 21:00 de Huamanga «hoy» sigue siendo hoy; el test comprueba además que lo ingenuo (`LocalDate.now`) ya devuelve mañana |
+| Clonado | Duración preservada al cruzar un bisiesto; 29 de febrero → 28; traducciones como filas nuevas; segundo clon al mismo año → 409; evento no recurrente → 422; fecha de otro año → 400; sin ADMIN → 403 |
+| Calendario | Solo publicados; una fiesta a caballo entre marzo y abril sale en los dos meses; febrero bisiesto llega al 29; los meses vecinos no se cuelan; filtro por tipo |
+| «Durante mi visita» | Entra la fiesta que empezó antes de la llegada; la que acaba un día antes no; rango invertido → 422; más de 30 días → 422 |
+| Clima | Los cuatro estados, incluido el evento en curso (da el tiempo de hoy, no el del día que empezó) y el viaje largo que mezcla pronóstico y temporada |
+| `pnpm lint` / `type-check` / `build` | Sin errores; `/agenda`, `/agenda/[id]` y `/agenda/durante-mi-visita` en es y en |
+| **Navegador real** | **23/23 comprobaciones.** Rejilla de 42 casillas, hoy resaltado y coincidiendo con la base, fiesta de 5 días marcada en sus 5 días, **la misma fecha desde tres husos separados por 25 horas**, las dos ramas del clima, navegación de diciembre a enero de 2027, filtro por tipo, cuenta regresiva en la portada, cruce del viaje con cookie que persiste, y clonado que deja el original intacto. **Consola limpia** |
 
 ---
 

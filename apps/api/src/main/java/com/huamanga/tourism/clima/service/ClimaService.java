@@ -2,6 +2,7 @@ package com.huamanga.tourism.clima.service;
 
 import com.huamanga.tourism.clima.dto.ClimaResponse;
 import com.huamanga.tourism.clima.dto.PronosticoResponse;
+import com.huamanga.tourism.common.tiempo.TiempoAyacucho;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
 @Service
 public class ClimaService {
 
-    public static final ZoneId ZONA_AYACUCHO = ZoneId.of("America/Lima");
+    public static final ZoneId ZONA_AYACUCHO = TiempoAyacucho.ZONA;
 
     private static final String CLAVE_ACTUAL = "clima:actual";
     private static final String CLAVE_PRONOSTICO = "clima:pronostico";

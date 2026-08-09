@@ -67,11 +67,45 @@ public class Evento extends EntidadAuditable {
     @Column(name = "estado", nullable = false, length = 20)
     private EstadoEvento estado = EstadoEvento.BORRADOR;
 
+    /**
+     * Edicion anterior de la que se clono esta (RF-86, migracion V16).
+     *
+     * <p>Sirve para no crear dos borradores gemelos al clonar dos veces el
+     * mismo evento al mismo anio. Es {@code null} en los eventos creados desde
+     * cero, que son la mayoria.</p>
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "evento_origen_id")
+    private Evento eventoOrigen;
+
     @OneToMany(mappedBy = "evento", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<EventoTraduccion> traducciones = new LinkedHashSet<>();
 
     /** Si el evento cae dentro de un rango de fechas de viaje (RF-84b). */
     public boolean ocurreEntre(LocalDate desde, LocalDate hasta) {
         return !fechaInicio.isAfter(hasta) && !fechaFin.isBefore(desde);
+    }
+
+    /**
+     * Cuantos dias dura, contando el primero y el ultimo.
+     *
+     * <p>Un evento de un solo dia dura 1, no 0. Se usa al clonar para conservar
+     * la duracion exacta en vez de desplazar las dos fechas por separado, que
+     * al cruzar un bisiesto puede alargar o acortar la fiesta sin que nadie lo
+     * note.</p>
+     */
+    public long duracionEnDias() {
+        return java.time.temporal.ChronoUnit.DAYS.between(fechaInicio, fechaFin) + 1;
+    }
+
+    /**
+     * Si el evento sigue en marcha o esta por llegar en una fecha dada.
+     *
+     * <p>Un evento de varios dias sigue siendo "actual" hasta su ultimo dia:
+     * la Semana Santa no deja de interesar el Jueves Santo porque empezara el
+     * domingo anterior.</p>
+     */
+    public boolean vigenteEn(LocalDate dia) {
+        return !fechaFin.isBefore(dia);
     }
 }

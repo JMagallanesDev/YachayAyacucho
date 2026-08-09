@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { ProximosEventos } from "@/components/agenda/ProximosEventos";
 import { obtenerSalud } from "@/lib/api";
 import { env } from "@/lib/env";
 import type { ComponenteSalud } from "@/types/health";
@@ -97,6 +98,11 @@ export default async function PaginaInicio({
           </div>
         )}
       </section>
+
+      {/* Proximos eventos con cuenta regresiva (RF-84). Se coloca sobre la
+          paleta porque es contenido para el visitante; lo de abajo es
+          diagnostico del sistema y desaparecera con la portada real. */}
+      <ProximosEventos idioma={locale} />
 
       <section aria-labelledby="titulo-paleta" className="flex flex-col gap-4">
         <h2 id="titulo-paleta" className="text-fluid-lg font-semibold text-text">

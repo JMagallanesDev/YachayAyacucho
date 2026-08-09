@@ -3,6 +3,7 @@ package com.huamanga.tourism.lugar.service;
 import com.huamanga.tourism.common.domain.Idioma;
 import com.huamanga.tourism.common.exception.RecursoNoEncontradoException;
 import com.huamanga.tourism.common.seguridad.UsuarioActual;
+import com.huamanga.tourism.common.tiempo.TiempoAyacucho;
 import com.huamanga.tourism.foto.domain.EstadoFoto;
 import com.huamanga.tourism.foto.domain.Foto;
 import com.huamanga.tourism.foto.repository.FotoRepository;
@@ -50,8 +51,7 @@ import java.util.stream.Collectors;
 @Service
 public class LugarService {
 
-    /** Ayacucho no cambia de hora, pero fijar la zona lo hace explicito. */
-    private static final ZoneId ZONA_AYACUCHO = ZoneId.of("America/Lima");
+    private static final ZoneId ZONA_AYACUCHO = TiempoAyacucho.ZONA;
 
     /** SRID 4326 = WGS84, el sistema de coordenadas del GPS. */
     private static final GeometryFactory GEOMETRIAS =
