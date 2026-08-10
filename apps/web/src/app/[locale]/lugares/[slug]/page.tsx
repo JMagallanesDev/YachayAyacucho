@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { Compartir } from "@/components/Compartir";
 import { RegistrarVisita } from "@/components/RegistrarVisita";
+import { DatosEstructurados, migas, organizacion } from "@/components/seo/DatosEstructurados";
 import { HistoriaVisual } from "@/components/patrimonio/HistoriaVisual";
 import { AntesDeIr } from "@/components/lugares/AntesDeIr";
 import { BadgeApertura } from "@/components/lugares/BadgeApertura";
@@ -14,6 +15,7 @@ import { BotonCheckIn } from "@/components/participacion/BotonCheckIn";
 import { BotonFavorito } from "@/components/participacion/BotonFavorito";
 import { PanelResenas } from "@/components/resenas/PanelResenas";
 import { SubirFoto } from "@/components/resenas/SubirFoto";
+import { env } from "@/lib/env";
 import { obtenerLugar, slugsPublicados } from "@/lib/lugares";
 import { historiaVisual } from "@/lib/negocios";
 import { listarFotos, listarResenas } from "@/lib/resenas";
@@ -56,10 +58,29 @@ export async function generateMetadata({
   return {
     title: lugar.nombre,
     description: lugar.descripcion ?? undefined,
+    alternates: {
+      canonical: `/${locale}/lugares/${slug}`,
+      languages: {
+        es: `/es/lugares/${slug}`,
+        en: `/en/lugares/${slug}`,
+      },
+    },
     openGraph: {
+      type: "article",
       title: lugar.nombre,
       description: lugar.descripcion ?? undefined,
-      images: lugar.fotos.slice(0, 1).map((foto) => foto.url),
+      url: `/${locale}/lugares/${slug}`,
+      /*
+       * Con foto se usa la del lugar; sin ella, la tarjeta de marca que genera
+       * `opengraph-image.tsx`. Hay que nombrarla explicitamente: cuando una
+       * pagina declara su propio bloque `openGraph`, Next deja de anadir la
+       * imagen basada en archivo, y el enlace compartido se quedaba sin
+       * miniatura justo en los lugares que aun no tienen fotografia aprobada.
+       */
+      images:
+        lugar.fotos.length > 0
+          ? lugar.fotos.slice(0, 1).map((foto) => foto.url)
+          : [`${env.siteUrl}/${locale}/opengraph-image`],
     },
   };
 }
@@ -99,6 +120,57 @@ export default async function PaginaLugar({
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-8 px-5 py-8">
       <RegistrarVisita tipo="LUGAR" />
+
+      {/* Sin esto un buscador ve un titulo y un parrafo; con esto sabe que es
+          una atraccion turistica con coordenadas, horario y valoracion, y puede
+          mostrarla como resultado enriquecido o en el mapa de Google. */}
+      <DatosEstructurados
+        datos={{
+          "@context": "https://schema.org",
+          "@type": "TouristAttraction",
+          name: lugar.nombre,
+          description: lugar.descripcion ?? undefined,
+          url: `${env.siteUrl}/${locale}/lugares/${slug}`,
+          image: lugar.fotos.slice(0, 3).map((foto) => foto.url),
+          geo: {
+            "@type": "GeoCoordinates",
+            latitude: lugar.latitud,
+            longitude: lugar.longitud,
+          },
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: lugar.direccion ?? undefined,
+            addressLocality: lugar.distrito.nombre,
+            addressRegion: lugar.distrito.provincia,
+            addressCountry: "PE",
+          },
+          telephone: lugar.telefono ?? undefined,
+          isAccessibleForFree: lugar.precioEntradaPen === null
+            || Number(lugar.precioEntradaPen) === 0,
+          publicAccess: true,
+          // Solo se declara la valoracion si existe de verdad: un
+          // `aggregateRating` con cero opiniones es un dato falso y Google lo
+          // penaliza como marcado enganoso.
+          ...(resenas.totalElements > 0 && promedio !== null
+            ? {
+                aggregateRating: {
+                  "@type": "AggregateRating",
+                  ratingValue: promedio.toFixed(1),
+                  reviewCount: resenas.totalElements,
+                  bestRating: 5,
+                  worstRating: 1,
+                },
+              }
+            : {}),
+          isPartOf: organizacion(),
+        }}
+      />
+      <DatosEstructurados
+        datos={migas(locale, [
+          { nombre: t("volverAlListado"), ruta: "/lugares" },
+          { nombre: lugar.nombre, ruta: `/lugares/${slug}` },
+        ])}
+      />
       <nav>
         <Link href="/lugares" className="text-fluid-sm text-text-muted underline-offset-4 hover:underline">
           {t("volverAlListado")}
@@ -140,7 +212,7 @@ export default async function PaginaLugar({
 
       {promedio !== null && (
         <p data-testid="promedio-lugar" className="flex items-center gap-2 text-fluid-base">
-          <span className="text-accent" aria-hidden="true">
+          <span className="text-accent-text" aria-hidden="true">
             ★
           </span>
           <span className="font-semibold text-text">{promedio.toFixed(1)}</span>

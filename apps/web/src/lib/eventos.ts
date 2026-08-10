@@ -2,6 +2,7 @@ import { pedirAutenticado } from "@/lib/auth";
 import { env } from "@/lib/env";
 import type { FechaISO } from "@/lib/fechas";
 import type { Evento, EventoDetalle, NuevoEvento, Visita } from "@/types/evento";
+import { cabecerasPublicas } from "@/lib/cabeceras";
 
 /**
  * Cliente de la agenda cultural.
@@ -33,7 +34,7 @@ export async function eventosDelMes(
 
   try {
     const respuesta = await fetch(`${env.apiUrl}/eventos/calendario?${parametros}`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       next: { revalidate: 300 },
     });
     return respuesta.ok ? respuesta.json() : [];
@@ -58,7 +59,7 @@ export async function proximosEventos(
 
   try {
     const respuesta = await fetch(`${env.apiUrl}/eventos/proximos?${parametros}`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       // Cinco minutos: lo justo para que un evento que termina hoy salga de la
       // lista sin castigar al API con una peticion por visita.
       next: { revalidate: 300 },
@@ -74,7 +75,7 @@ export async function eventoPorId(id: string, idioma: string): Promise<EventoDet
     const respuesta = await fetch(
       `${env.apiUrl}/eventos/${id}?idioma=${idioma.toUpperCase()}`,
       {
-        headers: { Accept: "application/json" },
+        headers: cabecerasPublicas(),
         // Media hora: el contenido del evento casi no cambia, pero el clima
         // que viene dentro si, y a los eventos cercanos les conviene refrescarse.
         next: { revalidate: 1800 },
@@ -101,7 +102,7 @@ export async function visita(
 
   try {
     const respuesta = await fetch(`${env.apiUrl}/eventos/durante-mi-visita?${parametros}`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       cache: "no-store",
     });
     return respuesta.ok ? respuesta.json() : null;

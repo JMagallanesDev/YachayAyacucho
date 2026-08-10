@@ -64,7 +64,7 @@ export function BannerProximidad({ lugares }: { lugares: LugarCercano[] }) {
 
             <Link
               href={`/lugares/${cercano.slug}`}
-              className="press ml-auto min-h-touch rounded-card bg-primary px-4 py-2 text-fluid-sm font-medium text-primary-fg"
+              className="press ms-auto min-h-touch rounded-card bg-primary px-4 py-2 text-fluid-sm font-medium text-primary-fg"
             >
               {t("verFicha")}
             </Link>

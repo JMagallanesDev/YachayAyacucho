@@ -3,13 +3,17 @@ import { notFound } from "next/navigation";
 
 import { Compartir } from "@/components/Compartir";
 import { RegistrarVisita } from "@/components/RegistrarVisita";
+import { DatosEstructurados, migas, organizacion } from "@/components/seo/DatosEstructurados";
 import { ClimaDelEvento } from "@/components/agenda/ClimaDelEvento";
 import { CuentaRegresiva } from "@/components/agenda/CuentaRegresiva";
 import { colorDeTipo } from "@/components/agenda/TarjetaEvento";
 import { VideoFestividad } from "@/components/agenda/VideoFestividad";
 import { Link } from "@/i18n/navegacion";
+import { env } from "@/lib/env";
 import { eventoPorId } from "@/lib/eventos";
 import { diasHasta, formatearRango } from "@/lib/fechas";
+import Image from "next/image";
+import { TAMANOS, cargadorCloudinary } from "@/lib/imagenes";
 
 export async function generateMetadata({
   params,
@@ -60,6 +64,44 @@ export default async function PaginaEvento({
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-2xl flex-col gap-6 px-5 py-10">
       <RegistrarVisita tipo="EVENTO" />
+
+      {/* `Event` es de los tipos que Google muestra en su carrusel de eventos.
+          Las fechas van en formato de dia de calendario, sin hora ni zona: es
+          lo que son, y anadir una hora inventada las desplazaria de dia en
+          otros husos. */}
+      <DatosEstructurados
+        datos={{
+          "@context": "https://schema.org",
+          "@type": "Event",
+          name: evento.nombre,
+          description: evento.descripcion ?? undefined,
+          url: `${env.siteUrl}/${locale}/agenda/${id}`,
+          startDate: evento.fechaInicio,
+          endDate: evento.fechaFin,
+          eventStatus: "https://schema.org/EventScheduled",
+          eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+          image: evento.cloudinaryUrlPortada ? [evento.cloudinaryUrlPortada] : undefined,
+          location: {
+            "@type": "Place",
+            name: evento.lugarNombre ?? evento.distritoNombre,
+            address: {
+              "@type": "PostalAddress",
+              addressLocality: evento.distritoNombre,
+              addressRegion: "Ayacucho",
+              addressCountry: "PE",
+            },
+          },
+          organizer: evento.organizador
+            ? { "@type": "Organization", name: evento.organizador }
+            : organizacion(),
+        }}
+      />
+      <DatosEstructurados
+        datos={migas(locale, [
+          { nombre: t("volverAlCalendario"), ruta: "/agenda" },
+          { nombre: evento.nombre, ruta: `/agenda/${id}` },
+        ])}
+      />
       <Link
         href="/agenda"
         className="press w-fit text-fluid-sm font-medium text-text-muted underline-offset-4 hover:underline"
@@ -70,10 +112,13 @@ export default async function PaginaEvento({
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className="rounded-full px-2.5 py-1 text-fluid-sm font-medium"
+            className="rounded-full px-2.5 py-1 text-fluid-sm font-medium text-text"
+            /* El fondo conserva el color del tipo; el texto usa el token
+               medido. El color del catalogo no pasa por el sistema de tokens,
+               asi que como TEXTO no se puede garantizar el 4.5:1 (WCAG 1.4.3):
+               un ocre claro sobre su propio tinte daba 3.6:1. */
             style={{
-              backgroundColor: `color-mix(in oklab, ${colorDeTipo(evento.tipo)} 12%, transparent)`,
-              color: colorDeTipo(evento.tipo),
+              backgroundColor: `color-mix(in oklab, ${colorDeTipo(evento.tipo)} 18%, transparent)`,
             }}
           >
             {t(`tipo.${evento.tipo}`)}
@@ -103,10 +148,16 @@ export default async function PaginaEvento({
       </header>
 
       {evento.cloudinaryUrlPortada && (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
+        <Image
           src={evento.cloudinaryUrlPortada}
           alt=""
+          width={768}
+          height={224}
+          sizes={TAMANOS.ficha}
+          loader={cargadorCloudinary}
+          /* Es la imagen mas grande de la mitad superior: se marca como
+             prioritaria para que sea el LCP y no espere a la carga diferida. */
+          priority
           className="h-56 w-full rounded-card object-cover"
         />
       )}

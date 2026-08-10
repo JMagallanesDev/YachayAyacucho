@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import type { ColeccionLugares, Ruta } from "@/types/mapa";
+import { cabecerasPublicas } from "@/lib/cabeceras";
 
 /**
  * Datos y constantes del mapa (RF-17, RF-20, RF-22b).
@@ -50,7 +51,7 @@ const MAPA_VACIO: ColeccionLugares = { type: "FeatureCollection", features: [] }
 export async function lugaresDelMapa(idioma: string): Promise<ColeccionLugares> {
   try {
     const respuesta = await fetch(`${env.apiUrl}/lugares/mapa?idioma=${idioma.toUpperCase()}`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       next: { revalidate: 300 },
     });
     return respuesta.ok ? respuesta.json() : MAPA_VACIO;
@@ -62,7 +63,7 @@ export async function lugaresDelMapa(idioma: string): Promise<ColeccionLugares> 
 export async function rutasTematicas(idioma: string): Promise<Ruta[]> {
   try {
     const respuesta = await fetch(`${env.apiUrl}/rutas?idioma=${idioma.toUpperCase()}`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       next: { revalidate: 3600 },
     });
     return respuesta.ok ? respuesta.json() : [];

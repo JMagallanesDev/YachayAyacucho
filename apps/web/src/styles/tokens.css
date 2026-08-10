@@ -136,7 +136,10 @@
   --surface: oklch(0.995 0.004 65.7);
   --surface-muted: var(--color-piedra-100);
   --border: var(--color-piedra-200);
-  --border-strong: var(--color-piedra-300);
+  /* WCAG 1.4.11 (Bloque 13): el borde de un control es un objeto de interfaz y
+     necesita 3:1 contra su fondo. Con piedra-300 daba 1.70:1, asi que el
+     contorno de los botones secundarios era practicamente invisible. */
+  --border-strong: var(--color-piedra-500);
 
   /* Texto */
   --text: var(--color-piedra-950);
@@ -150,8 +153,15 @@
   --secondary: var(--color-anil-800);
   --secondary-hover: var(--color-anil-900);
   --secondary-fg: oklch(0.995 0.004 65.7);
+  /* El ocre tiene DOS trabajos y por eso son dos tokens (Bloque 13). Como
+     RELLENO (--accent, con --accent-fg encima) funciona a esta luminosidad;
+     como TEXTO sobre una tarjeta daba 3.67:1 y no llegaba al 4.5:1 exigido.
+     Un solo token no puede cumplir las dos cosas: lo que hace legible un
+     texto es justo lo que apaga un relleno. */
   --accent: var(--color-quinua-500);
   --accent-fg: var(--color-piedra-950);
+  --accent-text: var(--color-quinua-600);
+  --accent-subtle: var(--color-quinua-50);
 
   /* Estado */
   --success: var(--color-puna-600);
@@ -201,10 +211,12 @@
     --surface: var(--color-piedra-900);
     --surface-muted: var(--color-piedra-800);
     --border: var(--color-piedra-800);
-    --border-strong: var(--color-piedra-700);
+    /* 2.18:1 con piedra-700; el minimo de WCAG 1.4.11 son 3:1. */
+    --border-strong: var(--color-piedra-600);
 
     --text: var(--color-sillar-100);
-    --text-muted: var(--color-piedra-400);
+    /* piedra-400 daba 4.40:1 sobre --surface-muted, a un pelo del minimo. */
+    --text-muted: var(--color-piedra-300);
     --text-inverse: var(--color-piedra-950);
 
     /* En fondo oscuro la marca sube de luminosidad para conservar
@@ -217,6 +229,10 @@
     --secondary-fg: var(--color-piedra-950);
     --accent: var(--color-quinua-400);
     --accent-fg: var(--color-piedra-950);
+    /* Sobre fondo oscuro el ocre claro ya contrasta: aqui no hace falta
+       apagarlo, al contrario. */
+    --accent-text: var(--color-quinua-400);
+    --accent-subtle: var(--color-quinua-950);
 
     --success: var(--color-puna-400);
     --success-subtle: var(--color-puna-950);
@@ -251,10 +267,10 @@
   --surface: var(--color-piedra-900);
   --surface-muted: var(--color-piedra-800);
   --border: var(--color-piedra-800);
-  --border-strong: var(--color-piedra-700);
+  --border-strong: var(--color-piedra-600);
 
   --text: var(--color-sillar-100);
-  --text-muted: var(--color-piedra-400);
+  --text-muted: var(--color-piedra-300);
   --text-inverse: var(--color-piedra-950);
 
   --primary: var(--color-retablo-400);
@@ -265,6 +281,8 @@
   --secondary-fg: var(--color-piedra-950);
   --accent: var(--color-quinua-400);
   --accent-fg: var(--color-piedra-950);
+  --accent-text: var(--color-quinua-400);
+  --accent-subtle: var(--color-quinua-950);
 
   --success: var(--color-puna-400);
   --success-subtle: var(--color-puna-950);
@@ -309,6 +327,8 @@
   --color-secondary-fg: var(--secondary-fg);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
+  --color-accent-text: var(--accent-text);
+  --color-accent-subtle: var(--accent-subtle);
 
   --color-success: var(--success);
   --color-success-subtle: var(--success-subtle);

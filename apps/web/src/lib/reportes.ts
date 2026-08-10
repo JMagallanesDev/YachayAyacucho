@@ -1,6 +1,7 @@
 import { pedirAutenticado } from "@/lib/auth";
 import { env } from "@/lib/env";
 import type { EstadoReporte, NuevoReporte, Reporte, TipoIncidente } from "@/types/reporte";
+import { cabecerasPublicas } from "@/lib/cabeceras";
 
 /**
  * Cliente de reportes ciudadanos.
@@ -14,7 +15,7 @@ import type { EstadoReporte, NuevoReporte, Reporte, TipoIncidente } from "@/type
 export async function tiposDeIncidente(idioma: string): Promise<TipoIncidente[]> {
   try {
     const respuesta = await fetch(`${env.apiUrl}/reportes/tipos?idioma=${idioma.toUpperCase()}`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       next: { revalidate: 3600 },
     });
     return respuesta.ok ? respuesta.json() : [];
@@ -77,7 +78,7 @@ export async function incidentesEnMapa(
     });
 
     const respuesta = await fetch(`${env.apiUrl}/reportes/mapa?${parametros}`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       next: { revalidate: 60 },
     });
     return respuesta.ok ? respuesta.json() : [];

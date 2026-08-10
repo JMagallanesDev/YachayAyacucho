@@ -41,18 +41,24 @@ export function LugarCard({ lugar }: { lugar: LugarResumen }) {
     >
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className="rounded-full px-2.5 py-1 text-fluid-sm font-medium"
-          style={{ backgroundColor: `${lugar.categoria.colorHex}1a`, color: lugar.categoria.colorHex }}
+          className="rounded-full px-2.5 py-1 text-fluid-sm font-medium text-text"
+          /* El color de la categoria vive en el fondo, no en el texto: viene
+             del catalogo y no del sistema de tokens, asi que no hay forma de
+             garantizar su contraste como texto. */
+          style={{ backgroundColor: `${lugar.categoria.colorHex}2e` }}
         >
           {lugar.categoria.nombre}
         </span>
         <BadgeApertura horarios={lugar.horarios} />
-        <span className="ml-auto">
+        <span className="ms-auto">
           <BotonFavorito slug={lugar.slug} compacto />
         </span>
       </div>
 
-      <h3 className="text-fluid-lg font-semibold text-text">{lugar.nombre}</h3>
+      {/* h2 y no h3: el h1 es el titulo de la pagina y saltarse un nivel
+          rompe la navegacion por encabezados de un lector de pantalla
+          (WCAG 1.3.1). */}
+      <h2 className="text-fluid-lg font-semibold text-text">{lugar.nombre}</h2>
 
       {lugar.descripcion && (
         <p className="line-clamp-2 text-fluid-sm text-text-muted">{lugar.descripcion}</p>
@@ -87,9 +93,9 @@ export function LugarCard({ lugar }: { lugar: LugarResumen }) {
         {calificacion > 0 && (
           <div className="flex items-center gap-1">
             <dt className="sr-only">{t("calificacion")}</dt>
-            <dd className="font-medium text-accent">
+            <dd className="font-medium text-accent-text">
               {formato.number(calificacion, { maximumFractionDigits: 1 })} ★
-              <span className="ml-1 font-normal text-text-muted">({lugar.totalResenas})</span>
+              <span className="ms-1 font-normal text-text-muted">({lugar.totalResenas})</span>
             </dd>
           </div>
         )}

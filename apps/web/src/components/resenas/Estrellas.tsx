@@ -27,7 +27,11 @@ export function Estrellas({
 
   if (!interactiva) {
     return (
-      <span className={`${clase} text-accent`} aria-label={t("deCinco", { nota: valor })}>
+      <span
+        className={`${clase} text-accent-text`}
+        role="img"
+        aria-label={t("deCinco", { nota: valor })}
+      >
         <span aria-hidden="true">{"★".repeat(valor)}</span>
         <span aria-hidden="true" className="text-border-strong">
           {"★".repeat(5 - valor)}
@@ -42,7 +46,7 @@ export function Estrellas({
       {[1, 2, 3, 4, 5].map((n) => (
         <label
           key={n}
-          className={`cursor-pointer ${clase} ${n <= valor ? "text-accent" : "text-border-strong"}`}
+          className={`cursor-pointer ${clase} ${n <= valor ? "text-accent-text" : "text-border-strong"}`}
         >
           <input
             type="radio"

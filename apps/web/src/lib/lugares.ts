@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import type { CriteriosLugares, LugarDetalle, LugarResumen, Pagina } from "@/types/lugar";
+import { cabecerasPublicas } from "@/lib/cabeceras";
 
 /**
  * Cliente de /api/v1/lugares.
@@ -44,7 +45,7 @@ export async function buscarLugares(
   idioma: string,
 ): Promise<Pagina<LugarResumen>> {
   const respuesta = await fetch(construirUrl(criterios, idioma), {
-    headers: { Accept: "application/json" },
+    headers: cabecerasPublicas(),
     // La lista se regenera cada 5 minutos en el servidor; en el navegador la
     // frescura la gobierna TanStack Query.
     next: { revalidate: 300 },
@@ -60,7 +61,7 @@ export async function obtenerLugar(slug: string, idioma: string): Promise<LugarD
   const respuesta = await fetch(
     `${env.apiUrl}/lugares/${encodeURIComponent(slug)}?idioma=${idioma.toUpperCase()}`,
     {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       // ISR: la pagina se sirve pre-generada y el backend dispara su
       // regeneracion al guardar (webhook del Bloque 3). El plazo de 1 hora es
       // la red de seguridad por si ese aviso se pierde.
@@ -87,7 +88,7 @@ export async function obtenerLugar(slug: string, idioma: string): Promise<LugarD
 export async function slugsPublicados(): Promise<string[]> {
   try {
     const pagina = await fetch(`${env.apiUrl}/lugares?size=200`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
     });
     if (!pagina.ok) {
       return [];

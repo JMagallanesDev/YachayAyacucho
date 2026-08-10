@@ -2,7 +2,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 import { Compartir } from "@/components/Compartir";
+import { DatosEstructurados, migas } from "@/components/seo/DatosEstructurados";
 import { Link } from "@/i18n/navegacion";
+import { env } from "@/lib/env";
 import { negocioPorId } from "@/lib/negocios";
 
 import { BotonesDeContacto } from "./BotonesDeContacto";
@@ -50,6 +52,40 @@ export default async function PaginaNegocio({
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-2xl flex-col gap-6 px-5 py-10">
+      <DatosEstructurados
+        datos={{
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          name: negocio.nombre,
+          description: negocio.descripcion ?? undefined,
+          url: `${env.siteUrl}/${locale}/negocios/${id}`,
+          telephone: negocio.telefono ?? undefined,
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: negocio.direccion ?? undefined,
+            addressLocality: negocio.distritoNombre,
+            addressRegion: "Ayacucho",
+            addressCountry: "PE",
+          },
+          ...(negocio.latitud !== null && negocio.longitud !== null
+            ? {
+                geo: {
+                  "@type": "GeoCoordinates",
+                  latitude: negocio.latitud,
+                  longitude: negocio.longitud,
+                },
+              }
+            : {}),
+          openingHours: negocio.horarioTexto ?? undefined,
+        }}
+      />
+      <DatosEstructurados
+        datos={migas(locale, [
+          { nombre: t("volverAlDirectorio"), ruta: "/negocios" },
+          { nombre: negocio.nombre, ruta: `/negocios/${id}` },
+        ])}
+      />
+
       <Link
         href="/negocios"
         className="press w-fit text-fluid-sm font-medium text-text-muted underline-offset-4 hover:underline"

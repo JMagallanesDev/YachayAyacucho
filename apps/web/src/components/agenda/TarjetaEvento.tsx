@@ -47,10 +47,9 @@ export function TarjetaEvento({
     >
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className="rounded-full px-2.5 py-1 text-fluid-sm font-medium"
+          className="rounded-full px-2.5 py-1 text-fluid-sm font-medium text-text"
           style={{
-            backgroundColor: `color-mix(in oklab, ${colorDeTipo(evento.tipo)} 12%, transparent)`,
-            color: colorDeTipo(evento.tipo),
+            backgroundColor: `color-mix(in oklab, ${colorDeTipo(evento.tipo)} 18%, transparent)`,
           }}
         >
           {t(`tipo.${evento.tipo}`)}

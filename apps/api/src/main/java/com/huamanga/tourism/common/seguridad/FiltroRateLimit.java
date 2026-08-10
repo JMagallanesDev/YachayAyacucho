@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
 
 /**
@@ -28,6 +31,22 @@ import java.time.Duration;
  * <p>Los endpoints de autenticacion llevan un limite mucho mas bajo, porque
  * es donde se hace fuerza bruta contra contrasenas. 100 intentos por minuto
  * contra un login son demasiados.</p>
+ *
+ * <p><strong>El servidor de Next esta exento (Bloque 13).</strong> Al generar
+ * las paginas estaticas, el frontend pide al API los 15 lugares, los eventos y
+ * los negocios en dos idiomas: mas de cien llamadas en unos segundos y desde una
+ * sola direccion, que es exactamente el patron que este filtro existe para
+ * frenar. El resultado era que {@code next build} abortaba con un 429.</p>
+ *
+ * <p>La exencion NO se hace por IP. Adivinar «esto viene de dentro» mirando la
+ * direccion se rompe en cuanto hay un proxy delante, y en el despliegue previsto
+ * —Vercel llamando a Railway— el frontend sale con IP publica, asi que no habria
+ * nada que reconocer. En su lugar hay un <strong>secreto compartido</strong> en
+ * una cabecera: es una relacion de confianza explicita, funciona con cualquier
+ * topologia, y el secreto vive solo en el servidor —sin prefijo
+ * {@code NEXT_PUBLIC_}— de modo que jamas llega al navegador.</p>
+ *
+ * <p>Si el secreto no esta configurado, no se exime a nadie: falla cerrando.</p>
  */
 @Component
 public class FiltroRateLimit extends OncePerRequestFilter {
@@ -40,18 +59,39 @@ public class FiltroRateLimit extends OncePerRequestFilter {
 
     private static final String PREFIJO_CLAVE = "rate:";
 
+    /** Cabecera con la que el servidor de Next se identifica. */
+    private static final String CABECERA_INTERNA = "X-Yachay-Interno";
+
     private final StringRedisTemplate redis;
     private final ResolutorIpCliente resolutorIp;
 
-    public FiltroRateLimit(StringRedisTemplate redis, ResolutorIpCliente resolutorIp) {
+    /** Vacio cuando no se configuro: entonces no se exime a nadie. */
+    private final byte[] secretoInterno;
+
+    public FiltroRateLimit(StringRedisTemplate redis,
+                           ResolutorIpCliente resolutorIp,
+                           @Value("${app.seguridad.token-interno:}") String tokenInterno) {
         this.redis = redis;
         this.resolutorIp = resolutorIp;
+        this.secretoInterno = tokenInterno == null || tokenInterno.isBlank()
+                ? new byte[0]
+                : tokenInterno.getBytes(StandardCharsets.UTF_8);
+
+        if (this.secretoInterno.length == 0) {
+            log.info("Sin token interno: el rate limit se aplica a todas las peticiones, "
+                    + "incluidas las del propio servidor de Next durante el build");
+        }
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest peticion,
                                     HttpServletResponse respuesta,
                                     FilterChain cadena) throws ServletException, IOException {
+        if (esLlamadaInterna(peticion)) {
+            cadena.doFilter(peticion, respuesta);
+            return;
+        }
+
         String ruta = peticion.getRequestURI();
         boolean esAutenticacion = ruta.contains("/auth/login") || ruta.contains("/auth/register");
         int limite = esAutenticacion ? LIMITE_AUTENTICACION : LIMITE_GENERAL;
@@ -71,6 +111,26 @@ public class FiltroRateLimit extends OncePerRequestFilter {
         }
 
         cadena.doFilter(peticion, respuesta);
+    }
+
+    /**
+     * ¿La peticion viene del propio servidor de Next?
+     *
+     * <p>La comparacion es en <strong>tiempo constante</strong>: comparar con
+     * {@code equals} termina en el primer byte distinto, y esa diferencia de
+     * tiempo es medible desde fuera. Con suficientes intentos permite deducir
+     * el secreto caracter a caracter, que es el ataque clasico contra una
+     * comparacion ingenua de credenciales.</p>
+     */
+    private boolean esLlamadaInterna(HttpServletRequest peticion) {
+        if (secretoInterno.length == 0) {
+            return false;
+        }
+        String recibido = peticion.getHeader(CABECERA_INTERNA);
+        if (recibido == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(recibido.getBytes(StandardCharsets.UTF_8), secretoInterno);
     }
 
     private Long contar(String clave) {

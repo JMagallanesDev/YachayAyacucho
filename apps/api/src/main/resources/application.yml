@@ -166,6 +166,11 @@ app:
     cookie-same-site: ${COOKIE_SAMESITE:Lax}
     proxies-confiables: ${PROXIES_CONFIABLES:127.0.0.1/32,::1/128}
     emisor: yachay-ayacucho
+    # Secreto con el que el servidor de Next se identifica ante el API para
+    # quedar exento del rate limiting durante el prerenderizado (Bloque 13).
+    # Vacio por defecto: sin el, no se exime a nadie. NUNCA lleva prefijo
+    # NEXT_PUBLIC_, porque entonces viajaria al navegador.
+    token-interno: ${YACHAY_TOKEN_INTERNO:}
 
   admin:
     # Solo se usa en perfil dev, para dar acceso al admin del seed sin

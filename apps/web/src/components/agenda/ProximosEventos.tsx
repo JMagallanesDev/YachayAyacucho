@@ -25,7 +25,7 @@ export async function ProximosEventos({ idioma }: { idioma: string }) {
         <h2 className="text-fluid-xl font-semibold text-text">{t("proximosEventos")}</h2>
         <Link
           href="/agenda"
-          className="press text-fluid-sm font-medium text-accent underline-offset-4 hover:underline"
+          className="press text-fluid-sm font-medium text-accent-text underline-offset-4 hover:underline"
         >
           {t("verCalendario")}
         </Link>

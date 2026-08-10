@@ -7,6 +7,8 @@ import { useSesionRequerida } from "@/components/useSesionRequerida";
 import { ErrorApi } from "@/lib/auth";
 import { bandejaReportes, cambiarEstadoReporte } from "@/lib/reportes";
 import type { EstadoReporte, Reporte } from "@/types/reporte";
+import Image from "next/image";
+import { TAMANOS, cargadorCloudinary } from "@/lib/imagenes";
 
 const ESTADOS: EstadoReporte[] = [
   "RECIBIDO",
@@ -90,11 +92,8 @@ export function ModeracionReportes() {
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className="rounded-full px-2.5 py-1 text-fluid-sm font-medium"
-                  style={{
-                    backgroundColor: `${reporte.colorHex}1a`,
-                    color: reporte.colorHex,
-                  }}
+                  className="rounded-full px-2.5 py-1 text-fluid-sm font-medium text-text"
+                  style={{ backgroundColor: `${reporte.colorHex}2e` }}
                 >
                   {reporte.tipoNombre}
                 </span>
@@ -120,8 +119,16 @@ export function ModeracionReportes() {
               {reporte.fotos.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {reporte.fotos.map((url) => (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img key={url} src={url} alt="" className="size-28 rounded-card object-cover" />
+                    <Image
+                      key={url}
+                      src={url}
+                      alt=""
+                      width={112}
+                      height={112}
+                      sizes={TAMANOS.miniatura}
+                      loader={cargadorCloudinary}
+                      className="size-28 rounded-card object-cover"
+                    />
                   ))}
                 </div>
               )}

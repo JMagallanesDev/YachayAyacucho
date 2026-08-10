@@ -50,7 +50,7 @@ export function CuentaRegresiva({
     <span
       data-testid="cuenta-regresiva"
       data-dias={dias}
-      className="w-fit rounded-full bg-accent-subtle px-3 py-1 text-fluid-sm font-medium text-accent"
+      className="w-fit rounded-full bg-accent-subtle px-3 py-1 text-fluid-sm font-medium text-accent-text"
     >
       {enCurso ? t("ocurreAhora") : dias === 1 ? t("faltaUnDia") : t("faltanDias", { dias })}
     </span>

@@ -130,11 +130,8 @@ export function MapaIncidentes({ incidentes }: { incidentes: Reporte[] }) {
           >
             <div className="flex flex-col gap-1.5 p-1" data-testid="popup-incidente">
               <span
-                className="w-fit rounded-full px-2 py-0.5 text-xs font-medium"
-                style={{
-                  backgroundColor: `${seleccionado.colorHex}1a`,
-                  color: seleccionado.colorHex,
-                }}
+                className="w-fit rounded-full px-2 py-0.5 text-xs font-medium text-text"
+                style={{ backgroundColor: `${seleccionado.colorHex}2e` }}
               >
                 {seleccionado.tipoNombre}
               </span>

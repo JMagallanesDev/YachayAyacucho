@@ -40,9 +40,48 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "portada" });
 
+  const otroIdioma = locale === "es" ? "en" : "es";
+
   return {
+    /*
+     * `metadataBase` es obligatorio para que Open Graph funcione: sin el, Next
+     * emite las imagenes con rutas relativas y ninguna red social las resuelve
+     * —el enlace compartido sale sin miniatura—.
+     */
+    metadataBase: new URL(env.siteUrl),
     title: { default: env.appName, template: `%s | ${env.appName}` },
     description: t("descripcion"),
+
+    alternates: {
+      canonical: `/${locale}`,
+      languages: {
+        [locale]: `/${locale}`,
+        [otroIdioma]: `/${otroIdioma}`,
+      },
+    },
+
+    openGraph: {
+      type: "website",
+      siteName: env.appName,
+      title: env.appName,
+      description: t("descripcion"),
+      locale: locale === "es" ? "es_PE" : "en_US",
+      url: `/${locale}`,
+    },
+
+    twitter: {
+      card: "summary_large_image",
+      title: env.appName,
+      description: t("descripcion"),
+    },
+
+    // El sitio es de difusion patrimonial: se quiere indexado y con vista
+    // previa completa en los resultados.
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true, "max-image-preview": "large" },
+    },
   };
 }
 
@@ -119,11 +158,23 @@ export default async function LayoutIdioma({
             {/* Intenta recuperar la sesion con la cookie httpOnly al cargar.
                 El access token vive en memoria, asi que cada recarga lo pierde. */}
             <ProveedorSesion>
+              {/*
+                Primer elemento tabulable de la pagina (WCAG 2.4.1). Sin el,
+                quien navega con teclado tiene que recorrer los cinco destinos
+                de la barra en CADA pagina antes de llegar al contenido.
+              */}
+              <a href="#contenido" className="saltar-al-contenido press rounded-card bg-primary px-4 py-2 text-fluid-sm font-medium text-primary-fg">
+                {(await getTranslations({ locale, namespace: "navegacion" }))("saltarAlContenido")}
+              </a>
+
               <NavegacionPrincipal />
               {/* El hueco de la barra fija: abajo en movil, arriba en
                   escritorio. Sin esto la barra taparia la ultima fila de
                   cada pagina, que es el fallo clasico de una barra fija. */}
-              <div className="pb-[calc(var(--spacing-nav)+env(safe-area-inset-bottom))] md:pt-nav md:pb-0">
+              <div
+                id="contenido"
+                className="pb-[calc(var(--spacing-nav)+env(safe-area-inset-bottom))] md:pt-nav md:pb-0"
+              >
                 {children}
               </div>
               <SelectorIdioma />

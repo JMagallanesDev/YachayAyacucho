@@ -68,7 +68,7 @@ export function RegistroActividad() {
                 {linea.accion}
               </span>
               <span className="text-text-muted">{linea.entidad}</span>
-              <span className="ml-auto tabular-nums text-text-muted">
+              <span className="ms-auto tabular-nums text-text-muted">
                 {formato.dateTime(new Date(linea.ocurridoEn), {
                   dateStyle: "short",
                   timeStyle: "short",

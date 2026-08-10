@@ -27,6 +27,8 @@
     "db:seed:checkins": "docker compose exec -T postgres psql -U postgres -d huamanga -v ON_ERROR_STOP=1 -f /seed/seed_checkins.sql",
     "db:seed:eventos": "docker compose exec -T postgres psql -U postgres -d huamanga -v ON_ERROR_STOP=1 -f /seed/seed_eventos.sql",
     "db:seed:negocios": "docker compose exec -T postgres psql -U postgres -d huamanga -v ON_ERROR_STOP=1 -f /seed/seed_negocios.sql",
-    "db:studio": "docker compose exec postgres psql -U postgres -d huamanga"
+    "db:studio": "docker compose exec postgres psql -U postgres -d huamanga",
+    "a11y:contraste": "node scripts/auditar-contraste.mjs",
+    "medir:lighthouse": "node scripts/medir-lighthouse.mjs"
   }
 }

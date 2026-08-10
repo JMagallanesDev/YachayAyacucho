@@ -6,6 +6,8 @@ import { LIMITES_AYACUCHO } from "@/lib/mapa";
 import { incidentesEnMapa } from "@/lib/reportes";
 
 import { MapaIncidentesCargable } from "./MapaIncidentesCargable";
+import Image from "next/image";
+import { TAMANOS, cargadorCloudinary } from "@/lib/imagenes";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -77,11 +79,11 @@ export default async function PaginaMapaIncidentes({
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className="rounded-full px-2.5 py-1 text-fluid-sm font-medium"
-                    style={{
-                      backgroundColor: `${incidente.colorHex}1a`,
-                      color: incidente.colorHex,
-                    }}
+                    className="rounded-full px-2.5 py-1 text-fluid-sm font-medium text-text"
+                    /* El color del tipo se queda en el FONDO: como texto no
+                       puede garantizar 4.5:1, porque sale del catalogo y no de
+                       un token medido (WCAG 1.4.3). */
+                    style={{ backgroundColor: `${incidente.colorHex}2e` }}
                   >
                     {incidente.tipoNombre}
                   </span>
@@ -97,10 +99,13 @@ export default async function PaginaMapaIncidentes({
                 )}
 
                 {incidente.fotos.length > 0 && (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
+                  <Image
                     src={incidente.fotos[0]}
                     alt=""
+                    width={400}
+                    height={160}
+                    sizes={TAMANOS.tarjeta}
+                    loader={cargadorCloudinary}
                     className="h-40 w-full rounded-card object-cover"
                   />
                 )}

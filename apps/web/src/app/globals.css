@@ -146,6 +146,27 @@
     transform: scale(0.97);
   }
 
+  /* Enlace «saltar al contenido» (WCAG 2.4.1).
+     Invisible hasta que recibe el foco, y entonces aparece arriba del todo.
+     No se usa `display: none` ni `visibility: hidden`: eso lo sacaria del
+     orden de tabulacion y el enlace no llegaria a recibir foco nunca, que es
+     el error clasico al implementar esto. */
+  .saltar-al-contenido {
+    position: absolute;
+    inset-inline-start: 0.5rem;
+    inset-block-start: -100%;
+    z-index: 100;
+    transition: inset-block-start var(--duration-panel) ease-out;
+  }
+
+  /* `:focus` y no `:focus-visible`: un enlace de salto debe aparecer ante
+     CUALQUIER foco. Con :focus-visible el navegador decide segun la
+     heuristica del dispositivo, y el enlace puede no mostrarse nunca a quien
+     llega con una tecnologia de apoyo que no cuenta como "teclado". */
+  .saltar-al-contenido:focus {
+    inset-block-start: max(0.5rem, env(safe-area-inset-top));
+  }
+
   /* Entrada escalonada de listas (RF-95).
      20 ms entre elementos: se nota que llegan, no se sufre la espera. El
      retardo lo pone `--indice`, que escribe el componente Aparecer.

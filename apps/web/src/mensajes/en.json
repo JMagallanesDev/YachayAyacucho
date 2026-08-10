@@ -622,7 +622,8 @@
     "lugares": "Places",
     "mapa": "Map",
     "agenda": "Events",
-    "perfil": "Profile"
+    "perfil": "Profile",
+    "saltarAlContenido": "Skip to content"
   },
   "tema": {
     "etiqueta": "Interface theme",

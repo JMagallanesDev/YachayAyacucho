@@ -622,7 +622,8 @@
     "lugares": "Lugares",
     "mapa": "Mapa",
     "agenda": "Agenda",
-    "perfil": "Perfil"
+    "perfil": "Perfil",
+    "saltarAlContenido": "Saltar al contenido"
   },
   "tema": {
     "etiqueta": "Tema de la interfaz",

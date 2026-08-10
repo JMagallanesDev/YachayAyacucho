@@ -1,5 +1,6 @@
 import { pedirAutenticado } from "@/lib/auth";
 import { env } from "@/lib/env";
+import { cabecerasPublicas } from "@/lib/cabeceras";
 import type {
   CategoriaNegocio,
   ImagenHistorica,
@@ -33,7 +34,7 @@ export async function directorio(
 
   try {
     const respuesta = await fetch(`${env.apiUrl}/negocios?${parametros}`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       next: { revalidate: 300 },
     });
     return respuesta.ok
@@ -48,7 +49,7 @@ export async function categoriasDeNegocio(idioma: string): Promise<CategoriaNego
   try {
     const respuesta = await fetch(
       `${env.apiUrl}/negocios/categorias?idioma=${idioma.toUpperCase()}`,
-      { headers: { Accept: "application/json" }, next: { revalidate: 3600 } },
+      { headers: cabecerasPublicas(), next: { revalidate: 3600 } },
     );
     return respuesta.ok ? respuesta.json() : [];
   } catch {
@@ -68,7 +69,7 @@ export async function negocioPorId(id: string, idioma: string): Promise<Negocio 
   try {
     const respuesta = await fetch(
       `${env.apiUrl}/negocios/${id}?idioma=${idioma.toUpperCase()}`,
-      { headers: { Accept: "application/json" }, cache: "no-store" },
+      { headers: cabecerasPublicas(), cache: "no-store" },
     );
     return respuesta.ok ? respuesta.json() : null;
   } catch {
@@ -118,7 +119,7 @@ export function cambiarEstadoNegocio(id: string, estado: string, motivo?: string
 export async function historiaVisual(slug: string): Promise<ImagenHistorica[]> {
   try {
     const respuesta = await fetch(`${env.apiUrl}/lugares/${slug}/historia-visual`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       next: { revalidate: 3600 },
     });
     return respuesta.ok ? respuesta.json() : [];
@@ -131,7 +132,7 @@ export async function historiaVisual(slug: string): Promise<ImagenHistorica[]> {
 export async function puntosDeCaptura(): Promise<ImagenHistorica[]> {
   try {
     const respuesta = await fetch(`${env.apiUrl}/lugares/historia-visual/puntos`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       next: { revalidate: 3600 },
     });
     return respuesta.ok ? respuesta.json() : [];

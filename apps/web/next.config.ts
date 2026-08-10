@@ -47,6 +47,7 @@ const VARIABLES_PUBLICAS = [
   "NEXT_PUBLIC_DEFAULT_LOCALE",
   "NEXT_PUBLIC_MAPTILER_KEY",
   "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME",
+  "NEXT_PUBLIC_SITE_URL",
 ] as const;
 
 const variablesPublicas: Record<string, string> = Object.fromEntries(
@@ -66,6 +67,23 @@ if (!variablesPublicas.NEXT_PUBLIC_API_URL) {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+
+  /**
+   * Imagenes remotas permitidas (Bloque 13).
+   *
+   * Next exige declarar los dominios de los que aceptara imagenes: sin esta
+   * lista, `next/image` rechaza cualquier URL externa. Son los tres origenes
+   * reales del proyecto y ninguno mas, que es justo la idea — un comodin
+   * convertiria el optimizador en un proxy abierto para cualquier imagen de
+   * internet.
+   */
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "i.ytimg.com" },
+      { protocol: "https", hostname: "openweathermap.org" },
+    ],
+  },
 
   // No anunciar el framework al mundo.
   poweredByHeader: false,

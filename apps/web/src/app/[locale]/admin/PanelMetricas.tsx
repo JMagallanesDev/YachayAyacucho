@@ -192,19 +192,19 @@ function TablaDiaria({ puntos, etiqueta }: { puntos: PuntoDiario[]; etiqueta: st
     <details className="text-fluid-sm">
       <summary className="cursor-pointer text-text-muted">{t("verTabla")}</summary>
       <div className="mt-2 max-h-48 overflow-y-auto">
-        <table className="w-full text-left">
+        <table className="w-full text-start">
           <caption className="sr-only">{etiqueta}</caption>
           <thead>
             <tr className="text-text-muted">
               <th scope="col" className="py-1">{t("fecha")}</th>
-              <th scope="col" className="py-1 text-right">{t("valor")}</th>
+              <th scope="col" className="py-1 text-end">{t("valor")}</th>
             </tr>
           </thead>
           <tbody>
             {puntos.map((punto) => (
               <tr key={punto.fecha} className="border-t border-border-base">
                 <td className="py-1 text-text">{punto.fecha}</td>
-                <td className="py-1 text-right tabular-nums text-text">{punto.valor}</td>
+                <td className="py-1 text-end tabular-nums text-text">{punto.valor}</td>
               </tr>
             ))}
           </tbody>
@@ -219,13 +219,13 @@ function TablaReparto({ items, etiqueta }: { items: Reparto[]; etiqueta: string 
   return (
     <details className="text-fluid-sm">
       <summary className="cursor-pointer text-text-muted">{t("verTabla")}</summary>
-      <table className="mt-2 w-full text-left">
+      <table className="mt-2 w-full text-start">
         <caption className="sr-only">{etiqueta}</caption>
         <tbody>
           {items.map((item) => (
             <tr key={item.etiqueta} className="border-t border-border-base">
               <td className="py-1 text-text">{item.etiqueta}</td>
-              <td className="py-1 text-right tabular-nums text-text">{item.valor}</td>
+              <td className="py-1 text-end tabular-nums text-text">{item.valor}</td>
             </tr>
           ))}
         </tbody>

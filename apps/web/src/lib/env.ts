@@ -35,5 +35,15 @@ export const env = {
 
   appName: process.env.NEXT_PUBLIC_APP_NAME ?? "Yachay Ayacucho",
 
+  /**
+   * URL publica del sitio, sin barra final.
+   *
+   * <p>La necesitan el sitemap, las canonicas y Open Graph. No es
+   * `requerida()` porque en desarrollo el valor por defecto sirve, pero sin
+   * ella en produccion las redes sociales reciben URLs relativas y no
+   * resuelven ninguna imagen.</p>
+   */
+  siteUrl: (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, ""),
+
   defaultLocale: process.env.NEXT_PUBLIC_DEFAULT_LOCALE ?? "es",
 } as const;

@@ -125,7 +125,7 @@ export function ControlesMapa({
                     }}
                   >
                     {ruta.nombre}
-                    <span className="ml-1.5 font-normal opacity-80">({ruta.paradas.length})</span>
+                    <span className="ms-1.5 font-normal opacity-80">({ruta.paradas.length})</span>
                   </button>
                 ))}
               </div>

@@ -5,8 +5,8 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 12 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 13 — Pulido: performance, SEO, accesibilidad y testing.
+- **Bloque en curso:** ninguno (Bloque 13 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 14 — Documentación, datos reales y sustentación.
 - **Alcance cerrado:** desde el Bloque 12 **no se añaden funciones**. Ver «Cierre formal de alcance».
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
@@ -28,7 +28,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 | 10 — Panel de administración | ✅ Completado | Panel **cerrado por defecto**: `/admin/**` exige rol ADMIN en `SecurityConfig` como primera regla, además de los `@PreAuthorize` de cada clase, y **un test enumera los 22 endpoints desde el mapa de handlers de Spring y ataca cada uno** con un usuario normal (403) y sin credenciales (401); dashboard con cuatro gráficos Chart.js cargados por import dinámico, cada uno con su tabla plegada; analítica de tráfico **sin un solo identificador personal** —huella HMAC de sal rotatoria compartida con el Bloque 8, unicidad por HyperLogLog en Redis, ventana anti-recarga de 30 min y `UPSERT` atómico—; gestión de usuarios con las dos barreras (nadie se cambia su propio rol, nunca cero administradores activos) y un DTO que **no tiene campo de contraseña**; CRUD de rutas con paradas numeradas por su posición; bitácora RF-56 con llamadas explícitas y la IP del administrador; y las tres bandejas de moderación unificadas en pestañas con contador, cerrando el cabo del Bloque 7: **la foto en `EN_REVISION` por fin entra en la cola**. **362 tests** + 20 comprobaciones en navegador real | — |
 | 11 — Directorio, slider geolocalizado, compartir | ✅ Completado | Directorio de negocios con **flujo de aprobación real**: se registra PENDIENTE y el estado no viaja en la petición, así que no hay forma de autopublicarse; el admin aprueba desde una cuarta pestaña de las bandejas unificadas y **entonces** se concede el rol NEGOCIO. La autorización del panel propio es **por propiedad, no por rol**: una única `GuardaDePropiedad` por la que pasa todo, y un dueño verificado que fuerza el identificador de otro recibe 403. Editar lo que el público ve devuelve el negocio a revisión. WhatsApp con mensaje predefinido (RF-110) y número normalizado al guardar; visitas y clics contados con la huella HMAC efímera y ventana de 30 min, que **llena la analítica de negocios que quedó vacía en el Bloque 10**. Slider antes/después sobre un `input range` real —teclado y lector de pantalla incluidos— que **no se pinta si falta la foto actual**, con el modo «Párate aquí» reutilizando `useProximidad` del Bloque 5. Compartir con URL, copiar, share nativo y **QR generado en el navegador**, sin enviar la dirección a ningún tercero. Vídeo de festividades con **fachada**: el iframe no existe hasta pulsar play (migración V17 guarda el identificador, no la URL). **386 tests** + 28 comprobaciones en navegador real | — |
 | 12 — Identidad visual y cierre de alcance | ✅ Completado | **Navegación por fin**: barra inferior fija en móvil y superior en escritorio, con indicador que se desliza (`layoutId` de Motion), safe areas y targets medidos de 52×56 px; hasta ahora las 19 páginas solo se alcanzaban escribiendo la URL. **Modo oscuro completo** con interruptor de tres estados (claro/oscuro/sistema) escrito a mano —sin `next-themes`— y guion previo al primer pintado que elimina el fogonazo; verificado en **las 19 páginas × 2 temas**. **Cero hex**: los 14 literales y las 9 clases `bg-white/bg-black` salen ahora de tokens, lo que además hace que **el mapa y los gráficos sigan al tema**, que era el hueco real del RF-94; para eso se escribió un conversor OKLCH/Lab→sRGB porque MapLibre y Chart.js no entienden el `lab()` que devuelve `getComputedStyle`. Animación de entrada en CSS y no en JS —para que el contenido público no dependa del JavaScript— y Motion reservado a las transiciones de elemento compartido. **386 tests** intactos + 16 comprobaciones en navegador real | — |
-| 13 — Pulido: performance, SEO, accesibilidad, testing | Pendiente | — | — |
+| 13 — Pulido: performance, SEO, accesibilidad, testing | ✅ Completado | **Lighthouse ≥ 93 en 4 de 5 páginas críticas** y **accesibilidad 100/100 en las cinco**, medido contra el build de producción con emulación móvil. SEO completo: `sitemap.xml` dinámico con 60 URLs y hreflang recíproco es/en, `robots.txt`, JSON-LD (`TouristAttraction`, `Event`, `LocalBusiness`, `BreadcrumbList`), Open Graph con imagen de marca **generada** y canónicas por idioma. Imágenes de Cloudinary por `next/image` con **cargador propio** —para no pagar dos veces el mismo redimensionado— y dimensiones obligatorias: **CLS 0.000 en cuatro páginas y 0.018 en la quinta**. Accesibilidad: auditoría de contraste de los 19 pares de tokens en los dos temas, **4 fallos corregidos**, enlace «saltar al contenido», `role="img"` donde había `aria-label` prohibido, orden de encabezados y CSS lógico (RF-100). Cobertura JaCoCo **75 %** con la puerta que falla por debajo del 70 %. Pruebas de carga JMeter **contra Docker local**: base de 50 usuarios con **P95 118 ms** y pico de 500 con **P95 35 ms, cero errores**. El rate limit ya no bloquea el build: el servidor se identifica con un secreto compartido. **386 tests** + 22 comprobaciones en navegador real | — |
 | 14 — Documentación, datos reales, sustentación | Pendiente | — | — |
 
 ---
@@ -199,6 +199,175 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 13 — Pulido: rendimiento, SEO, accesibilidad y testing
+
+### Lo que cambié por accesibilidad — la lista que pediste
+
+Medí el contraste WCAG de los 19 pares de tokens que existen de verdad en la interfaz, en
+los dos temas, resolviendo cada token hasta su OKLCH y convirtiéndolo a sRGB. **Cuatro
+pares no llegaban al mínimo.** Esto es lo que toqué, y nada más:
+
+| Token | Antes | Ahora | Por qué | Se nota en |
+|---|---|---|---|---|
+| `--border-strong` (claro) | `piedra-300` | `piedra-500` | 1.70:1 → **3.59:1**. WCAG 1.4.11 pide 3:1 para el borde de un control | Contorno de los botones secundarios: antes casi invisible |
+| `--border-strong` (oscuro) | `piedra-700` | `piedra-600` | 2.18:1 → **3.07:1** | Igual, en tema oscuro |
+| `--text-muted` (oscuro) | `piedra-400` | `piedra-300` | 4.40:1 → **6.29:1** sobre `--surface-muted` | Texto secundario, un punto más claro en oscuro |
+| El ocre como texto | un solo `--accent` | **dos tokens**: `--accent` (relleno) y `--accent-text` (texto) | 3.67:1 → **6.15:1** | El ocre como texto es un paso más oscuro; como relleno **no cambia** |
+
+**Además creé `--accent-subtle`, que no existía.** Se usaba `bg-accent-subtle` en cuatro
+componentes —cuenta regresiva, pasaporte, check-in, moderación— y como el token no estaba
+definido, esos fondos eran **transparentes**. Llevaba así desde el Bloque 9 sin que se notara.
+
+**Y quité color de donde no podía garantizarse.** Los chips de categoría y de tipo pintaban
+el texto con el color que viene del catálogo (base de datos), que no pasa por el sistema de
+tokens: un ocre claro sobre su propio tinte daba 3.6:1 y no hay forma de arreglarlo desde el
+CSS. Ahora **el color vive en el fondo** —subido del 10 % al 18 % para que la identidad siga
+leyéndose— y el texto usa `--text`, que está medido. Afecta a: tarjeta de lugar, tarjeta de
+evento, ficha de evento, lista de incidentes, popup del mapa y bandeja de reportes.
+
+Dos cambios de tamaño u opacidad, ninguno de paleta:
+
+- **Días de meses vecinos en el calendario**: se quitó `opacity-40`. Al 40 % el contraste
+  caía a 3.63:1. La distinción visual ya la da el fondo de la casilla, que no es texto y no
+  tiene ese requisito.
+- **`h3` → `h2`** en la tarjeta de lugar: saltarse un nivel rompe la navegación por
+  encabezados de un lector de pantalla.
+
+> Cuando pulas la interfaz, **mantén estos contrastes**. `pnpm a11y:contraste` los vuelve a
+> medir y devuelve código de salida 1 si alguno baja, así que sirve también en CI.
+
+### Los números de Lighthouse
+
+Build de producción (`next start`), emulación móvil:
+
+| Página | Rend. | A11y | Buenas prácticas | SEO | LCP | CLS |
+|---|---|---|---|---|---|---|
+| Portada | 94 | **100** | 96 | 92 | 3.04 s | 0.000 |
+| Listado de lugares | 94 | **100** | 96 | 92 | 3.03 s | 0.018 |
+| Ficha de lugar | 93 | **100** | 96 | 92 | 3.18 s | 0.000 |
+| **Mapa** | **66** | **100** | 96 | 92 | 3.03 s | 0.000 |
+| Agenda | 94 | **100** | 96 | 92 | 3.03 s | 0.000 |
+
+**Dos cosas que hay que decir con precisión:**
+
+**El mapa se queda en 66 y no lo he disimulado.** Su TBT es de 1 584 ms, que es lo que tarda
+el navegador en interpretar e inicializar el motor WebGL de MapLibre. No es código nuestro ni
+un descuido de carga: la biblioteca ya entra con `next/dynamic`. Una página cuyo propósito
+*es* el mapa no puede no cargar el mapa. Bajarlo exigiría cambiar la funcionalidad —no cargar
+el mapa hasta que el usuario lo pida—, y eso es una decisión de producto, no de pulido.
+
+**El LCP de ~3 s es el de la simulación, no el del servidor.** El TTFB medido está entre 5 y
+20 ms; los 3 segundos salen del estrangulamiento que Lighthouse aplica en modo móvil (4G
+lenta y CPU 4× más lenta). Sobre una red real será bastante menor. Lo digo porque el RNF-03
+fija LCP < 2.5 s y **bajo esta simulación no se cumple**: cumplirlo exigiría medir sin
+estrangulamiento, que sería medir otra cosa.
+
+### Pruebas de carga — y la confirmación que pediste
+
+> **Confirmación explícita: las pruebas NO tocaron producción.** El plan `.jmx` apunta a
+> `localhost:8080` por defecto, PostgreSQL y Redis eran los contenedores locales, y ningún
+> sampler llama a MapTiler, Supabase ni Upstash.
+
+| Escenario | Usuarios | Muestras | P95 | Errores |
+|---|---|---|---|---|
+| Base, caché caliente | 50 | 2 615 | **118 ms** | 0 |
+| Base, caché fría | 50 | 2 623 | **118 ms** | 0 |
+| Pico «Semana Santa» | 500 | 43 910 | **35 ms** | 0 |
+
+El P95 global lo domina `/clima` (112–123 ms); el resto de endpoints está entre 8 y 42 ms.
+Que el pico salga *mejor* que la base no es magia: con 500 usuarios el JIT ya está caliente y
+todo se sirve de caché.
+
+**Tres cosas tuve que corregir en el propio método de medida**, y las tres eran errores míos
+que falseaban el resultado:
+
+1. **Sin tiempo de reflexión**, «50 usuarios» no simulaba 50 personas sino 50 bucles
+   cerrados: 9 000 peticiones/s que agotaban la máquina y **tumbaron el JVM dos veces** con
+   una violación de acceso. Se corrige con `pausa=1000`.
+2. **Sin keep-alive**, cada petición abría un socket nuevo y a 500 usuarios Windows se
+   quedaba sin puertos efímeros: 49 % de `BindException`, que es el límite del *generador de
+   carga*, no del servidor.
+3. **Con `mvnw spring-boot:run`** el proceso moría bajo carga. Las cifras de arriba son
+   contra el **jar empaquetado**, que además es lo que se despliega.
+
+### Lo que la prueba de carga destapó, y es lo más valioso del bloque
+
+**No había protección contra estampida de caché, y lo pagué en directo.** Al ejecutar el
+escenario de caché fría vacié Redis y lancé 50 usuarios concurrentes contra `/clima`. Todos
+fallaron la lectura a la vez, todos llamaron a OpenWeatherMap, y **la cuenta gratuita quedó
+temporalmente bloqueada** (`429: account is temporary blocked`).
+
+Es un fallo real de producción, no un artefacto de la prueba: en un pico de Semana Santa,
+justo al caducar la clave fresca, la aplicación habría hecho exactamente lo mismo.
+
+Corregido en `CacheClima` con un **testigo en Redis** (`SET NX EX`): de todas las peticiones
+simultáneas, exactamente una refresca; las demás sirven el último dato bueno al instante en
+vez de encolarse. El cerrojo vive en Redis y no en memoria porque con varias instancias un
+lock local dejaría pasar una llamada por instancia. Y si el proveedor falla, **el testigo no
+se suelta**: caduca solo, para no lanzarle mil reintentos a un servicio que acaba de caerse.
+
+> **Consecuencia práctica que debes conocer:** la clave de OpenWeatherMap está bloqueada
+> temporalmente. El bloqueo es transitorio y se levanta solo. Mientras tanto el clima se
+> muestra como «no disponible», que es la degradación elegante del Bloque 5 funcionando como
+> debe.
+
+De paso hice deterministas dos tests que dependían de que el proveedor externo respondiera
+—fallaban por el bloqueo, no por el código—. Los cuatro estados del clima se siguen cubriendo
+de forma exhaustiva en `FechasYClimaDeEventosTest`, que usa un doble.
+
+### El rate limit del build (el cabo del Bloque 12)
+
+**No se exime por IP.** Adivinar «esto viene de dentro» mirando la dirección se rompe con un
+proxy delante, y en el despliegue previsto —Vercel llamando a Railway— el frontend sale con
+IP pública. En su lugar, el servidor de Next se identifica con un **secreto compartido** en
+la cabecera `X-Yachay-Interno`, comparado en **tiempo constante** para no filtrarlo por el
+tiempo de respuesta. La variable no lleva prefijo `NEXT_PUBLIC_`, así que nunca llega al
+navegador, y el helper comprueba además que se está ejecutando en el servidor.
+
+Probado en las tres direcciones: 130 peticiones con token no gastan cupo; 105 sin token dan
+**429**; y un token incorrecto también da **429**.
+
+### SEO
+
+`sitemap.xml` dinámico con **60 URLs**, cada una declarada en los dos idiomas con
+`alternates.languages`: sin el hreflang recíproco, un buscador entiende que la versión
+inglesa no existe. Se construye pidiendo al API los lugares publicados, los próximos eventos
+y los negocios aprobados, y cada bloque va en su propio `try` — que falle la agenda no puede
+dejar fuera del mapa a los quince lugares patrimoniales.
+
+JSON-LD en las tres fichas. La valoración agregada **solo se declara si hay reseñas de
+verdad**: un `aggregateRating` con cero opiniones es marcado engañoso y Google lo penaliza.
+
+La imagen de Open Graph **se genera** en vez de guardarse como PNG, así sale en el idioma de
+la página y no hay que reexportarla cuando cambie la paleta. Detalle que costó encontrar:
+cuando una página declara su propio bloque `openGraph`, Next deja de añadir la imagen basada
+en archivo, así que en las fichas hay que nombrarla explícitamente.
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw verify` | **BUILD SUCCESS — 386 tests, 0 fallos** · «All coverage checks have been met» (75 % de instrucciones, mínimo 70 %) |
+| `pnpm lint` / `type-check` / `build` | Sin errores; **67 páginas** generadas sin chocar con el rate limit |
+| `pnpm a11y:contraste` | **0 pares por debajo del mínimo** (19 pares × 2 temas) |
+| Lighthouse | 4 de 5 páginas ≥ 93 en rendimiento; **5 de 5 con accesibilidad 100** |
+| JMeter | Base P95 118 ms, pico P95 35 ms, **0 errores**, contra Docker local |
+| **Navegador real** | **22/22 comprobaciones**: las 19 páginas en claro y oscuro, sitemap con hreflang, robots, JSON-LD válido, Open Graph absoluto, enlace de salto y dimensiones de imagen. **Consola limpia** |
+
+### Limitaciones honestas de este bloque
+
+- **Cross-browser: solo Chromium.** En este equipo únicamente hay Edge. No he probado
+  Firefox ni Safari y **no voy a afirmar que funcionan**. Queda pendiente para el Bloque 14 o
+  para una máquina con esos navegadores.
+- **Playwright no se añadió.** Los guiones de verificación sobre CDP ya cubren los flujos
+  críticos desde el Bloque 4; meter Playwright eran ~300 MB de navegadores y reescribir lo
+  que ya funciona. Los guiones viven ahora en `scripts/`.
+- **El mapa no llega a 90** en rendimiento, por lo explicado arriba.
+- **El LCP no baja de 2.5 s bajo la simulación móvil** de Lighthouse, aunque el TTFB real sea
+  de milisegundos.
 
 ---
 

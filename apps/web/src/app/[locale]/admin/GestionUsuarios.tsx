@@ -94,7 +94,7 @@ export function GestionUsuarios() {
               <span className="text-fluid-base font-medium text-text">{usuario.nombre}</span>
               <span className="text-fluid-sm text-text-muted">{usuario.email}</span>
               {usuario.esTuCuenta && (
-                <span data-testid="marca-tu-cuenta" className="text-fluid-sm text-accent">
+                <span data-testid="marca-tu-cuenta" className="text-fluid-sm text-accent-text">
                   {t("tuCuenta")}
                 </span>
               )}

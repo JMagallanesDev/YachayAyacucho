@@ -71,9 +71,14 @@ export function RejillaMes({
               }`}
             >
               <MarcaDeHoy fecha={casilla.fecha} />
+              {/* Los dias de los meses vecinos NO se atenuan con opacidad: al
+                  70% el contraste bajaba a 3.63:1 y no llegaba al 4.5:1 (WCAG
+                  1.4.3). La distincion visual ya la da el fondo de la casilla
+                  —`bg-surface` frente a transparente—, que no es texto y por
+                  tanto no tiene ese requisito. */}
               <span
                 className={`text-fluid-sm ${
-                  casilla.delMes ? "text-text" : "text-text-muted opacity-40"
+                  casilla.delMes ? "text-text" : "text-text-muted"
                 }`}
               >
                 {casilla.dia}
@@ -82,6 +87,7 @@ export function RejillaMes({
               {delDia.length > 0 && (
                 <span
                   className="flex flex-wrap justify-center gap-0.5"
+                  role="img"
                   aria-label={t("eventosEseDia", { total: delDia.length })}
                 >
                   {/* Como mucho tres puntos: mas no se distinguen en una casilla

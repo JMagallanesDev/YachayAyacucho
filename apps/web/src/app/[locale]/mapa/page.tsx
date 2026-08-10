@@ -92,7 +92,7 @@ export default async function PaginaMapa({
                   style={{ backgroundColor: punto.properties.color }}
                 />
                 <span>{punto.properties.nombre}</span>
-                <span className="ml-auto text-text-muted">{punto.properties.categoriaNombre}</span>
+                <span className="ms-auto text-text-muted">{punto.properties.categoriaNombre}</span>
               </Link>
             </li>
           ))}

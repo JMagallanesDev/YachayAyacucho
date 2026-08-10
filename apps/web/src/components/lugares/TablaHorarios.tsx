@@ -29,7 +29,7 @@ export function TablaHorarios({ horarios }: { horarios: Horario[] }) {
           return (
             <div key={dia} className="flex items-baseline justify-between gap-3 py-3">
               <dt className="text-fluid-sm text-text-muted">{t(`dia.${dia}`)}</dt>
-              <dd className="text-right text-fluid-sm font-medium text-text">
+              <dd className="text-end text-fluid-sm font-medium text-text">
                 {abiertos.length === 0
                   ? t("cerrado")
                   : abiertos

@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import type { Clima, Planificacion, Pronostico, Recomendacion } from "@/types/clima";
+import { cabecerasPublicas } from "@/lib/cabeceras";
 
 /**
  * Cliente de /clima y /recomendaciones.
@@ -33,7 +34,7 @@ export function claveRecomendaciones(idioma: string) {
 export async function obtenerClima(): Promise<Clima> {
   try {
     const respuesta = await fetch(`${env.apiUrl}/clima`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       // Corto: el backend ya cachea 30 min en Redis, asi que aqui solo se
       // evita la rafaga de una misma sesion.
       next: { revalidate: 300 },
@@ -47,7 +48,7 @@ export async function obtenerClima(): Promise<Clima> {
 export async function obtenerPronostico(): Promise<Pronostico> {
   try {
     const respuesta = await fetch(`${env.apiUrl}/clima/pronostico`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       next: { revalidate: 1800 },
     });
     return respuesta.ok
@@ -63,7 +64,7 @@ export async function obtenerRecomendaciones(idioma: string): Promise<Recomendac
     const respuesta = await fetch(
       `${env.apiUrl}/recomendaciones?idioma=${idioma.toUpperCase()}`,
       {
-        headers: { Accept: "application/json" },
+        headers: cabecerasPublicas(),
         // Las recomendaciones dependen de la hora, asi que caducan rapido: a
         // las 17:00 deben empezar a proponer miradores.
         next: { revalidate: 600 },
@@ -79,7 +80,7 @@ export async function planificar(fecha: string, idioma: string): Promise<Planifi
   try {
     const respuesta = await fetch(
       `${env.apiUrl}/recomendaciones/planificador?fecha=${fecha}&idioma=${idioma.toUpperCase()}`,
-      { headers: { Accept: "application/json" }, cache: "no-store" },
+      { headers: cabecerasPublicas(), cache: "no-store" },
     );
     return respuesta.ok ? respuesta.json() : null;
   } catch {

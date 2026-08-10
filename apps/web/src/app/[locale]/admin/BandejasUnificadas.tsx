@@ -98,7 +98,7 @@ export function BandejasUnificadas() {
             {t(`bandeja.${pestana.clave}`)}
             {pestana.cuenta > 0 && (
               <span
-                className={`ml-2 rounded-full px-2 py-0.5 text-xs tabular-nums ${
+                className={`ms-2 rounded-full px-2 py-0.5 text-xs tabular-nums ${
                   activa === pestana.clave ? "bg-primary-fg/20" : "bg-surface"
                 }`}
               >

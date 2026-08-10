@@ -46,7 +46,7 @@ export default async function PaginaInicio({
     <main className="mx-auto flex min-h-svh w-full max-w-2xl flex-col gap-8 px-5 py-12">
       <RegistrarVisita tipo="HOME" />
       <header className="flex flex-col gap-3">
-        <span className="text-fluid-sm font-medium uppercase tracking-widest text-accent">
+        <span className="text-fluid-sm font-medium uppercase tracking-widest text-accent-text">
           {t("etiqueta")}
         </span>
         <h1 className="text-fluid-3xl font-bold text-text">{env.appName}</h1>

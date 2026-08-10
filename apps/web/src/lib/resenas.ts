@@ -2,6 +2,7 @@ import { env } from "@/lib/env";
 import { pedirAutenticado } from "@/lib/auth";
 import type { Foto, Resena } from "@/types/resena";
 import type { Pagina } from "@/types/lugar";
+import { cabecerasPublicas } from "@/lib/cabeceras";
 
 /**
  * Cliente de resenas y fotos.
@@ -45,7 +46,7 @@ export async function listarResenas(
 ): Promise<Pagina<Resena>> {
   try {
     const respuesta = await fetch(`${env.apiUrl}/lugares/${slug}/resenas?size=20`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       ...(modo === "servidor"
         ? { next: { revalidate: 60 } }
         : { cache: "no-store" as const }),
@@ -60,7 +61,7 @@ export async function listarResenas(
 export async function listarFotos(slug: string): Promise<Foto[]> {
   try {
     const respuesta = await fetch(`${env.apiUrl}/lugares/${slug}/fotos`, {
-      headers: { Accept: "application/json" },
+      headers: cabecerasPublicas(),
       next: { revalidate: 300 },
     });
     return respuesta.ok ? respuesta.json() : [];
