@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { Link } from "@/i18n/navegacion";
+import { Aparecer } from "@/components/movimiento/Aparecer";
 import { LIMITES_AYACUCHO } from "@/lib/mapa";
 import { incidentesEnMapa } from "@/lib/reportes";
 
@@ -65,8 +66,10 @@ export default async function PaginaMapaIncidentes({
           </p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2" data-testid="lista-incidentes">
-            {incidentes.map((incidente) => (
-              <li
+            {incidentes.map((incidente, i) => (
+              <Aparecer
+                comoLista
+                indice={i}
                 key={incidente.id}
                 data-testid="incidente"
                 data-estado={incidente.estado}
@@ -101,7 +104,7 @@ export default async function PaginaMapaIncidentes({
                     className="h-40 w-full rounded-card object-cover"
                   />
                 )}
-              </li>
+              </Aparecer>
             ))}
           </ul>
         )}

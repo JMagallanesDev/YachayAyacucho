@@ -3,11 +3,14 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Inter, Playfair_Display } from "next/font/google";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import type { ReactNode } from "react";
 
 import { ProveedorQuery } from "@/components/ProveedorQuery";
 import { ProveedorSesion } from "@/components/ProveedorSesion";
 import { SelectorIdioma } from "@/components/SelectorIdioma";
+import { NavegacionPrincipal } from "@/components/navegacion/NavegacionPrincipal";
+import { GUION_ANTI_DESTELLO } from "@/components/tema/tema";
 import { routing } from "@/i18n/routing";
 import { env } from "@/lib/env";
 
@@ -49,9 +52,13 @@ export const viewport: Viewport = {
   // Imprescindible para que env(safe-area-inset-*) tenga efecto: sin esto el
   // contenido no llega bajo el notch y las safe areas valen siempre cero.
   viewportFit: "cover",
+  // Los dos unicos colores que NO pueden salir de los tokens: el navegador
+  // lee esta cabecera antes de que exista ninguna hoja de estilo, asi que no
+  // hay CSS que consultar. Son el valor resuelto de --color-sillar-50 y
+  // --color-piedra-950; si la paleta cambia, cambian aqui (RF-89).
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f0e8" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1715" },
+    { media: "(prefers-color-scheme: light)", color: "oklch(0.970 0.027 65.7)" },
+    { media: "(prefers-color-scheme: dark)", color: "oklch(0.190 0.005 65.7)" },
   ],
 };
 
@@ -88,8 +95,23 @@ export default async function LayoutIdioma({
       lang={locale}
       className={`${inter.variable} ${playfair.variable}`}
       data-scroll-behavior="smooth"
+      suppressHydrationWarning
     >
       <body>
+        {/*
+          `next/script` con `beforeInteractive` y NO un <script> escrito a mano:
+          React 19 avisa —con razon— de que «los scripts dentro de componentes
+          nunca se ejecutan al renderizar en el cliente», porque al hidratar
+          trata la etiqueta como un nodo mas y no la evalua. `next/script` la
+          inyecta en el HTML inicial, fuera del arbol que React hidrata.
+
+          Su unico trabajo es poner data-theme ANTES del primer pintado: sin
+          el, quien tiene el modo oscuro veria un fogonazo blanco en cada
+          carga. Ver tema.ts.
+        */}
+        <Script id="tema-anti-destello" strategy="beforeInteractive">
+          {GUION_ANTI_DESTELLO}
+        </Script>
         <NextIntlClientProvider>
           {/* Cache de estado de servidor compartida por toda la app: sin ella
               cada componente cliente refetchearia por su cuenta. */}
@@ -97,8 +119,14 @@ export default async function LayoutIdioma({
             {/* Intenta recuperar la sesion con la cookie httpOnly al cargar.
                 El access token vive en memoria, asi que cada recarga lo pierde. */}
             <ProveedorSesion>
+              <NavegacionPrincipal />
+              {/* El hueco de la barra fija: abajo en movil, arriba en
+                  escritorio. Sin esto la barra taparia la ultima fila de
+                  cada pagina, que es el fallo clasico de una barra fija. */}
+              <div className="pb-[calc(var(--spacing-nav)+env(safe-area-inset-bottom))] md:pt-nav md:pb-0">
+                {children}
+              </div>
               <SelectorIdioma />
-              {children}
             </ProveedorSesion>
           </ProveedorQuery>
         </NextIntlClientProvider>

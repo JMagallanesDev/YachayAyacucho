@@ -13,6 +13,9 @@ import {
 import { Bar, Line } from "react-chartjs-2";
 import { useEffect, useState } from "react";
 
+import { useTokensDeLienzo } from "@/components/useTokensDeLienzo";
+import { token } from "@/lib/tokens";
+
 /**
  * Graficos del panel (RF-52).
  *
@@ -51,53 +54,52 @@ ChartJS.register(
   Tooltip,
 );
 
-/** Lee un token del tema actual; funciona igual en claro y en oscuro. */
-function token(nombre: string, respaldo: string): string {
-  if (typeof window === "undefined") {
-    return respaldo;
-  }
-  const valor = getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
-  return valor || respaldo;
-}
-
 /**
- * Colores del tema, releidos cuando cambia el esquema del sistema.
+ * Colores del tema para el lienzo.
  *
- * <p>Chart.js dibuja sobre un lienzo: no hereda CSS ni reacciona a un cambio de
- * tema por su cuenta. Hay que darle valores concretos y volver a dibujarlo.</p>
+ * <p>Chart.js dibuja sobre un canvas: no hereda CSS ni reacciona a un cambio de
+ * tema por su cuenta, asi que hay que darle valores concretos y volver a
+ * dibujar. Los toma de {@code useTokensDeLienzo}, el mismo hook que usa el
+ * mapa, que relee al cambiar {@code data-theme} <strong>y</strong> al cambiar la
+ * preferencia del sistema. Antes solo escuchaba lo segundo, de modo que el
+ * interruptor manual dejaba los graficos con la paleta anterior.</p>
+ *
+ * <p>El paso del ocre cambia con el fondo a proposito: el mismo color sobre una
+ * superficie oscura se hunde y deja de distinguirse.</p>
  */
 function useColoresDelTema() {
-  const [colores, setColores] = useState({
-    serie: "#944e1b",
-    texto: "#57534e",
-    rejilla: "rgba(120,113,108,0.18)",
-  });
+  const tokens = useTokensDeLienzo();
+  const [oscuro, setOscuro] = useState(false);
 
   useEffect(() => {
     const consulta = window.matchMedia("(prefers-color-scheme: dark)");
-
-    function leer() {
-      const oscuro =
+    const leer = () =>
+      setOscuro(
         document.documentElement.dataset.theme === "dark" ||
-        (!document.documentElement.dataset.theme && consulta.matches);
-
-      setColores({
-        // El paso cambia con el fondo a proposito: el mismo color sobre una
-        // superficie oscura se hunde y deja de distinguirse.
-        serie: oscuro
-          ? token("--color-quinua-500", "#c0703a")
-          : token("--color-quinua-600", "#944e1b"),
-        texto: token("--color-text-muted", oscuro ? "#a8a29e" : "#57534e"),
-        rejilla: oscuro ? "rgba(214,211,209,0.14)" : "rgba(120,113,108,0.18)",
-      });
-    }
+          (!document.documentElement.dataset.theme && consulta.matches),
+      );
 
     leer();
+    const observador = new MutationObserver(leer);
+    observador.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
     consulta.addEventListener("change", leer);
-    return () => consulta.removeEventListener("change", leer);
+
+    return () => {
+      observador.disconnect();
+      consulta.removeEventListener("change", leer);
+    };
   }, []);
 
-  return colores;
+  return {
+    serie: token(oscuro ? "--color-quinua-500" : "--color-quinua-600"),
+    texto: tokens?.textoTenue ?? "transparent",
+    // La rejilla es el borde del tema con opacidad: `color-mix` la calcula sin
+    // que haya que escribir ningun rgba a mano.
+    rejilla: `color-mix(in oklab, ${tokens?.borde ?? "transparent"} 70%, transparent)`,
+  };
 }
 
 const SIN_ANIMACION_SI_MOLESTA =

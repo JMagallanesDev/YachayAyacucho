@@ -61,8 +61,8 @@ export function VideoFestividad({ videoId, titulo }: { videoId: string; titulo: 
         alt=""
         className="size-full object-cover"
       />
-      <span className="absolute inset-0 flex items-center justify-center bg-black/30">
-        <span className="flex size-16 items-center justify-center rounded-full bg-white/90 text-2xl text-anil-800">
+      <span className="absolute inset-0 flex items-center justify-center bg-sobre-foto-bg">
+        <span className="flex size-16 items-center justify-center rounded-full bg-sobre-foto-solido text-2xl text-anil-800">
           ▶
         </span>
       </span>

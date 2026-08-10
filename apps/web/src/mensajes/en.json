@@ -65,7 +65,15 @@
     "recuperando": "Restoring your session...",
     "nombre": "Name",
     "correo": "Email",
-    "rol": "Role"
+    "rol": "Role",
+    "atajo": {
+      "favoritos": "My favourites",
+      "pasaporte": "My passport",
+      "miNegocio": "My business",
+      "directorio": "Business directory",
+      "incidentes": "Incident map",
+      "reportar": "Report damage"
+    }
   },
   "admin": {
     "titulo": "Administration",
@@ -607,5 +615,20 @@
     "compartirNativo": "Share...",
     "codigoQrDe": "QR code for {titulo}",
     "escaneaParaAbrir": "Scan to open on another phone"
+  },
+  "navegacion": {
+    "etiqueta": "Main navigation",
+    "inicio": "Home",
+    "lugares": "Places",
+    "mapa": "Map",
+    "agenda": "Events",
+    "perfil": "Profile"
+  },
+  "tema": {
+    "etiqueta": "Interface theme",
+    "claro": "Light",
+    "oscuro": "Dark",
+    "sistema": "Match system",
+    "titulo": "Appearance"
   }
 }

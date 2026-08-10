@@ -5,8 +5,9 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 `docs/PLAN_DE_DESARROLLO.md`, sección 8.
 
 ## Estado actual
-- **Bloque en curso:** ninguno (Bloque 11 terminado, pendiente de commit del usuario).
-- **Próximo bloque:** Bloque 12 — Identidad visual final y cierre de alcance.
+- **Bloque en curso:** ninguno (Bloque 12 terminado, pendiente de commit del usuario).
+- **Próximo bloque:** Bloque 13 — Pulido: performance, SEO, accesibilidad y testing.
+- **Alcance cerrado:** desde el Bloque 12 **no se añaden funciones**. Ver «Cierre formal de alcance».
 - **Versiones vigentes:** Spring Boot 4.1.0 · Next.js 16.2.12 · React 19.2.8 · Java 21 · Node 24 ·
   Hibernate 7.4.1 · Flyway 12.4 · Testcontainers 2.0.5.
 
@@ -26,7 +27,7 @@ bloque; el usuario lo lee para retomar entre sesiones. El orden de bloques está
 | 9 — Agenda cultural | ✅ Completado | Calendario mensual con la rejilla construida sobre `Date.UTC` y **el mes y el filtro en la URL**, de modo que los botones de mes son enlaces y la vista se comparte; ficha de evento con clima; **clonado anual que copia la plantilla pero nunca la fecha vieja** —la Semana Santa es móvil— y nace en BORRADOR, con `evento_origen_id` (migración V16) para no crear gemelos; los eventos de varios días aparecen en todos sus días por una consulta de solape; «próximos eventos» en la portada con cuenta regresiva; «Durante mi visita» con las fechas en cookie leída por el servidor; y clima con **cuatro estados explícitos**, ninguno de ellos un error: pronóstico, temporada cuando aún falta mucho, no disponible y pasado. Todo el manejo de fechas pasa por `lib/fechas.ts`, que fija UTC al formatear. **270 tests** + 23 comprobaciones en navegador real, incluida **la misma fecha vista desde tres husos separados por 25 horas** | — |
 | 10 — Panel de administración | ✅ Completado | Panel **cerrado por defecto**: `/admin/**` exige rol ADMIN en `SecurityConfig` como primera regla, además de los `@PreAuthorize` de cada clase, y **un test enumera los 22 endpoints desde el mapa de handlers de Spring y ataca cada uno** con un usuario normal (403) y sin credenciales (401); dashboard con cuatro gráficos Chart.js cargados por import dinámico, cada uno con su tabla plegada; analítica de tráfico **sin un solo identificador personal** —huella HMAC de sal rotatoria compartida con el Bloque 8, unicidad por HyperLogLog en Redis, ventana anti-recarga de 30 min y `UPSERT` atómico—; gestión de usuarios con las dos barreras (nadie se cambia su propio rol, nunca cero administradores activos) y un DTO que **no tiene campo de contraseña**; CRUD de rutas con paradas numeradas por su posición; bitácora RF-56 con llamadas explícitas y la IP del administrador; y las tres bandejas de moderación unificadas en pestañas con contador, cerrando el cabo del Bloque 7: **la foto en `EN_REVISION` por fin entra en la cola**. **362 tests** + 20 comprobaciones en navegador real | — |
 | 11 — Directorio, slider geolocalizado, compartir | ✅ Completado | Directorio de negocios con **flujo de aprobación real**: se registra PENDIENTE y el estado no viaja en la petición, así que no hay forma de autopublicarse; el admin aprueba desde una cuarta pestaña de las bandejas unificadas y **entonces** se concede el rol NEGOCIO. La autorización del panel propio es **por propiedad, no por rol**: una única `GuardaDePropiedad` por la que pasa todo, y un dueño verificado que fuerza el identificador de otro recibe 403. Editar lo que el público ve devuelve el negocio a revisión. WhatsApp con mensaje predefinido (RF-110) y número normalizado al guardar; visitas y clics contados con la huella HMAC efímera y ventana de 30 min, que **llena la analítica de negocios que quedó vacía en el Bloque 10**. Slider antes/después sobre un `input range` real —teclado y lector de pantalla incluidos— que **no se pinta si falta la foto actual**, con el modo «Párate aquí» reutilizando `useProximidad` del Bloque 5. Compartir con URL, copiar, share nativo y **QR generado en el navegador**, sin enviar la dirección a ningún tercero. Vídeo de festividades con **fachada**: el iframe no existe hasta pulsar play (migración V17 guarda el identificador, no la URL). **386 tests** + 28 comprobaciones en navegador real | — |
-| 12 — Identidad visual y cierre de alcance | Pendiente | — | — |
+| 12 — Identidad visual y cierre de alcance | ✅ Completado | **Navegación por fin**: barra inferior fija en móvil y superior en escritorio, con indicador que se desliza (`layoutId` de Motion), safe areas y targets medidos de 52×56 px; hasta ahora las 19 páginas solo se alcanzaban escribiendo la URL. **Modo oscuro completo** con interruptor de tres estados (claro/oscuro/sistema) escrito a mano —sin `next-themes`— y guion previo al primer pintado que elimina el fogonazo; verificado en **las 19 páginas × 2 temas**. **Cero hex**: los 14 literales y las 9 clases `bg-white/bg-black` salen ahora de tokens, lo que además hace que **el mapa y los gráficos sigan al tema**, que era el hueco real del RF-94; para eso se escribió un conversor OKLCH/Lab→sRGB porque MapLibre y Chart.js no entienden el `lab()` que devuelve `getComputedStyle`. Animación de entrada en CSS y no en JS —para que el contenido público no dependa del JavaScript— y Motion reservado a las transiciones de elemento compartido. **386 tests** intactos + 16 comprobaciones en navegador real | — |
 | 13 — Pulido: performance, SEO, accesibilidad, testing | Pendiente | — | — |
 | 14 — Documentación, datos reales, sustentación | Pendiente | — | — |
 
@@ -198,6 +199,177 @@ Se suman a las ya anotadas más abajo:
 - **Tests de integración con Surefire:** los tests con Testcontainers se ejecutan en la
   fase `test` junto a los unitarios. Si en el Bloque 13 interesa separarlos, habría que
   renombrarlos a `*IT` y añadir Failsafe.
+
+---
+
+## Bloque 12 — Identidad visual final y cierre de alcance
+
+### El punto de partida: la base ya estaba, faltaba aplicarla
+
+El Bloque 0 dejó los cinco colores oficiales en OKLCH con sus escalas, la tipografía dual
+cargada y una capa base de sensación nativa (`touch-action`, safe areas, targets de 44 px,
+`prefers-reduced-motion`). Este bloque **no inventó el sistema: lo aplicó**, y al aplicarlo
+aparecieron tres huecos que la funcionalidad tapaba.
+
+### Hueco 1: no había navegación
+
+Diecinueve páginas y **ninguna forma de moverse entre ellas** salvo escribir la URL. Es el
+cambio que más transforma la sensación del producto.
+
+- **Barra inferior fija en móvil** —el pulgar llega abajo, no arriba— que en escritorio sube
+  a barra superior. **El mismo componente**, no dos: duplicarlo garantizaba que uno se
+  quedara sin actualizar.
+- **El indicador se desliza** entre destinos con `layoutId` de Motion. Es una transición de
+  elemento compartido: Motion mide antes y después y anima la diferencia. Hacerlo a mano
+  sería reimplementar FLIP.
+- **Índigo, nunca carmín.** El carmín es *acción* y la navegación es *estructura*. Si
+  compartieran color, el ojo dejaría de distinguir «pulsa esto» de «estás aquí».
+- El contenido reserva el hueco de la barra con `env(safe-area-inset-bottom)`. Olvidarlo es
+  el fallo clásico que hace que una web con barra fija tape su última fila.
+
+Los cinco destinos son Inicio · Lugares · Mapa · Agenda · Perfil. Cinco es el máximo antes de
+que las etiquetas dejen de leerse en 320 px, así que el resto —directorio, incidentes,
+reportar, favoritos, pasaporte, mi negocio— vive en atajos dentro del perfil.
+
+### Hueco 2: el modo oscuro estaba a medias
+
+Los tokens y los ganchos `[data-theme]` existían desde el Bloque 0, pero **nadie los
+escribía**: no había interruptor. Y el mapa tenía sus colores en hex literal, así que el tema
+oscuro no le llegaba.
+
+- **Interruptor de tres estados**, no de dos: claro, oscuro y **según el sistema**, que es el
+  valor por defecto y el que casi todo el mundo quiere. «Sistema» *quita* el atributo
+  `data-theme`, devolviendo el mando a la media query — así el sistema operativo decide y
+  cambia solo de día a noche.
+- **Escrito a mano, sin `next-themes`.** Son ~60 líneas entre el módulo y el componente;
+  añadir una dependencia para eso no compensaba.
+- **Sin fogonazo blanco.** Un guion previo al primer pintado aplica el tema guardado antes de
+  que se pinte nada. Es el detalle que más delata que una web no es una app.
+
+### Hueco 3: catorce colores fuera del sistema
+
+La auditoría dio 14 hex y 9 clases `bg-white`/`bg-black`. Ahora hay **cero**, y el efecto
+secundario importa más que la regla:
+
+| Dónde | Qué se hizo | Qué arregló de paso |
+|---|---|---|
+| Mapa (11 literales) | Leen los tokens en ejecución | **El mapa sigue al modo oscuro**, que antes se quedaba con su paleta clara sobre fondo negro |
+| Chart.js (5) | Igual, y ahora observa `data-theme` | Los gráficos ya no se quedan en la paleta anterior al usar el interruptor manual |
+| Slider, QR, vídeo | Tokens `--sobre-foto-*` | Deja **dicho** que el blanco sobre una fotografía es una decisión, no un descuido: sobre una foto el contraste lo manda la foto, no el tema |
+| `themeColor` del navegador | Valor OKLCH del token | Es el único sitio donde el color no puede salir de CSS: el navegador lee esa cabecera antes de que exista ninguna hoja de estilo |
+
+**Y aquí apareció el problema técnico del bloque.** La paleta se declara en OKLCH y Tailwind v4
+registra los colores del tema con `@property`, de modo que el navegador los *computa*:
+`getComputedStyle` no devuelve el texto original sino `lab(26.7596 1.73028 -30.3149)`. Eso es
+CSS impecable que **ni MapLibre ni Chart.js entienden** —sus analizadores de color son muy
+anteriores a los espacios de color amplios—. MapLibre rechazaba las capas con «color
+expected»: mapa sin chinchetas, y un aviso de React en cascada porque su manejador de errores
+acababa llamando a `setState` durante el render.
+
+Se intentó primero delegar en el navegador —asignar el color a un lienzo 2D y leerlo de
+vuelta—, que es la solución habitual y no cuesta nada. **No sirve**: el lienzo de Chromium
+tampoco acepta `lab()` todavía. De ahí que se escribiera la conversión OKLCH/Lab→sRGB
+siguiendo CSS Color 4. Está comprobada contra los cinco colores oficiales de la paleta y los
+reproduce **exactos**:
+
+```
+retablo-600  #b3202b   anil-800  #24406e   quinua-500  #c0703a
+sillar-200   #e9d8c8   puna-600  #46704f
+```
+
+### La animación: qué usa Motion y qué no
+
+Se confirmó el uso de Motion (`motion/react`), pero con un reparto que cambió al probarlo:
+
+| Qué | Con qué | Por qué |
+|---|---|---|
+| Indicador de la barra y del interruptor | **Motion** (`layoutId`) | Transición de elemento compartido: CSS no puede |
+| Entrada escalonada de listas | **CSS** (`@keyframes` + `--indice`) | Ver abajo |
+| Pulsación (escala 0.97 en 120 ms) | **CSS** (`.press`, desde el Bloque 0) | Cero JS y funciona antes de hidratar |
+
+**La entrada de listas empezó en Motion y se pasó a CSS por dos defectos reales**, encontrados
+al verificar:
+
+1. **El contenido quedaba invisible sin JavaScript.** Motion escribe `opacity: 0` en línea al
+   renderizar en el servidor y lo levanta al hidratar. Si el JS tarda o falla, el listado de
+   lugares —contenido público que debe leerse siempre— no aparece.
+2. **Discordancia de hidratación con «menos movimiento».** El servidor no puede conocer la
+   preferencia del visitante, así que renderizaba el estado animado y el navegador el final.
+   React tiraba el árbol entero.
+
+Una animación CSS no tiene ninguno de los dos problemas, y el bloque
+`prefers-reduced-motion` de `globals.css` ya la neutraliza. Queda verificado: con la
+preferencia activa las tarjetas aparecen **ya colocadas** (`opacidad 1, transform none`).
+
+### Cuatro fallos que la verificación destapó
+
+**1. MapLibre y `lab()`** — descrito arriba. Es el fallo de fondo del bloque.
+
+**2. React rechaza un `<script>` renderizado.** El guion anti-destello provocaba el aviso «los
+scripts dentro de componentes nunca se ejecutan al renderizar en el cliente». Se pasó a
+`next/script` con `beforeInteractive`, que es el mecanismo previsto. **El aviso persiste en
+desarrollo y está comprobado que no puede llegar al usuario**: el texto del mensaje no existe
+en el bundle de producción, y una carga del build de producción devuelve la **consola vacía**.
+Por eso el guion de verificación lo excluye de forma explícita y documentada, y sólo ése.
+
+**3. El límite de peticiones del API tumbaba el propio `pnpm build`.** Prerenderizar 65
+páginas dispara muchas llamadas desde la misma IP y el rate limit del Bloque 2 responde 429; el
+build abortaba en `/en/lugares/templo-de-san-francisco`. En el navegador el síntoma era
+desconcertante: una ficha que `curl` servía con 200 y el navegador con 404. **Conviene
+resolverlo en el Bloque 13** eximiendo al propio servidor del límite; por ahora se limpia el
+contador antes de construir y antes de cada página del recorrido.
+
+**4. Escribir en un formulario antes de que React hidrate no hace nada.** En el build de
+producción el formulario de login se renderiza en cliente, así que el `<input>` existe en el
+DOM antes de que sus manejadores estén enganchados. El guion ahora **comprueba que el valor se
+quedó** en vez de suponerlo.
+
+### Cierre formal de alcance (MoSCoW)
+
+**A partir de aquí no se añaden funciones.** Revisión de la tabla de la sección 4.2 del plan:
+
+| Requisito | Categoría | Estado | Decisión |
+|---|---|---|---|
+| RF-29 planificador por fecha | COULD | Backend hecho (`/recomendaciones/planificador`) | **Dentro** |
+| RF-39 / RF-39b check-in y pasaporte | COULD | Hechos (Bloque 7) | **Dentro** |
+| RF-52b analítica de tráfico | COULD | Hecha (Bloques 10 y 11) | **Dentro** |
+| RF-88 clima del evento | COULD | Hecho (Bloque 9) | **Dentro** |
+| RF-12 vídeos | COULD | Hecho (Bloque 11) | **Dentro** |
+| RF-95 microinteracciones | COULD | Hecho (este bloque) | **Dentro** |
+| **RF-64 francés y alemán** | COULD | **No hecho** | **RECORTADO** |
+| **RF-53 panel de rutas temáticas** | COULD | API completa, sin interfaz | **RECORTADO (parcial)** |
+
+**Lo que se recorta y por qué:**
+
+> **RF-64 — francés y alemán.** Duplicaría el coste de traducción de los 31 espacios de
+> nombres sin ningún usuario que lo haya pedido, y cada traducción sin revisar por un hablante
+> nativo es una promesa de calidad que no se puede sostener. El sistema queda preparado: añadir
+> un idioma es un archivo JSON y una entrada en `routing.ts`. **Español e inglés cubren el
+> RF-63, que es MUST.**
+>
+> **RF-53 — panel de rutas temáticas.** El plan ya preveía esta válvula («dejar como seed»).
+> El CRUD del backend **existe y está probado** (`AdminRutaController`, Bloque 10), así que las
+> rutas se pueden gestionar por API; lo que no se construye es su pantalla en el panel. Las
+> tres rutas actuales vienen del seed y no cambian con la frecuencia que justificaría una
+> interfaz propia.
+
+### Verificaciones ejecutadas
+
+| Verificación | Resultado |
+|---|---|
+| `mvnw test` | **BUILD SUCCESS — 386 tests, 0 fallos.** El diseño no tocó ninguna lógica |
+| `pnpm lint` / `type-check` | Sin errores |
+| `pnpm build` | 65 páginas estáticas generadas |
+| Conversión de color | Los 5 colores oficiales se reproducen **exactos** desde OKLCH |
+| Consola en producción | **Vacía** tras cargar portada, login y listado |
+| **Navegador real** | **16/16 comprobaciones.** Las 19 páginas × 2 temas = **38 cargas sin un solo error**; el fondo cambia en **todas**; cero blancos o negros puros en la interfaz; el interruptor funciona y persiste antes del primer pintado; los 5 destinos miden 52×56 px; la entrada animada y su desactivación con «menos movimiento»; Playfair en títulos e Inter en el cuerpo; y el mapa cargando en oscuro. **Consola limpia** |
+
+### Pendiente para el Bloque 13
+
+- **Eximir al propio servidor del rate limit** durante el prerenderizado, o el build seguirá
+  siendo frágil.
+- Medir el CLS real con Lighthouse: los esqueletos están escritos para copiar la caja del
+  contenido, pero eso hay que **medirlo**, no suponerlo.
 
 ---
 

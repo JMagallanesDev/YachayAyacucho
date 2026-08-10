@@ -65,7 +65,15 @@
     "recuperando": "Recuperando tu sesion...",
     "nombre": "Nombre",
     "correo": "Correo",
-    "rol": "Rol"
+    "rol": "Rol",
+    "atajo": {
+      "favoritos": "Mis favoritos",
+      "pasaporte": "Mi pasaporte",
+      "miNegocio": "Mi negocio",
+      "directorio": "Directorio de negocios",
+      "incidentes": "Mapa de incidentes",
+      "reportar": "Reportar un daño"
+    }
   },
   "admin": {
     "titulo": "Administracion",
@@ -607,5 +615,20 @@
     "compartirNativo": "Compartir...",
     "codigoQrDe": "Codigo QR de {titulo}",
     "escaneaParaAbrir": "Escanea para abrir en otro telefono"
+  },
+  "navegacion": {
+    "etiqueta": "Navegación principal",
+    "inicio": "Inicio",
+    "lugares": "Lugares",
+    "mapa": "Mapa",
+    "agenda": "Agenda",
+    "perfil": "Perfil"
+  },
+  "tema": {
+    "etiqueta": "Tema de la interfaz",
+    "claro": "Claro",
+    "oscuro": "Oscuro",
+    "sistema": "Según el sistema",
+    "titulo": "Apariencia"
   }
 }

@@ -147,7 +147,7 @@ export function Compartir({ titulo }: { titulo: string }) {
                 src={urlQr}
                 alt={t("codigoQrDe", { titulo })}
                 data-testid="codigo-qr"
-                className="size-40 rounded-card bg-white p-2"
+                className="size-40 rounded-card bg-sobre-foto-solido p-2"
               />
               <span className="text-fluid-sm text-text-muted">{t("escaneaParaAbrir")}</span>
             </div>

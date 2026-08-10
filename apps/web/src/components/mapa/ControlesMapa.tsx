@@ -121,7 +121,7 @@ export function ControlesMapa({
                     style={{
                       borderColor: ruta.colorHex,
                       backgroundColor: rutaVisible === ruta.slug ? ruta.colorHex : "transparent",
-                      color: rutaVisible === ruta.slug ? "#ffffff" : ruta.colorHex,
+                      color: rutaVisible === ruta.slug ? "var(--sobre-foto-fg)" : ruta.colorHex,
                     }}
                   >
                     {ruta.nombre}

@@ -91,19 +91,19 @@ export function SliderAntesDespues({
         {/* La linea del divisor. No captura el puntero: quien lo hace es el
             range invisible que va encima de todo. */}
         <div
-          className="pointer-events-none absolute inset-y-0 w-0.5 bg-white shadow-card"
+          className="pointer-events-none absolute inset-y-0 w-0.5 bg-sobre-foto-solido shadow-card"
           style={{ left: `${posicion}%` }}
           aria-hidden="true"
         >
-          <span className="absolute top-1/2 left-1/2 flex size-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-anil-800 shadow-card">
+          <span className="absolute top-1/2 left-1/2 flex size-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-sobre-foto-solido text-anil-800 shadow-card">
             ↔
           </span>
         </div>
 
-        <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-black/60 px-2.5 py-1 text-fluid-sm font-medium text-white">
+        <span className="pointer-events-none absolute top-3 left-3 rounded-full bg-sobre-foto-bg px-2.5 py-1 text-fluid-sm font-medium text-sobre-foto-fg">
           {imagen.anioHistorico}
         </span>
-        <span className="pointer-events-none absolute top-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-fluid-sm font-medium text-white">
+        <span className="pointer-events-none absolute top-3 right-3 rounded-full bg-sobre-foto-bg px-2.5 py-1 text-fluid-sm font-medium text-sobre-foto-fg">
           {t("hoy")}
         </span>
 

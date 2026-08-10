@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { RegistrarVisita } from "@/components/RegistrarVisita";
+import { Aparecer } from "@/components/movimiento/Aparecer";
 import { Link } from "@/i18n/navegacion";
 import { categoriasDeNegocio, directorio } from "@/lib/negocios";
 
@@ -93,8 +94,10 @@ export default async function PaginaNegocios({
         </p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2" data-testid="lista-negocios">
-          {pagina.content.map((negocio) => (
-            <li
+          {pagina.content.map((negocio, i) => (
+            <Aparecer
+              comoLista
+              indice={i}
               key={negocio.id}
               data-testid="tarjeta-negocio"
               data-negocio-id={negocio.id}
@@ -117,7 +120,7 @@ export default async function PaginaNegocios({
               )}
 
               <span className="text-fluid-sm text-text-muted">{negocio.distritoNombre}</span>
-            </li>
+            </Aparecer>
           ))}
         </ul>
       )}

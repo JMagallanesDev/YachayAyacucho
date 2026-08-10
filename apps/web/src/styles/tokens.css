@@ -165,6 +165,28 @@
   --ring: var(--color-anil-600);
 
   --overlay: oklch(0.19 0.005 65.7 / 0.55);
+
+  /* Navegacion (Bloque 12). El indigo es ESTRUCTURA, nunca accion: por eso
+     la barra y el estado activo son anil y no retablo. Si la navegacion
+     compartiera color con los botones primarios, el ojo dejaria de saber
+     que es pulsable de verdad y que es solo "donde estoy". */
+  --nav-bg: oklch(0.995 0.004 65.7 / 0.88);
+  --nav-border: var(--color-piedra-200);
+  --nav-item: var(--color-piedra-600);
+  --nav-item-activo: var(--color-anil-800);
+  --nav-indicador: var(--color-anil-100);
+
+  /* Etiquetas superpuestas a una FOTOGRAFIA. Aqui el blanco y el negro son
+     correctos y NO deben seguir al tema: sobre una foto, el contraste lo
+     manda la foto, no la preferencia del sistema. Se tokenizan igualmente
+     para dejar dicho que es una decision y no un descuido (RF-89). */
+  --sobre-foto-bg: oklch(0.19 0.005 65.7 / 0.62);
+  --sobre-foto-fg: oklch(0.995 0.004 65.7);
+  --sobre-foto-solido: oklch(0.995 0.004 65.7);
+
+  /* Esqueletos de carga (RF-96). */
+  --esqueleto: var(--color-piedra-200);
+  --esqueleto-brillo: var(--color-piedra-100);
 }
 
 /* Modo oscuro por preferencia del sistema. El selector [data-theme]
@@ -206,6 +228,19 @@
     --ring: var(--color-anil-400);
 
     --overlay: oklch(0.19 0.005 65.7 / 0.7);
+
+    /* En oscuro la barra se apoya en la superficie elevada, no en un
+       blanco translucido que brillaria como una linterna. */
+    --nav-bg: oklch(0.26 0.007 65.7 / 0.9);
+    --nav-border: var(--color-piedra-800);
+    --nav-item: var(--color-piedra-400);
+    --nav-item-activo: var(--color-anil-300);
+    --nav-indicador: var(--color-anil-900);
+
+    /* Las etiquetas sobre foto NO cambian: la foto sigue siendo la misma. */
+
+    --esqueleto: var(--color-piedra-800);
+    --esqueleto-brillo: var(--color-piedra-700);
   }
 }
 
@@ -241,6 +276,15 @@
   --ring: var(--color-anil-400);
 
   --overlay: oklch(0.19 0.005 65.7 / 0.7);
+
+  --nav-bg: oklch(0.26 0.007 65.7 / 0.9);
+  --nav-border: var(--color-piedra-800);
+  --nav-item: var(--color-piedra-400);
+  --nav-item-activo: var(--color-anil-300);
+  --nav-indicador: var(--color-anil-900);
+
+  --esqueleto: var(--color-piedra-800);
+  --esqueleto-brillo: var(--color-piedra-700);
 }
 
 /* Registro de los semanticos como utilidades de Tailwind.
@@ -275,6 +319,19 @@
 
   --color-ring: var(--ring);
   --color-overlay: var(--overlay);
+
+  --color-nav-bg: var(--nav-bg);
+  --color-nav-border: var(--nav-border);
+  --color-nav-item: var(--nav-item);
+  --color-nav-item-activo: var(--nav-item-activo);
+  --color-nav-indicador: var(--nav-indicador);
+
+  --color-sobre-foto-bg: var(--sobre-foto-bg);
+  --color-sobre-foto-fg: var(--sobre-foto-fg);
+  --color-sobre-foto-solido: var(--sobre-foto-solido);
+
+  --color-esqueleto: var(--esqueleto);
+  --color-esqueleto-brillo: var(--esqueleto-brillo);
 }
 
 /* ------------------------------------------------------------
@@ -296,4 +353,10 @@
   /* Duraciones alineadas al RNF-25 (transiciones < 200 ms) */
   --duration-tap: 120ms;
   --duration-panel: 200ms;
+
+  /* Alto de la barra de navegacion, SIN la safe area: el relleno del
+     notch se suma aparte con env(). Se expone como token porque el
+     contenido de cada pagina necesita reservar exactamente este hueco
+     para que la barra no tape la ultima fila. */
+  --spacing-nav: 3.5rem;
 }

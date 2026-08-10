@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 
 import { CENTRO_HUAMANGA, LIMITES_AYACUCHO, estiloMapTiler } from "@/lib/mapa";
 import { env } from "@/lib/env";
+import { useTokensDeLienzo } from "@/components/useTokensDeLienzo";
 import type { Reporte } from "@/types/reporte";
 
 /**
@@ -25,6 +26,12 @@ export function MapaIncidentes({ incidentes }: { incidentes: Reporte[] }) {
   const t = useTranslations("incidentes");
   const [seleccionado, setSeleccionado] = useState<Reporte | null>(null);
   const [listo, setListo] = useState(false);
+
+  // Los colores del mapa se leen de los design tokens y NO se escriben a mano
+  // (RF-89). El efecto secundario importa tanto como la regla: asi el mapa
+  // sigue al modo oscuro, que antes se quedaba con su paleta clara sobre
+  // fondo negro. `useTokensDeLienzo` los relee cuando cambia el tema.
+  const paleta = useTokensDeLienzo();
 
   const geojson = useMemo(
     () => ({
@@ -44,6 +51,20 @@ export function MapaIncidentes({ incidentes }: { incidentes: Reporte[] }) {
     }),
     [incidentes],
   );
+
+  // Sin los tokens resueltos no se pinta el mapa. Un fotograma con colores
+  // provisionales obligaria a MapLibre a rehacer las capas en cuanto llegaran
+  // los buenos, y ese repintado disparaba un aviso de React ("no se puede
+  // actualizar un componente mientras se renderiza otro"). Los tokens se
+  // resuelven en el primer efecto, asi que la espera dura un fotograma.
+  if (!paleta) {
+    return (
+      <div
+        data-testid="mapa-esperando-tokens"
+        className="h-[60svh] animate-pulse rounded-card bg-esqueleto"
+      />
+    );
+  }
 
   if (!env.maptilerKey) {
     return (
@@ -93,7 +114,7 @@ export function MapaIncidentes({ incidentes }: { incidentes: Reporte[] }) {
               "circle-color": ["get", "color"],
               "circle-radius": 10,
               "circle-stroke-width": 2.5,
-              "circle-stroke-color": "#ffffff",
+              "circle-stroke-color": paleta.contorno,
               "circle-opacity": 0.9,
             }}
           />

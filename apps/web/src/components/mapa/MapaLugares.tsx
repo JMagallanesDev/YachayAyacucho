@@ -18,6 +18,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import { AbrirEn } from "@/components/mapa/AbrirEn";
 import { ControlesMapa } from "@/components/mapa/ControlesMapa";
+import { useTokensDeLienzo } from "@/components/useTokensDeLienzo";
 import { Link } from "@/i18n/navegacion";
 import {
   CENTRO_HUAMANGA,
@@ -69,6 +70,11 @@ export function MapaLugares({
   rutas: Ruta[];
   claveMapTiler: string;
 }) {
+  // Los colores del mapa se leen de los design tokens y NO se escriben a mano
+  // (RF-89). El efecto secundario importa tanto como la regla: asi el mapa
+  // sigue al modo oscuro, que antes se quedaba con su paleta clara sobre
+  // fondo negro. `useTokensDeLienzo` los relee cuando cambia el tema.
+  const paleta = useTokensDeLienzo();
   const t = useTranslations("mapa");
   const idioma = useLocale();
   const mapa = useRef<MapRef>(null);
@@ -224,6 +230,20 @@ export function MapaLugares({
     };
   }, [rutaActiva]);
 
+  // Sin los tokens resueltos no se pinta el mapa. Un fotograma con colores
+  // provisionales obligaria a MapLibre a rehacer las capas en cuanto llegaran
+  // los buenos, y ese repintado disparaba un aviso de React ("no se puede
+  // actualizar un componente mientras se renderiza otro"). Los tokens se
+  // resuelven en el primer efecto, asi que la espera dura un fotograma.
+  if (!paleta) {
+    return (
+      <div
+        data-testid="mapa-esperando-tokens"
+        className="h-[60svh] animate-pulse rounded-card bg-esqueleto"
+      />
+    );
+  }
+
   if (!claveMapTiler) {
     // Preferible a un rectangulo gris sin explicacion.
     return (
@@ -308,13 +328,13 @@ export function MapaLugares({
             type="circle"
             filter={["has", "point_count"]}
             paint={{
-              "circle-color": "#24406E",
+              "circle-color": paleta.secundario,
               // El radio crece con el numero: un grupo de 30 debe verse mayor
               // que uno de 3 sin necesidad de leer la cifra.
               "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 30, 30],
               "circle-opacity": 0.9,
               "circle-stroke-width": 2,
-              "circle-stroke-color": "#ffffff",
+              "circle-stroke-color": paleta.contorno,
             }}
           />
           <Layer
@@ -325,7 +345,7 @@ export function MapaLugares({
               "text-field": ["get", "point_count_abbreviated"],
               "text-size": 13,
             }}
-            paint={{ "text-color": "#ffffff" }}
+            paint={{ "text-color": paleta.sobreFotoFg }}
           />
           <Layer
             id="lugares-punto"
@@ -337,7 +357,7 @@ export function MapaLugares({
               "circle-color": ["get", "color"],
               "circle-radius": 9,
               "circle-stroke-width": 2.5,
-              "circle-stroke-color": "#ffffff",
+              "circle-stroke-color": paleta.contorno,
             }}
           />
         </Source>
